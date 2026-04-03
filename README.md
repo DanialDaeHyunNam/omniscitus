@@ -1,8 +1,22 @@
+<div align="center">
+
 # omniscitus
 
-> Give your codebase a world model.
+### Give your codebase a world model.
 
-One plugin. Zero configuration. Install it, and your codebase gains a living memory of every file, every session, and every test.
+One plugin. Zero configuration.<br>
+Your codebase gains a living memory of every file, every session, and every test.
+
+[![Docs](https://img.shields.io/badge/docs-omniscitus.vercel.app-7c3aed?style=flat-square)](https://omniscitus.vercel.app/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green?style=flat-square)](LICENSE)
+
+&nbsp;
+
+**`4 Skills`** &nbsp;&middot;&nbsp; **`Auto Blueprints`** &nbsp;&middot;&nbsp; **`Birdview Dashboard`**
+
+</div>
+
+---
 
 Instead of you tracking files, sessions, and tests, the system maintains a living world model. You focus on judgment.
 
