@@ -33,7 +33,9 @@ User-created files (outside Claude) are detected at session start and during wra
 | `/wrap-up` | Record session work into topic-based knowledge units |
 | `/follow-up` | Review pending tasks across all open units |
 | `/test-add {file}` | Create type-safe test scaffold for any source file |
+| `/test-add:prompt {name}` | Create LLM judge-based prompt test scaffold |
 | `/birdview` | Start visual admin dashboard at `localhost:3777` |
+| `/omniscitus-migrate` | Migrate an existing project into omniscitus |
 
 ## Features
 
@@ -126,6 +128,17 @@ Three views:
 - **Blueprint** — file tree with status filters, change timelines, source badges
 - **History** — domain sidebar, unit cards, session timelines, pending task checklists
 - **Tests** — function-level view with typed signatures, test case cards, and **in-UI test case creation** with type-safe forms
+
+### Migrate — Bring Any Existing Project
+
+Already have a codebase with docs, git history, and tests? `/omniscitus-migrate` bootstraps the full `.omniscitus/` structure from what already exists:
+
+1. **Blueprint from git history** — scans every file's creation date, change count, authorship
+2. **History units from commits** — clusters git log into topic-based units (all marked closed)
+3. **Test meta from existing tests** — indexes test files into meta.yaml without modifying them
+4. **Legacy inventory** — identifies files now redundant with omniscitus, saved to `.omniscitus/migrate/legacy.yaml` for you to review
+
+Nothing is deleted. Omniscitus is an overlay on top of your existing project.
 
 ## Data Location
 
