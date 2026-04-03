@@ -8,11 +8,23 @@ Instead of you tracking files, sessions, and tests, the system maintains a livin
 
 ## Install
 
+### New project
+
 ```bash
-claude plugin install omniscitus
+# 1. Add omniscitus as a plugin source (one-time)
+claude plugins:marketplace add omniscitus https://github.com/DanialDaeHyunNam/omniscitus
+
+# 2. Install
+claude plugin install omniscitus@omniscitus
 ```
 
 That's it. Start working — omniscitus activates automatically.
+
+### Existing project
+
+Already have a codebase? After installing, run `/omniscitus-migrate` to bootstrap
+blueprints, history units, and test meta from your existing git history, docs, and tests.
+Nothing is deleted — omniscitus is a non-destructive overlay.
 
 ## What Happens Automatically
 

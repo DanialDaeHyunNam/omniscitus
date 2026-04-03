@@ -774,10 +774,10 @@ section {
         <span class="terminal-title">Terminal</span>
       </div>
       <div class="terminal-body">
-        <div><span class="terminal-prompt"><span class="symbol">$</span></span> <span class="terminal-cmd">claude plugin install omniscitus</span></div>
-        <div class="terminal-output"><span class="check">&#10003;</span> omniscitus installed</div>
-        <div class="terminal-output"><span class="check">&#10003;</span> hooks registered</div>
-        <div class="terminal-output"><span class="check">&#10003;</span> world model ready</div>
+        <div><span class="terminal-prompt"><span class="symbol">$</span></span> <span class="terminal-cmd">claude plugins:marketplace add omniscitus https://github.com/DanialDaeHyunNam/omniscitus</span></div>
+        <div class="terminal-output"><span class="check">&#10003;</span> marketplace added</div>
+        <div><span class="terminal-prompt"><span class="symbol">$</span></span> <span class="terminal-cmd">claude plugin install omniscitus@omniscitus</span></div>
+        <div class="terminal-output"><span class="check">&#10003;</span> omniscitus installed &mdash; hooks registered &mdash; world model ready</div>
       </div>
     </div>
   </div>
@@ -998,7 +998,7 @@ section {
       </div>
       <div class="terminal-body">
         <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
-          <span><span class="terminal-prompt"><span class="symbol">$</span></span> <span class="terminal-cmd">claude plugin install omniscitus</span></span>
+          <span><span class="terminal-prompt"><span class="symbol">$</span></span> <span class="terminal-cmd">claude plugins:marketplace add omniscitus https://github.com/DanialDaeHyunNam/omniscitus && claude plugin install omniscitus@omniscitus</span></span>
           <button class="install-copy" id="copy-btn" onclick="copyInstall()">Copy</button>
         </div>
       </div>
@@ -1007,6 +1007,15 @@ section {
     <p class="install-note">
       Zero configuration. Zero dependencies. Works with any project.
     </p>
+
+    <div style="margin-top: 40px; background: #1a1a2e; border: 1px solid #2e1065; border-radius: 12px; padding: 24px 28px;">
+      <h3 style="color: #c4b5fd; margin: 0 0 8px; font-size: 16px;">Already have a codebase?</h3>
+      <p style="color: #9ca3af; margin: 0 0 12px; font-size: 14px; line-height: 1.6;">
+        Run <code style="background:#111;padding:2px 6px;border-radius:4px;color:#e0e0e0;">/omniscitus-migrate</code> after installing.
+        It bootstraps blueprints, history units, and test meta from your existing git history, docs, and tests.
+        Nothing is deleted &mdash; omniscitus is a non-destructive overlay.
+      </p>
+    </div>
   </div>
 </section>
 
@@ -1063,7 +1072,7 @@ reveals.forEach(el => observer.observe(el));
 
 // Copy install command
 function copyInstall() {
-  navigator.clipboard.writeText('claude plugin install omniscitus').then(() => {
+  navigator.clipboard.writeText('claude plugins:marketplace add omniscitus https://github.com/DanialDaeHyunNam/omniscitus && claude plugin install omniscitus@omniscitus').then(() => {
     const btn = document.getElementById('copy-btn');
     btn.textContent = 'Copied!';
     setTimeout(() => { btn.textContent = 'Copy'; }, 2000);
