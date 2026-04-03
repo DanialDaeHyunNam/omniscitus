@@ -1,0 +1,1022 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tests - Birdview</title>
+<style>
+  *,*::before,*::after{box-sizing:border-box}
+  body{background:#0d0d0d;color:#e0e0e0;margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh}
+  .container{max-width:1200px;margin:0 auto;padding:24px}
+  a{color:#93c5fd;text-decoration:none}
+  a:hover{text-decoration:underline}
+
+  .header{display:flex;align-items:center;gap:16px;margin-bottom:24px;padding-bottom:16px;border-bottom:1px solid #252525}
+  .back{color:#9ca3af;font-size:14px;display:flex;align-items:center;gap:4px;text-decoration:none}
+  .back:hover{color:#e0e0e0}
+  .header h1{font-size:24px;font-weight:700;margin:0;color:#fff}
+  .header .meta{color:#6b7280;font-size:13px;margin-left:auto}
+
+  .badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:12px;font-weight:500}
+  .badge-active{background:#064e3b;color:#6ee7b7}
+  .badge-deleted{background:#450a0a;color:#f87171}
+  .badge-claude{background:#2e1065;color:#c4b5fd}
+  .badge-user{background:#1e3a5f;color:#93c5fd}
+  .badge-lang{background:#1e293b;color:#94a3b8}
+  .badge-framework{background:#2e1065;color:#c4b5fd}
+  .badge-unittest{background:#1e3a5f;color:#93c5fd}
+  .badge-integration{background:#3b1d00;color:#fbbf24}
+  .badge-e2e{background:#064e3b;color:#6ee7b7}
+
+  /* Type-color badges */
+  .type-string{color:#6ee7b7}
+  .type-number{color:#93c5fd}
+  .type-boolean{color:#fbbf24}
+  .type-object{color:#c4b5fd}
+  .type-array{color:#22d3ee}
+  .type-void{color:#6b7280}
+  .badge-type{padding:2px 6px;border-radius:3px;font-size:11px;font-weight:500;font-family:'SF Mono',SFMono-Regular,Menlo,monospace}
+  .badge-type-string{background:#064e3b;color:#6ee7b7}
+  .badge-type-number{background:#1e3a5f;color:#93c5fd}
+  .badge-type-boolean{background:#3b2d00;color:#fbbf24}
+  .badge-type-object{background:#2e1065;color:#c4b5fd}
+  .badge-type-array{background:#083344;color:#22d3ee}
+  .badge-type-void{background:#1f1f1f;color:#6b7280}
+
+  .tree{display:flex;flex-direction:column;gap:8px}
+  .tree-node{background:#1a1a1a;border-radius:12px;border:1px solid #252525;overflow:hidden;transition:border-color 0.15s}
+  .tree-node:hover{border-color:#374151}
+  .tree-header{padding:16px 20px;cursor:pointer;display:flex;align-items:center;gap:12px;transition:background 0.1s}
+  .tree-header:hover{background:#222}
+  .tree-arrow{color:#6b7280;font-size:12px;transition:transform 0.2s;width:16px;text-align:center;flex-shrink:0}
+  .tree-arrow.open{transform:rotate(90deg)}
+  .tree-icon{font-size:16px;flex-shrink:0}
+  .tree-target{font-family:'SF Mono',SFMono-Regular,Menlo,monospace;font-size:13px;color:#d1d5db;word-break:break-all;flex:1}
+  .tree-badges{display:flex;gap:6px;flex-shrink:0;flex-wrap:wrap}
+  .tree-stat{font-size:12px;color:#6b7280;font-variant-numeric:tabular-nums;white-space:nowrap}
+
+  .tree-body{display:none;border-top:1px solid #252525;background:#111}
+  .tree-body.open{display:block}
+
+  /* Function row */
+  .fn-row{border-bottom:1px solid #1f1f1f}
+  .fn-row:last-child{border-bottom:none}
+  .fn-header{padding:14px 20px;cursor:pointer;display:flex;align-items:center;gap:10px;transition:background 0.1s}
+  .fn-header:hover{background:#191919}
+  .fn-arrow{color:#6b7280;font-size:10px;transition:transform 0.2s;width:14px;text-align:center;flex-shrink:0}
+  .fn-arrow.open{transform:rotate(90deg)}
+  .fn-signature{font-family:'SF Mono',SFMono-Regular,Menlo,monospace;font-size:13px;color:#d1d5db;flex:1;line-height:1.5}
+  .fn-name{color:#fff;font-weight:600}
+  .fn-paren{color:#6b7280}
+  .fn-param-name{color:#e0e0e0}
+  .fn-optional{color:#6b7280}
+  .fn-colon{color:#6b7280}
+  .fn-comma{color:#6b7280}
+  .fn-arrow-sym{color:#6b7280;margin:0 4px}
+  .fn-brace{color:#6b7280}
+  .fn-prop-name{color:#9ca3af}
+  .fn-badges{display:flex;gap:6px;flex-shrink:0}
+  .fn-case-count{font-size:12px;color:#6b7280;font-variant-numeric:tabular-nums;flex-shrink:0}
+
+  .fn-body{display:none;padding:0 20px 12px 44px}
+  .fn-body.open{display:block}
+
+  /* Case cards */
+  .cases{display:flex;flex-direction:column;gap:10px}
+  .case-card{background:#1a1a1a;border-radius:8px;padding:14px 16px;border:1px solid #252525;transition:border-color 0.15s}
+  .case-card:hover{border-color:#333}
+  .case-title-row{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+  .case-title{font-size:14px;font-weight:500;color:#e0e0e0;margin:0;flex:1}
+  .case-status{font-size:14px}
+  .case-desc{font-size:12px;color:#9ca3af;margin:0 0 10px}
+
+  .case-block{margin:6px 0}
+  .case-label{font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:#6b7280;margin-bottom:6px;font-weight:600}
+  .case-code{background:#0d0d0d;border:1px solid #252525;border-radius:6px;padding:10px 12px;font-family:'SF Mono',SFMono-Regular,Menlo,monospace;font-size:12px;color:#d1d5db;overflow-x:auto;white-space:pre-wrap;word-break:break-all;line-height:1.5}
+  .strategy-label{font-size:11px;color:#fbbf24;margin-left:8px;font-weight:500}
+
+  /* Param row inside case card */
+  .param-row{display:flex;align-items:baseline;gap:8px;padding:4px 0;font-size:13px}
+  .param-row+.param-row{border-top:1px solid #1a1a1a}
+  .param-name{font-family:'SF Mono',SFMono-Regular,Menlo,monospace;color:#9ca3af;font-size:12px;min-width:80px;flex-shrink:0}
+  .param-value{font-family:'SF Mono',SFMono-Regular,Menlo,monospace;color:#d1d5db;font-size:12px;flex:1;word-break:break-all}
+
+  /* Add test button */
+  .add-test-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;margin-top:8px;background:transparent;border:1px dashed #333;border-radius:8px;color:#6b7280;font-size:13px;cursor:pointer;transition:all 0.15s}
+  .add-test-btn:hover{border-color:#7c3aed;color:#c4b5fd;background:#1a1a1a}
+  .add-test-btn .plus{font-size:16px;line-height:1}
+
+  /* Summary */
+  .summary{display:flex;gap:16px;margin-bottom:24px;flex-wrap:wrap}
+  .summary-stat{background:#1a1a1a;border-radius:8px;padding:12px 20px;border:1px solid #252525;text-align:center;flex:1;min-width:120px}
+  .summary-num{font-size:28px;font-weight:700;color:#fff;font-variant-numeric:tabular-nums}
+  .summary-label{font-size:12px;color:#6b7280;margin-top:2px}
+  .summary-stat-highlight .summary-num{color:#7c3aed}
+
+  .empty{text-align:center;padding:48px 24px;color:#6b7280}
+  .empty-icon{font-size:32px;margin-bottom:12px}
+
+  /* Toast */
+  .toast-container{position:fixed;top:16px;right:16px;z-index:9999;display:flex;flex-direction:column;gap:8px}
+  .toast{padding:10px 16px;border-radius:8px;font-size:13px;animation:toastIn 0.3s ease;background:#1a1a1a;border:1px solid #333}
+  .toast-error{border-color:#7f1d1d;color:#f87171}
+  .toast-info{border-color:#1e3a5f;color:#93c5fd}
+  .toast-success{border-color:#064e3b;color:#6ee7b7}
+  @keyframes toastIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+
+  /* Modal overlay */
+  .modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:#000000cc;z-index:5000;display:none;align-items:center;justify-content:center;animation:fadeIn 0.15s ease}
+  .modal-overlay.open{display:flex}
+  @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+
+  .modal{background:#1a1a1a;border:1px solid #333;border-radius:16px;max-width:600px;width:calc(100% - 32px);max-height:calc(100vh - 64px);overflow-y:auto;padding:0;animation:modalSlideIn 0.2s ease}
+  @keyframes modalSlideIn{from{opacity:0;transform:translateY(16px) scale(0.97)}to{opacity:1;transform:translateY(0) scale(1)}}
+
+  .modal-header{padding:20px 24px 16px;border-bottom:1px solid #252525;display:flex;align-items:center;gap:12px}
+  .modal-header h2{font-size:18px;font-weight:700;color:#fff;margin:0;flex:1}
+  .modal-close{background:none;border:none;color:#6b7280;font-size:20px;cursor:pointer;padding:4px 8px;border-radius:4px;transition:color 0.15s}
+  .modal-close:hover{color:#fff}
+
+  .modal-body{padding:20px 24px}
+  .modal-footer{padding:16px 24px 20px;border-top:1px solid #252525;display:flex;justify-content:flex-end;gap:10px}
+
+  /* Form controls */
+  .form-group{margin-bottom:16px}
+  .form-label{display:block;font-size:13px;font-weight:600;color:#d1d5db;margin-bottom:6px}
+  .form-label .required{color:#f87171;margin-left:2px}
+  .form-sublabel{font-size:11px;color:#6b7280;font-weight:400;margin-left:4px}
+  .form-input{width:100%;padding:8px 12px;background:#111;border:1px solid #333;border-radius:6px;color:#e0e0e0;font-size:13px;font-family:inherit;outline:none;transition:border-color 0.15s}
+  .form-input:focus{border-color:#7c3aed}
+  .form-input::placeholder{color:#4b5563}
+  .form-textarea{resize:vertical;min-height:60px;font-family:'SF Mono',SFMono-Regular,Menlo,monospace;font-size:12px;line-height:1.5}
+  .form-error{font-size:11px;color:#f87171;margin-top:4px;display:none}
+  .form-error.visible{display:block}
+  .form-input.invalid{border-color:#7f1d1d}
+
+  .form-select{width:100%;padding:8px 12px;background:#111;border:1px solid #333;border-radius:6px;color:#e0e0e0;font-size:13px;outline:none;transition:border-color 0.15s;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%236b7280' viewBox='0 0 16 16'%3E%3Cpath d='M4 6l4 4 4-4'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center}
+  .form-select:focus{border-color:#7c3aed}
+
+  /* Toggle */
+  .toggle-wrap{display:flex;align-items:center;gap:10px}
+  .toggle{position:relative;width:40px;height:22px;flex-shrink:0}
+  .toggle input{opacity:0;width:0;height:0;position:absolute}
+  .toggle-slider{position:absolute;top:0;left:0;right:0;bottom:0;background:#333;border-radius:11px;cursor:pointer;transition:background 0.2s}
+  .toggle-slider::before{content:'';position:absolute;width:16px;height:16px;left:3px;top:3px;background:#6b7280;border-radius:50%;transition:all 0.2s}
+  .toggle input:checked+.toggle-slider{background:#7c3aed}
+  .toggle input:checked+.toggle-slider::before{transform:translateX(18px);background:#fff}
+  .toggle-label{font-size:13px;color:#d1d5db}
+
+  /* Include checkbox for optional params */
+  .include-wrap{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+  .include-wrap input[type="checkbox"]{accent-color:#7c3aed;width:14px;height:14px}
+  .include-label{font-size:12px;color:#9ca3af}
+
+  .form-section{margin-bottom:20px}
+  .form-section-title{font-size:14px;font-weight:600;color:#fff;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+  .form-section-title .badge{font-size:11px}
+  .form-param-group{background:#0d0d0d;border:1px solid #252525;border-radius:8px;padding:12px 14px;margin-bottom:8px}
+  .form-param-header{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+  .form-param-name{font-family:'SF Mono',SFMono-Regular,Menlo,monospace;font-size:13px;color:#e0e0e0;font-weight:500}
+
+  /* Buttons */
+  .btn{padding:8px 16px;border-radius:6px;font-size:13px;font-weight:500;cursor:pointer;border:none;transition:all 0.15s}
+  .btn-primary{background:#7c3aed;color:#fff}
+  .btn-primary:hover{background:#6d28d9}
+  .btn-primary:disabled{background:#3b1d6e;color:#6b7280;cursor:not-allowed}
+  .btn-ghost{background:transparent;color:#9ca3af;border:1px solid #333}
+  .btn-ghost:hover{color:#e0e0e0;border-color:#555}
+
+  /* Error case toggle in form */
+  .error-section{margin-top:12px;padding-top:12px;border-top:1px solid #252525}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <a href="/" class="back">&larr; Birdview</a>
+    <h1>&#x1F9EA; Tests</h1>
+    <span class="meta" id="meta"></span>
+  </div>
+
+  <div class="summary" id="summary" style="display:none">
+    <div class="summary-stat">
+      <div class="summary-num" id="stat-files">0</div>
+      <div class="summary-label">Files</div>
+    </div>
+    <div class="summary-stat">
+      <div class="summary-num" id="stat-functions">0</div>
+      <div class="summary-label">Functions</div>
+    </div>
+    <div class="summary-stat">
+      <div class="summary-num" id="stat-cases">0</div>
+      <div class="summary-label">Test Cases</div>
+    </div>
+    <div class="summary-stat summary-stat-highlight">
+      <div class="summary-num" id="stat-coverage">0%</div>
+      <div class="summary-label">Coverage</div>
+    </div>
+  </div>
+
+  <div class="tree" id="tree"></div>
+
+  <div class="empty" id="empty" style="display:none">
+    <div class="empty-icon">&#x1F4ED;</div>
+    <p>No test definitions found. Run <code>/test-add {file}</code> to create one.</p>
+  </div>
+</div>
+
+<div class="toast-container" id="toasts"></div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal" id="modal">
+    <div class="modal-header">
+      <h2 id="modal-title">Add Test Case</h2>
+      <button class="modal-close" id="modal-close">&times;</button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" id="modal-cancel">Cancel</button>
+      <button class="btn btn-primary" id="modal-submit">Add Test Case</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ── Helpers ── */
+function esc(s) {
+  if (s == null) return '';
+  var div = document.createElement('div');
+  div.appendChild(document.createTextNode(String(s)));
+  return div.innerHTML;
+}
+function escAttr(s) {
+  return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function toast(msg, type) {
+  var el = document.createElement('div');
+  el.className = 'toast toast-' + (type || 'info');
+  el.textContent = msg;
+  document.getElementById('toasts').appendChild(el);
+  setTimeout(function() { el.remove(); }, 4000);
+}
+function formatValue(val) {
+  if (val == null) return '-';
+  if (typeof val === 'object') {
+    try { return JSON.stringify(val, null, 2); } catch (e) { return String(val); }
+  }
+  return String(val);
+}
+
+/* ── Type colors ── */
+var TYPE_COLORS = {
+  string:  '#6ee7b7',
+  number:  '#93c5fd',
+  boolean: '#fbbf24',
+  object:  '#c4b5fd',
+  array:   '#22d3ee',
+  void:    '#6b7280'
+};
+function typeColor(t) {
+  return TYPE_COLORS[t] || '#9ca3af';
+}
+function typeBadgeClass(t) {
+  return 'badge badge-type badge-type-' + (TYPE_COLORS[t] ? t : 'void');
+}
+
+/* ── Signature rendering ── */
+function renderTypeSpan(t) {
+  return '<span style="color:' + typeColor(t) + '">' + esc(t) + '</span>';
+}
+
+function renderObjectType(props) {
+  if (!props || Object.keys(props).length === 0) return renderTypeSpan('object');
+  var parts = [];
+  var keys = Object.keys(props);
+  for (var k = 0; k < keys.length; k++) {
+    var ptype = props[keys[k]];
+    parts.push('<span class="fn-prop-name">' + esc(keys[k]) + '</span><span class="fn-colon">: </span>' + renderTypeSpan(ptype));
+  }
+  return '<span class="fn-brace">{ </span>' + parts.join('<span class="fn-comma">, </span>') + '<span class="fn-brace"> }</span>';
+}
+
+function renderParamType(param) {
+  if (param.type === 'object' && param.properties) {
+    return renderObjectType(param.properties);
+  }
+  return renderTypeSpan(param.type || 'any');
+}
+
+function renderReturnType(ret) {
+  if (!ret) return renderTypeSpan('void');
+  if (ret.type === 'object' && ret.properties) {
+    return renderObjectType(ret.properties);
+  }
+  return renderTypeSpan(ret.type || 'void');
+}
+
+function renderSignatureHTML(name, sig) {
+  if (!sig) return '<span class="fn-name">' + esc(name) + '</span><span class="fn-paren">()</span>';
+  var html = '<span class="fn-name">' + esc(name) + '</span><span class="fn-paren">(</span>';
+  var params = sig.params || [];
+  for (var p = 0; p < params.length; p++) {
+    if (p > 0) html += '<span class="fn-comma">, </span>';
+    html += '<span class="fn-param-name">' + esc(params[p].name) + '</span>';
+    if (params[p].optional) html += '<span class="fn-optional">?</span>';
+    html += '<span class="fn-colon">: </span>' + renderParamType(params[p]);
+  }
+  html += '<span class="fn-paren">)</span>';
+  html += '<span class="fn-arrow-sym"> &rarr; </span>' + renderReturnType(sig.returns);
+  return html;
+}
+
+function signatureText(name, sig) {
+  if (!sig) return name + '()';
+  var txt = name + '(';
+  var params = sig.params || [];
+  for (var p = 0; p < params.length; p++) {
+    if (p > 0) txt += ', ';
+    txt += params[p].name;
+    if (params[p].optional) txt += '?';
+    txt += ': ' + (params[p].type || 'any');
+  }
+  txt += ')';
+  return txt;
+}
+
+/* ── Stats ── */
+function countTotals(tests) {
+  var files = tests.length, functions = 0, cases = 0, covered = 0;
+  for (var i = 0; i < tests.length; i++) {
+    var t = tests[i];
+    var suites = t.suites || [];
+    functions += suites.length;
+    for (var s = 0; s < suites.length; s++) {
+      var cc = (suites[s].cases || []).length;
+      cases += cc;
+      if (cc > 0) covered++;
+    }
+  }
+  return { files: files, functions: functions, cases: cases, covered: covered };
+}
+
+/* ── Store test data globally for modal ── */
+var _testsData = [];
+
+/* ── Render ── */
+function renderTree(tests) {
+  _testsData = tests;
+  var container = document.getElementById('tree');
+  var empty = document.getElementById('empty');
+  var summaryEl = document.getElementById('summary');
+
+  if (!tests || tests.length === 0) {
+    container.innerHTML = '';
+    empty.style.display = '';
+    summaryEl.style.display = 'none';
+    return;
+  }
+  empty.style.display = 'none';
+  summaryEl.style.display = 'flex';
+
+  var totals = countTotals(tests);
+  document.getElementById('stat-files').textContent = totals.files;
+  document.getElementById('stat-functions').textContent = totals.functions;
+  document.getElementById('stat-cases').textContent = totals.cases;
+  var pct = totals.functions > 0 ? Math.round((totals.covered / totals.functions) * 100) : 0;
+  document.getElementById('stat-coverage').textContent = pct + '%';
+
+  var html = '';
+  for (var i = 0; i < tests.length; i++) {
+    var t = tests[i];
+    var suites = t.suites || [];
+    var caseCount = 0;
+    for (var s = 0; s < suites.length; s++) caseCount += (suites[s].cases || []).length;
+
+    html += '<div class="tree-node" data-idx="' + i + '">';
+    html += '<div class="tree-header" data-file-idx="' + i + '">';
+    html += '<span class="tree-arrow" id="arrow-' + i + '">&#9654;</span>';
+    html += '<span class="tree-icon">&#x1F4C4;</span>';
+    html += '<span class="tree-target">' + esc(t.target || t._dir || 'unknown') + '</span>';
+    html += '<div class="tree-badges">';
+    if (t.language) html += '<span class="badge badge-lang">' + esc(t.language) + '</span>';
+    if (t.framework) html += '<span class="badge badge-framework">' + esc(t.framework) + '</span>';
+    html += '</div>';
+    html += '<span class="tree-stat">' + suites.length + ' function' + (suites.length !== 1 ? 's' : '') + ', ' + caseCount + ' case' + (caseCount !== 1 ? 's' : '') + '</span>';
+    html += '</div>';
+
+    html += '<div class="tree-body" id="body-' + i + '">';
+    for (var s = 0; s < suites.length; s++) {
+      var suite = suites[s];
+      var cases = suite.cases || [];
+      var fnId = 'fn-' + i + '-' + s;
+
+      html += '<div class="fn-row">';
+
+      /* Function header with signature */
+      html += '<div class="fn-header" data-fn-id="' + fnId + '">';
+      html += '<span class="fn-arrow" id="fnarrow-' + fnId + '">&#9654;</span>';
+      html += '<div class="fn-signature">' + renderSignatureHTML(suite.name, suite.signature) + '</div>';
+      var typeClass = suite.type === 'integration' ? 'integration' : (suite.type === 'e2e' ? 'e2e' : 'unittest');
+      html += '<span class="badge badge-' + typeClass + '">' + esc(suite.type || 'unittest') + '</span>';
+      html += '<span class="fn-case-count">' + cases.length + ' case' + (cases.length !== 1 ? 's' : '') + '</span>';
+      html += '</div>';
+
+      /* Function body: cases */
+      html += '<div class="fn-body" id="fnbody-' + fnId + '">';
+      html += '<div class="cases">';
+
+      for (var c = 0; c < cases.length; c++) {
+        var cs = cases[c];
+        html += '<div class="case-card">';
+
+        /* Title row with type badge and status */
+        html += '<div class="case-title-row">';
+        html += '<span class="badge badge-' + typeClass + '" style="font-size:10px">' + esc(suite.type || 'unittest') + '</span>';
+        html += '<span class="case-title">' + esc(cs.title) + '</span>';
+        html += '<span class="case-status">&#x2705;</span>';
+        html += '</div>';
+        if (cs.description) html += '<div class="case-desc">' + esc(cs.description) + '</div>';
+
+        /* Input: show each param with name, type badge, value */
+        if (cs.input != null && (typeof cs.input !== 'object' || Object.keys(cs.input).length > 0)) {
+          html += '<div class="case-block">';
+          html += '<div class="case-label">Input</div>';
+          if (typeof cs.input === 'object' && !Array.isArray(cs.input) && suite.signature && suite.signature.params) {
+            html += '<div class="case-code">';
+            var paramDefs = suite.signature.params;
+            var inputKeys = Object.keys(cs.input);
+            for (var pk = 0; pk < inputKeys.length; pk++) {
+              var paramKey = inputKeys[pk];
+              var paramDef = null;
+              for (var pd = 0; pd < paramDefs.length; pd++) {
+                if (paramDefs[pd].name === paramKey) { paramDef = paramDefs[pd]; break; }
+              }
+              var ptype = paramDef ? (paramDef.type || 'any') : typeof cs.input[paramKey];
+              html += '<div class="param-row">';
+              html += '<span class="param-name">' + esc(paramKey) + '</span>';
+              html += '<span class="' + typeBadgeClass(ptype) + '">' + esc(ptype) + '</span>';
+              html += '<span class="param-value">' + esc(formatValue(cs.input[paramKey])) + '</span>';
+              html += '</div>';
+            }
+            html += '</div>';
+          } else {
+            html += '<div class="case-code">' + esc(formatValue(cs.input)) + '</div>';
+          }
+          html += '</div>';
+        }
+
+        /* Expected */
+        if (cs.expected != null && (typeof cs.expected !== 'object' || Object.keys(cs.expected).length > 0)) {
+          var strategy = '';
+          var expectedDisplay = cs.expected;
+          if (typeof cs.expected === 'object' && cs.expected.strategy) {
+            strategy = cs.expected.strategy;
+            var rest = {};
+            for (var ek in cs.expected) { if (ek !== 'strategy') rest[ek] = cs.expected[ek]; }
+            expectedDisplay = rest;
+          }
+          html += '<div class="case-block">';
+          html += '<div class="case-label">Expected';
+          if (strategy) html += '<span class="strategy-label">' + esc(strategy) + '</span>';
+          html += '</div>';
+          html += '<div class="case-code">' + esc(formatValue(expectedDisplay)) + '</div>';
+          html += '</div>';
+        }
+
+        html += '</div>'; /* case-card */
+      }
+
+      html += '</div>'; /* cases */
+
+      /* Add test case button */
+      html += '<button class="add-test-btn" data-file-idx="' + i + '" data-suite-idx="' + s + '">';
+      html += '<span class="plus">+</span> Add test case';
+      html += '</button>';
+
+      html += '</div>'; /* fn-body */
+      html += '</div>'; /* fn-row */
+    }
+    html += '</div>'; /* tree-body */
+    html += '</div>'; /* tree-node */
+  }
+
+  container.innerHTML = html;
+}
+
+/* ── Tree expand/collapse ── */
+document.getElementById('tree').addEventListener('click', function(ev) {
+  /* File-level toggle */
+  var header = ev.target.closest('.tree-header');
+  if (header) {
+    var node = header.closest('.tree-node');
+    var idx = node.getAttribute('data-idx');
+    var body = document.getElementById('body-' + idx);
+    var arrow = document.getElementById('arrow-' + idx);
+    body.classList.toggle('open');
+    arrow.classList.toggle('open');
+    return;
+  }
+
+  /* Function-level toggle */
+  var fnHeader = ev.target.closest('.fn-header');
+  if (fnHeader) {
+    var fnId = fnHeader.getAttribute('data-fn-id');
+    var fnBody = document.getElementById('fnbody-' + fnId);
+    var fnArrow = document.getElementById('fnarrow-' + fnId);
+    fnBody.classList.toggle('open');
+    fnArrow.classList.toggle('open');
+    return;
+  }
+
+  /* Add test case button */
+  var addBtn = ev.target.closest('.add-test-btn');
+  if (addBtn) {
+    var fileIdx = parseInt(addBtn.getAttribute('data-file-idx'), 10);
+    var suiteIdx = parseInt(addBtn.getAttribute('data-suite-idx'), 10);
+    openAddTestModal(fileIdx, suiteIdx);
+    return;
+  }
+});
+
+/* ── Modal state ── */
+var _modalFileIdx = -1;
+var _modalSuiteIdx = -1;
+
+function openAddTestModal(fileIdx, suiteIdx) {
+  _modalFileIdx = fileIdx;
+  _modalSuiteIdx = suiteIdx;
+
+  var t = _testsData[fileIdx];
+  var suite = t.suites[suiteIdx];
+  var sig = suite.signature;
+  var params = sig ? (sig.params || []) : [];
+  var returns = sig ? sig.returns : null;
+
+  document.getElementById('modal-title').textContent = 'Add test case: ' + suite.name;
+
+  var html = '';
+
+  /* Title */
+  html += '<div class="form-group">';
+  html += '<label class="form-label">Title<span class="required">*</span></label>';
+  html += '<input class="form-input" id="fc-title" placeholder="e.g. Validates correct JWT" />';
+  html += '<div class="form-error" id="err-title">Title is required</div>';
+  html += '</div>';
+
+  /* Description */
+  html += '<div class="form-group">';
+  html += '<label class="form-label">Description<span class="form-sublabel">(optional)</span></label>';
+  html += '<input class="form-input" id="fc-desc" placeholder="Describe what this test verifies" />';
+  html += '</div>';
+
+  /* ── Input section ── */
+  html += '<div class="form-section">';
+  html += '<div class="form-section-title">Input Parameters</div>';
+
+  if (params.length === 0) {
+    html += '<div class="form-param-group">';
+    html += '<div style="color:#6b7280;font-size:12px">No parameters defined. Use JSON for custom input.</div>';
+    html += '<textarea class="form-input form-textarea" id="fc-input-raw" placeholder="{}"></textarea>';
+    html += '<div class="form-error" id="err-input-raw">Must be valid JSON</div>';
+    html += '</div>';
+  } else {
+    for (var p = 0; p < params.length; p++) {
+      var param = params[p];
+      html += '<div class="form-param-group" data-param-idx="' + p + '">';
+      html += '<div class="form-param-header">';
+      html += '<span class="form-param-name">' + esc(param.name) + '</span>';
+      html += '<span class="' + typeBadgeClass(param.type) + '">' + esc(param.type || 'any') + '</span>';
+      if (param.optional) html += '<span style="color:#6b7280;font-size:11px;margin-left:4px">optional</span>';
+      html += '</div>';
+
+      if (param.optional) {
+        html += '<div class="include-wrap">';
+        html += '<input type="checkbox" id="fc-inc-' + p + '" checked />';
+        html += '<label class="include-label" for="fc-inc-' + p + '">Include this parameter</label>';
+        html += '</div>';
+      }
+
+      html += renderParamInput(param, p);
+      html += '</div>';
+    }
+  }
+  html += '</div>';
+
+  /* ── Expected section ── */
+  html += '<div class="form-section">';
+  html += '<div class="form-section-title">Expected Output</div>';
+
+  html += '<div class="form-group">';
+  html += '<label class="form-label">Strategy</label>';
+  html += '<select class="form-select" id="fc-strategy">';
+  html += '<option value="exact">exact</option>';
+  html += '<option value="contains">contains</option>';
+  html += '<option value="schema">schema</option>';
+  html += '<option value="regex">regex</option>';
+  html += '</select>';
+  html += '</div>';
+
+  if (returns && returns.type === 'object' && returns.properties) {
+    var rkeys = Object.keys(returns.properties);
+    for (var r = 0; r < rkeys.length; r++) {
+      var rkey = rkeys[r];
+      var rtype = returns.properties[rkey];
+      html += '<div class="form-param-group">';
+      html += '<div class="form-param-header">';
+      html += '<span class="form-param-name">' + esc(rkey) + '</span>';
+      html += '<span class="' + typeBadgeClass(rtype) + '">' + esc(rtype) + '</span>';
+      html += '</div>';
+      html += renderReturnInput(rkey, rtype, r);
+      html += '</div>';
+    }
+  } else if (returns && returns.type !== 'void') {
+    html += '<div class="form-param-group">';
+    html += '<div class="form-param-header">';
+    html += '<span class="form-param-name">return value</span>';
+    html += '<span class="' + typeBadgeClass(returns.type) + '">' + esc(returns.type) + '</span>';
+    html += '</div>';
+    html += renderReturnInput('_return', returns.type, 0);
+    html += '</div>';
+  } else {
+    html += '<div class="form-param-group">';
+    html += '<div style="color:#6b7280;font-size:12px">Expected value (JSON)</div>';
+    html += '<textarea class="form-input form-textarea" id="fc-expected-raw" placeholder="{}"></textarea>';
+    html += '<div class="form-error" id="err-expected-raw">Must be valid JSON</div>';
+    html += '</div>';
+  }
+
+  /* Error case */
+  html += '<div class="error-section">';
+  html += '<div class="include-wrap">';
+  html += '<input type="checkbox" id="fc-is-error" />';
+  html += '<label class="include-label" for="fc-is-error">This is an error case</label>';
+  html += '</div>';
+  html += '<div id="error-field-wrap" style="display:none;margin-top:8px">';
+  html += '<label class="form-label">Expected error message</label>';
+  html += '<input class="form-input" id="fc-error-msg" placeholder="e.g. Token expired" />';
+  html += '</div>';
+  html += '</div>';
+
+  html += '</div>';
+
+  document.getElementById('modal-body').innerHTML = html;
+  document.getElementById('modal-overlay').classList.add('open');
+
+  /* Wire error case toggle */
+  var errorCheck = document.getElementById('fc-is-error');
+  if (errorCheck) {
+    errorCheck.addEventListener('change', function() {
+      document.getElementById('error-field-wrap').style.display = this.checked ? 'block' : 'none';
+    });
+  }
+
+  /* Wire optional param include toggles */
+  for (var p = 0; p < params.length; p++) {
+    if (params[p].optional) {
+      (function(idx) {
+        var cb = document.getElementById('fc-inc-' + idx);
+        if (cb) {
+          cb.addEventListener('change', function() {
+            var group = this.closest('.form-param-group');
+            var inputs = group.querySelectorAll('.form-input, .toggle input');
+            for (var ii = 0; ii < inputs.length; ii++) {
+              inputs[ii].disabled = !this.checked;
+              inputs[ii].style.opacity = this.checked ? '1' : '0.4';
+            }
+          });
+        }
+      })(p);
+    }
+  }
+
+  /* Focus title */
+  setTimeout(function() {
+    var titleInput = document.getElementById('fc-title');
+    if (titleInput) titleInput.focus();
+  }, 100);
+}
+
+function renderParamInput(param, idx) {
+  var id = 'fc-param-' + idx;
+  var errId = 'err-param-' + idx;
+  var t = param.type || 'any';
+
+  if (t === 'string') {
+    return '<input class="form-input" id="' + id + '" placeholder="Enter string value" />' +
+           '<div class="form-error" id="' + errId + '">Required</div>';
+  }
+  if (t === 'number') {
+    return '<input class="form-input" id="' + id + '" type="number" step="any" placeholder="Enter number" />' +
+           '<div class="form-error" id="' + errId + '">Must be a valid number</div>';
+  }
+  if (t === 'boolean') {
+    return '<div class="toggle-wrap">' +
+           '<label class="toggle"><input type="checkbox" id="' + id + '"><span class="toggle-slider"></span></label>' +
+           '<span class="toggle-label">false</span>' +
+           '</div>';
+  }
+  if (t === 'object' || t === 'array') {
+    var placeholder = t === 'object' ? '{\n  \n}' : '[\n  \n]';
+    var ph = t === 'object' ? 'Enter JSON object' : 'Enter JSON array';
+    /* Pre-fill with properties if available */
+    var prefill = '';
+    if (t === 'object' && param.properties) {
+      var obj = {};
+      var keys = Object.keys(param.properties);
+      for (var k = 0; k < keys.length; k++) {
+        var ptype = param.properties[keys[k]];
+        if (ptype === 'string') obj[keys[k]] = '';
+        else if (ptype === 'number') obj[keys[k]] = 0;
+        else if (ptype === 'boolean') obj[keys[k]] = false;
+        else obj[keys[k]] = null;
+      }
+      prefill = JSON.stringify(obj, null, 2);
+    }
+    return '<textarea class="form-input form-textarea" id="' + id + '" placeholder="' + escAttr(ph) + '">' + esc(prefill) + '</textarea>' +
+           '<div class="form-error" id="' + errId + '">Must be valid JSON</div>';
+  }
+  /* fallback */
+  return '<input class="form-input" id="' + id + '" placeholder="Enter value" />' +
+         '<div class="form-error" id="' + errId + '">Required</div>';
+}
+
+function renderReturnInput(key, type, idx) {
+  var id = 'fc-ret-' + idx;
+  var errId = 'err-ret-' + idx;
+
+  if (type === 'string') {
+    return '<input class="form-input" id="' + id + '" data-ret-key="' + escAttr(key) + '" data-ret-type="string" placeholder="Expected string" />';
+  }
+  if (type === 'number') {
+    return '<input class="form-input" id="' + id + '" data-ret-key="' + escAttr(key) + '" data-ret-type="number" type="number" step="any" placeholder="Expected number" />' +
+           '<div class="form-error" id="' + errId + '">Must be a valid number</div>';
+  }
+  if (type === 'boolean') {
+    return '<div class="toggle-wrap">' +
+           '<label class="toggle"><input type="checkbox" id="' + id + '" data-ret-key="' + escAttr(key) + '" data-ret-type="boolean"><span class="toggle-slider"></span></label>' +
+           '<span class="toggle-label">false</span>' +
+           '</div>';
+  }
+  if (type === 'object' || type === 'array') {
+    var ph = type === 'object' ? 'Expected JSON object' : 'Expected JSON array';
+    return '<textarea class="form-input form-textarea" id="' + id + '" data-ret-key="' + escAttr(key) + '" data-ret-type="' + escAttr(type) + '" placeholder="' + escAttr(ph) + '"></textarea>' +
+           '<div class="form-error" id="' + errId + '">Must be valid JSON</div>';
+  }
+  return '<input class="form-input" id="' + id + '" data-ret-key="' + escAttr(key) + '" data-ret-type="string" placeholder="Expected value" />';
+}
+
+/* ── Validation ── */
+function clearErrors() {
+  var errs = document.querySelectorAll('.form-error');
+  for (var i = 0; i < errs.length; i++) errs[i].classList.remove('visible');
+  var inputs = document.querySelectorAll('.form-input.invalid');
+  for (var i = 0; i < inputs.length; i++) inputs[i].classList.remove('invalid');
+}
+
+function showError(inputId, errId) {
+  var input = document.getElementById(inputId);
+  var err = document.getElementById(errId);
+  if (input) input.classList.add('invalid');
+  if (err) err.classList.add('visible');
+}
+
+function isValidJSON(str) {
+  try { JSON.parse(str); return true; } catch (e) { return false; }
+}
+
+/* ── Toggle labels for boolean inputs ── */
+document.addEventListener('change', function(ev) {
+  if (ev.target.closest('.toggle') && ev.target.type === 'checkbox') {
+    var label = ev.target.closest('.toggle-wrap').querySelector('.toggle-label');
+    if (label) label.textContent = ev.target.checked ? 'true' : 'false';
+  }
+});
+
+/* ── Submit ── */
+function submitTestCase() {
+  clearErrors();
+  var valid = true;
+
+  var t = _testsData[_modalFileIdx];
+  var suite = t.suites[_modalSuiteIdx];
+  var sig = suite.signature;
+  var params = sig ? (sig.params || []) : [];
+  var returns = sig ? sig.returns : null;
+
+  /* Title */
+  var title = (document.getElementById('fc-title').value || '').trim();
+  if (!title) { showError('fc-title', 'err-title'); valid = false; }
+
+  var description = (document.getElementById('fc-desc').value || '').trim() || undefined;
+
+  /* Input */
+  var input = {};
+  if (params.length === 0) {
+    var rawEl = document.getElementById('fc-input-raw');
+    if (rawEl) {
+      var rawVal = rawEl.value.trim();
+      if (rawVal) {
+        if (!isValidJSON(rawVal)) { showError('fc-input-raw', 'err-input-raw'); valid = false; }
+        else input = JSON.parse(rawVal);
+      }
+    }
+  } else {
+    for (var p = 0; p < params.length; p++) {
+      var param = params[p];
+      var fieldId = 'fc-param-' + p;
+      var errFieldId = 'err-param-' + p;
+
+      /* Check optional include */
+      if (param.optional) {
+        var incCb = document.getElementById('fc-inc-' + p);
+        if (incCb && !incCb.checked) continue;
+      }
+
+      var el = document.getElementById(fieldId);
+      if (!el) continue;
+
+      var ptype = param.type || 'any';
+
+      if (ptype === 'boolean') {
+        input[param.name] = el.checked;
+      } else if (ptype === 'number') {
+        var numVal = el.value.trim();
+        if (!param.optional && numVal === '') {
+          showError(fieldId, errFieldId); valid = false;
+        } else if (numVal !== '' && isNaN(Number(numVal))) {
+          showError(fieldId, errFieldId); valid = false;
+        } else if (numVal !== '') {
+          input[param.name] = Number(numVal);
+        }
+      } else if (ptype === 'object' || ptype === 'array') {
+        var jsonVal = el.value.trim();
+        if (!param.optional && !jsonVal) {
+          showError(fieldId, errFieldId); valid = false;
+        } else if (jsonVal && !isValidJSON(jsonVal)) {
+          showError(fieldId, errFieldId); valid = false;
+        } else if (jsonVal) {
+          input[param.name] = JSON.parse(jsonVal);
+        }
+      } else {
+        /* string / any */
+        var strVal = el.value;
+        if (!param.optional && !strVal.trim()) {
+          showError(fieldId, errFieldId); valid = false;
+        } else {
+          input[param.name] = strVal;
+        }
+      }
+    }
+  }
+
+  /* Expected */
+  var strategy = document.getElementById('fc-strategy').value;
+  var expectedValue = {};
+
+  if (returns && returns.type === 'object' && returns.properties) {
+    var rkeys = Object.keys(returns.properties);
+    for (var r = 0; r < rkeys.length; r++) {
+      var retEl = document.getElementById('fc-ret-' + r);
+      if (!retEl) continue;
+      var rtype = retEl.getAttribute('data-ret-type');
+      var rkey = retEl.getAttribute('data-ret-key');
+
+      if (rtype === 'boolean') {
+        expectedValue[rkey] = retEl.checked;
+      } else if (rtype === 'number') {
+        var rnum = retEl.value.trim();
+        if (rnum !== '' && isNaN(Number(rnum))) {
+          showError('fc-ret-' + r, 'err-ret-' + r); valid = false;
+        } else if (rnum !== '') {
+          expectedValue[rkey] = Number(rnum);
+        }
+      } else if (rtype === 'object' || rtype === 'array') {
+        var rjson = retEl.value.trim();
+        if (rjson && !isValidJSON(rjson)) {
+          showError('fc-ret-' + r, 'err-ret-' + r); valid = false;
+        } else if (rjson) {
+          expectedValue[rkey] = JSON.parse(rjson);
+        }
+      } else {
+        expectedValue[rkey] = retEl.value;
+      }
+    }
+  } else if (returns && returns.type !== 'void') {
+    var retEl = document.getElementById('fc-ret-0');
+    if (retEl) {
+      var rtype = retEl.getAttribute('data-ret-type');
+      if (rtype === 'boolean') {
+        expectedValue = retEl.checked;
+      } else if (rtype === 'number') {
+        var rn = retEl.value.trim();
+        if (rn !== '' && isNaN(Number(rn))) {
+          showError('fc-ret-0', 'err-ret-0'); valid = false;
+        } else if (rn !== '') {
+          expectedValue = Number(rn);
+        }
+      } else if (rtype === 'object' || rtype === 'array') {
+        var rj = retEl.value.trim();
+        if (rj && !isValidJSON(rj)) {
+          showError('fc-ret-0', 'err-ret-0'); valid = false;
+        } else if (rj) {
+          expectedValue = JSON.parse(rj);
+        }
+      } else {
+        expectedValue = retEl.value;
+      }
+    }
+  } else {
+    var rawExpEl = document.getElementById('fc-expected-raw');
+    if (rawExpEl) {
+      var rawExp = rawExpEl.value.trim();
+      if (rawExp) {
+        if (!isValidJSON(rawExp)) { showError('fc-expected-raw', 'err-expected-raw'); valid = false; }
+        else expectedValue = JSON.parse(rawExp);
+      }
+    }
+  }
+
+  if (!valid) return;
+
+  /* Build expected with strategy */
+  var expected = { strategy: strategy, value: expectedValue };
+
+  /* Add error if error case */
+  var isError = document.getElementById('fc-is-error');
+  if (isError && isError.checked) {
+    var errMsg = (document.getElementById('fc-error-msg').value || '').trim();
+    if (errMsg) expected.error = errMsg;
+  }
+
+  var payload = {
+    metaDir: t._dir || '',
+    suiteName: suite.name,
+    case: {
+      title: title,
+      input: input,
+      expected: expected
+    }
+  };
+  if (description) payload.case.description = description;
+
+  /* Submit */
+  var submitBtn = document.getElementById('modal-submit');
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'Adding...';
+
+  fetch('/api/tests/case', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  })
+  .then(function(r) {
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    return r.json();
+  })
+  .then(function() {
+    closeModal();
+    toast('Test case added: ' + title, 'success');
+    loadTests();
+  })
+  .catch(function(err) {
+    toast('Failed to add test case: ' + err.message, 'error');
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Add Test Case';
+  });
+}
+
+/* ── Close modal ── */
+function closeModal() {
+  document.getElementById('modal-overlay').classList.remove('open');
+  _modalFileIdx = -1;
+  _modalSuiteIdx = -1;
+  var submitBtn = document.getElementById('modal-submit');
+  submitBtn.disabled = false;
+  submitBtn.textContent = 'Add Test Case';
+}
+
+document.getElementById('modal-close').addEventListener('click', closeModal);
+document.getElementById('modal-cancel').addEventListener('click', closeModal);
+document.getElementById('modal-submit').addEventListener('click', submitTestCase);
+document.getElementById('modal-overlay').addEventListener('click', function(ev) {
+  if (ev.target === this) closeModal();
+});
+document.addEventListener('keydown', function(ev) {
+  if (ev.key === 'Escape') closeModal();
+});
+
+/* ── Load data ── */
+function loadTests() {
+  fetch('/api/tests')
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      renderTree(d.tests || []);
+    })
+    .catch(function(err) { toast('Failed to load tests: ' + err.message, 'error'); });
+}
+
+loadTests();
+</script>
+</body>
+</html>

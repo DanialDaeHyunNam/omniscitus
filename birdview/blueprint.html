@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Blueprint - Birdview</title>
+<style>
+  *,*::before,*::after{box-sizing:border-box}
+  body{background:#0d0d0d;color:#e0e0e0;margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh}
+  .container{max-width:1100px;margin:0 auto;padding:24px}
+  a{color:#93c5fd;text-decoration:none}
+  a:hover{text-decoration:underline}
+
+  .header{display:flex;align-items:center;gap:16px;margin-bottom:24px;padding-bottom:16px;border-bottom:1px solid #252525}
+  .back{color:#9ca3af;font-size:14px;display:flex;align-items:center;gap:4px;text-decoration:none}
+  .back:hover{color:#e0e0e0}
+  .header h1{font-size:24px;font-weight:700;margin:0;color:#fff}
+  .header .meta{color:#6b7280;font-size:13px;margin-left:auto}
+
+  .toolbar{display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap;align-items:center}
+  .search{background:#1a1a1a;border:1px solid #333;border-radius:8px;padding:8px 14px;color:#e0e0e0;font-size:14px;flex:1;min-width:200px;outline:none}
+  .search:focus{border-color:#7c3aed}
+  .search::placeholder{color:#6b7280}
+  .tab-group{display:flex;gap:2px;background:#1a1a1a;border-radius:8px;padding:3px}
+  .tab{padding:6px 14px;border-radius:6px;font-size:13px;cursor:pointer;color:#9ca3af;border:none;background:transparent;transition:all 0.15s}
+  .tab:hover{color:#e0e0e0}
+  .tab.active{background:#2e1065;color:#c4b5fd}
+
+  .card{background:#1a1a1a;border-radius:12px;padding:0;border:1px solid #252525}
+
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th{text-align:left;padding:12px 16px;color:#9ca3af;font-weight:500;font-size:12px;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid #252525}
+  td{padding:10px 16px;border-bottom:1px solid #1f1f1f;vertical-align:top}
+  tr.row{cursor:pointer;transition:background 0.1s}
+  tr.row:hover{background:#222}
+  tr:last-child td{border-bottom:none}
+
+  .badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:12px;font-weight:500}
+  .badge-active{background:#064e3b;color:#6ee7b7}
+  .badge-deleted{background:#450a0a;color:#f87171}
+  .badge-claude{background:#2e1065;color:#c4b5fd}
+  .badge-user{background:#1e3a5f;color:#93c5fd}
+
+  .file-path{font-family:'SF Mono',SFMono-Regular,Menlo,monospace;font-size:12px;color:#d1d5db;word-break:break-all}
+  .purpose{color:#9ca3af;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .changes{text-align:center;font-variant-numeric:tabular-nums}
+  .date{color:#6b7280;font-size:12px;font-variant-numeric:tabular-nums;white-space:nowrap}
+
+  .changelog{background:#111;border-top:1px solid #252525}
+  .changelog td{padding:0}
+  .changelog-inner{padding:16px 20px}
+  .changelog-title{font-size:13px;font-weight:600;color:#c4b5fd;margin-bottom:12px}
+  .timeline{position:relative;padding-left:20px}
+  .timeline::before{content:'';position:absolute;left:5px;top:4px;bottom:4px;width:2px;background:#333}
+  .tl-entry{position:relative;padding:4px 0 12px 12px;font-size:12px;color:#9ca3af}
+  .tl-entry::before{content:'';position:absolute;left:-3px;top:8px;width:8px;height:8px;border-radius:50%;background:#7c3aed;border:2px solid #0d0d0d;z-index:1}
+  .tl-date{color:#6b7280;margin-right:8px;font-variant-numeric:tabular-nums}
+  .tl-action{margin:0 4px}
+  .tl-source{color:#4b5563}
+
+  .empty{text-align:center;padding:48px 24px;color:#6b7280}
+  .empty-icon{font-size:32px;margin-bottom:12px}
+
+  .toast-container{position:fixed;top:16px;right:16px;z-index:1000;display:flex;flex-direction:column;gap:8px}
+  .toast{padding:10px 16px;border-radius:8px;font-size:13px;animation:toastIn 0.3s ease;background:#1a1a1a;border:1px solid #333}
+  .toast-error{border-color:#7f1d1d;color:#f87171}
+  .toast-info{border-color:#1e3a5f;color:#93c5fd}
+  @keyframes toastIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+
+  .count{font-size:13px;color:#6b7280;margin-left:auto;white-space:nowrap}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <a href="/" class="back">&larr; Birdview</a>
+    <h1>&#x1F4D8; Blueprint</h1>
+    <span class="meta" id="updated"></span>
+  </div>
+
+  <div class="toolbar">
+    <input type="text" class="search" id="search" placeholder="Search by file path...">
+    <div class="tab-group">
+      <button class="tab active" data-filter="all">All</button>
+      <button class="tab" data-filter="active">Active</button>
+      <button class="tab" data-filter="deleted">Deleted</button>
+    </div>
+    <span class="count" id="count"></span>
+  </div>
+
+  <div class="card">
+    <table>
+      <thead>
+        <tr>
+          <th>File Path</th>
+          <th>Status</th>
+          <th>Source</th>
+          <th>Purpose</th>
+          <th>Changes</th>
+          <th>Last Modified</th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+    <div class="empty" id="empty" style="display:none">
+      <div class="empty-icon">&#x1F4ED;</div>
+      <p>No blueprint entries found.</p>
+    </div>
+  </div>
+</div>
+
+<div class="toast-container" id="toasts"></div>
+
+<script>
+function esc(s) {
+  if (s == null) return '';
+  var div = document.createElement('div');
+  div.appendChild(document.createTextNode(String(s)));
+  return div.innerHTML;
+}
+function escAttr(s) {
+  return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function toast(msg, type) {
+  var el = document.createElement('div');
+  el.className = 'toast toast-' + (type || 'info');
+  el.textContent = msg;
+  document.getElementById('toasts').appendChild(el);
+  setTimeout(function() { el.remove(); }, 4000);
+}
+
+var data = null;
+var filter = 'all';
+var search = '';
+var expanded = {};
+
+function formatDate(d) {
+  if (!d) return '-';
+  var s = String(d);
+  if (s.length > 10) return s.slice(0, 10) + ' ' + s.slice(11, 16);
+  return s;
+}
+
+function render() {
+  var tbody = document.getElementById('tbody');
+  var empty = document.getElementById('empty');
+  var countEl = document.getElementById('count');
+  if (!data || !data.files) { empty.style.display = ''; tbody.innerHTML = ''; countEl.textContent = ''; return; }
+
+  var files = Object.keys(data.files);
+  var filtered = files.filter(function(f) {
+    var entry = data.files[f];
+    if (filter !== 'all' && entry.status !== filter) return false;
+    if (search && f.toLowerCase().indexOf(search.toLowerCase()) === -1) return false;
+    return true;
+  });
+
+  countEl.textContent = filtered.length + ' of ' + files.length + ' files';
+
+  if (filtered.length === 0) {
+    empty.style.display = '';
+    tbody.innerHTML = '';
+    return;
+  }
+  empty.style.display = 'none';
+
+  var html = '';
+  for (var i = 0; i < filtered.length; i++) {
+    var f = filtered[i];
+    var e = data.files[f];
+    var isExpanded = expanded[f];
+
+    html += '<tr class="row" data-file="' + escAttr(f) + '">';
+    html += '<td class="file-path">' + esc(f) + '</td>';
+    html += '<td><span class="badge badge-' + esc(e.status) + '">' + esc(e.status) + '</span></td>';
+    html += '<td><span class="badge badge-' + esc(e.source) + '">' + esc(e.source) + '</span></td>';
+    html += '<td class="purpose" title="' + escAttr(e.purpose) + '">' + esc(e.purpose || '-') + '</td>';
+    html += '<td class="changes">' + esc(e.change_count) + '</td>';
+    html += '<td class="date">' + esc(formatDate(e.last_modified)) + '</td>';
+    html += '</tr>';
+
+    if (isExpanded && e.change_log && e.change_log.length > 0) {
+      html += '<tr class="changelog"><td colspan="6"><div class="changelog-inner">';
+      html += '<div class="changelog-title">Change Log (' + e.change_log.length + ' entries)</div>';
+      html += '<div class="timeline">';
+      for (var c = 0; c < e.change_log.length; c++) {
+        var cl = e.change_log[c];
+        html += '<div class="tl-entry">';
+        html += '<span class="tl-date">' + esc(formatDate(cl.date)) + '</span>';
+        html += '<span class="tl-action badge badge-' + (cl.action === 'edit' ? 'active' : 'claude') + '">' + esc(cl.action || 'write') + '</span>';
+        html += '<span class="tl-source">' + esc(cl.source) + '</span>';
+        html += '</div>';
+      }
+      html += '</div></div></td></tr>';
+    }
+  }
+
+  tbody.innerHTML = html;
+}
+
+document.getElementById('tbody').addEventListener('click', function(ev) {
+  var row = ev.target.closest('tr.row');
+  if (!row) return;
+  var file = row.getAttribute('data-file');
+  expanded[file] = !expanded[file];
+  render();
+});
+
+document.getElementById('search').addEventListener('input', function(ev) {
+  search = ev.target.value;
+  render();
+});
+
+document.querySelector('.tab-group').addEventListener('click', function(ev) {
+  var tab = ev.target.closest('.tab');
+  if (!tab) return;
+  document.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('active'); });
+  tab.classList.add('active');
+  filter = tab.getAttribute('data-filter');
+  render();
+});
+
+fetch('/api/blueprints')
+  .then(function(r) { return r.json(); })
+  .then(function(d) {
+    data = d;
+    var updatedEl = document.getElementById('updated');
+    if (d.updated) updatedEl.textContent = 'Updated: ' + formatDate(d.updated);
+    render();
+  })
+  .catch(function(err) { toast('Failed to load blueprints: ' + err.message, 'error'); });
+</script>
+</body>
+</html>

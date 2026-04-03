@@ -1,0 +1,1074 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>omniscitus - Give your codebase a world model</title>
+<meta name="description" content="One plugin. Zero configuration. Your codebase gains a living memory of every file, every session, and every test.">
+<style>
+*, *::before, *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  --bg: #0a0a0a;
+  --bg-card: #111113;
+  --bg-code: #1a1a2e;
+  --border: #222228;
+  --border-hover: #333340;
+  --text: #e4e4e7;
+  --text-dim: #8b8b94;
+  --text-muted: #5b5b64;
+  --purple: #7c3aed;
+  --green: #6ee7b7;
+  --amber: #fbbf24;
+  --cyan: #22d3ee;
+  --purple-glow: rgba(124, 58, 237, 0.15);
+  --green-glow: rgba(110, 231, 183, 0.15);
+  --amber-glow: rgba(251, 191, 36, 0.15);
+  --cyan-glow: rgba(34, 211, 238, 0.15);
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+
+/* ── Header ── */
+.header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  background: rgba(10, 10, 10, 0.8);
+  border-bottom: 1px solid var(--border);
+  transition: box-shadow 0.3s;
+}
+
+.header.scrolled {
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+}
+
+.header-inner {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 0 24px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.header-logo {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  background: linear-gradient(135deg, #7c3aed, #22d3ee);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-decoration: none;
+}
+
+.header-nav {
+  display: flex;
+  gap: 28px;
+  list-style: none;
+}
+
+.header-nav a {
+  color: var(--text-dim);
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+  transition: color 0.2s;
+}
+
+.header-nav a:hover {
+  color: var(--text);
+}
+
+.mobile-toggle {
+  display: none;
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-size: 24px;
+  cursor: pointer;
+  padding: 4px;
+  line-height: 1;
+}
+
+/* ── Sections ── */
+section {
+  padding: 100px 24px;
+}
+
+.container {
+  max-width: 1120px;
+  margin: 0 auto;
+}
+
+.section-label {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--purple);
+  margin-bottom: 12px;
+}
+
+.section-title {
+  font-size: clamp(28px, 4vw, 40px);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin-bottom: 16px;
+  line-height: 1.2;
+}
+
+.section-subtitle {
+  font-size: 17px;
+  color: var(--text-dim);
+  max-width: 600px;
+  line-height: 1.7;
+}
+
+/* ── Hero ── */
+.hero {
+  padding-top: 160px;
+  padding-bottom: 120px;
+  text-align: center;
+  position: relative;
+}
+
+.hero::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 800px;
+  height: 600px;
+  background: radial-gradient(ellipse at center, rgba(124, 58, 237, 0.08) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.hero-title {
+  font-size: clamp(52px, 8vw, 88px);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  margin-bottom: 20px;
+  background: linear-gradient(135deg, #c4b5fd 0%, #7c3aed 30%, #22d3ee 70%, #6ee7b7 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.hero-tagline {
+  font-size: clamp(20px, 3vw, 28px);
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 16px;
+  letter-spacing: -0.01em;
+}
+
+.hero-subtitle {
+  font-size: 17px;
+  color: var(--text-dim);
+  max-width: 580px;
+  margin: 0 auto 40px;
+  line-height: 1.7;
+}
+
+/* ── Stats ── */
+.stats {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: 56px;
+}
+
+.stat-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-radius: 9999px;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  animation: fadeUp 0.6s ease both;
+}
+
+.stat-badge:nth-child(1) { animation-delay: 0.1s; }
+.stat-badge:nth-child(2) { animation-delay: 0.2s; }
+.stat-badge:nth-child(3) { animation-delay: 0.3s; }
+
+.stat-badge .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  animation: pulse-dot 2s infinite;
+}
+
+.stat-badge:nth-child(1) .dot { background: var(--purple); box-shadow: 0 0 8px var(--purple); }
+.stat-badge:nth-child(2) .dot { background: var(--green); box-shadow: 0 0 8px var(--green); }
+.stat-badge:nth-child(3) .dot { background: var(--cyan); box-shadow: 0 0 8px var(--cyan); }
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Terminal ── */
+.terminal {
+  max-width: 520px;
+  margin: 0 auto;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  background: var(--bg-code);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.4);
+  text-align: left;
+  animation: fadeUp 0.6s ease 0.4s both;
+}
+
+.terminal-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: #16161e;
+  border-bottom: 1px solid var(--border);
+}
+
+.terminal-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+
+.terminal-dot.red { background: #ff5f57; }
+.terminal-dot.yellow { background: #febc2e; }
+.terminal-dot.green { background: #28c840; }
+
+.terminal-title {
+  flex: 1;
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-right: 36px;
+}
+
+.terminal-body {
+  padding: 20px 20px 24px;
+  font-family: "SF Mono", "Fira Code", "Cascadia Code", "JetBrains Mono", Menlo, Consolas, monospace;
+  font-size: 14px;
+  line-height: 1.8;
+}
+
+.terminal-prompt {
+  color: var(--text-muted);
+}
+
+.terminal-prompt .symbol {
+  color: var(--green);
+}
+
+.terminal-cmd {
+  color: var(--text);
+}
+
+.terminal-output {
+  color: var(--text-dim);
+  margin-top: 4px;
+}
+
+.terminal-output .check {
+  color: var(--green);
+}
+
+/* ── Philosophy ── */
+.philosophy {
+  border-top: 1px solid var(--border);
+}
+
+.philosophy-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 64px;
+  align-items: center;
+  margin-top: 48px;
+}
+
+.philosophy-text .quote {
+  font-size: 20px;
+  font-weight: 500;
+  line-height: 1.7;
+  color: var(--text);
+  border-left: 3px solid var(--purple);
+  padding-left: 20px;
+  margin-bottom: 24px;
+}
+
+.philosophy-text p {
+  color: var(--text-dim);
+  font-size: 15px;
+  line-height: 1.7;
+}
+
+.philosophy-diagram {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.diagram-card {
+  padding: 24px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  position: relative;
+}
+
+.diagram-card.old {
+  opacity: 0.5;
+}
+
+.diagram-card.new {
+  border-color: var(--purple);
+  box-shadow: 0 0 24px var(--purple-glow);
+}
+
+.diagram-card .label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+
+.diagram-card.old .label { color: var(--text-muted); }
+.diagram-card.new .label { color: var(--purple); }
+
+.diagram-card .desc {
+  font-size: 14px;
+  color: var(--text-dim);
+  line-height: 1.6;
+}
+
+.diagram-card .desc strong {
+  color: var(--text);
+}
+
+.diagram-arrow {
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 20px;
+}
+
+/* ── Features ── */
+.features {
+  border-top: 1px solid var(--border);
+}
+
+.features-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-top: 48px;
+}
+
+.feature-card {
+  padding: 32px;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  transition: border-color 0.3s, box-shadow 0.3s, transform 0.3s;
+  position: relative;
+  overflow: hidden;
+}
+
+.feature-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.feature-card:hover {
+  transform: translateY(-2px);
+}
+
+.feature-card.purple:hover { border-color: rgba(124, 58, 237, 0.4); box-shadow: 0 8px 32px var(--purple-glow); }
+.feature-card.green:hover  { border-color: rgba(110, 231, 183, 0.4); box-shadow: 0 8px 32px var(--green-glow); }
+.feature-card.amber:hover  { border-color: rgba(251, 191, 36, 0.4); box-shadow: 0 8px 32px var(--amber-glow); }
+.feature-card.cyan:hover   { border-color: rgba(34, 211, 238, 0.4); box-shadow: 0 8px 32px var(--cyan-glow); }
+
+.feature-card.purple::before { background: var(--purple); }
+.feature-card.green::before  { background: var(--green); }
+.feature-card.amber::before  { background: var(--amber); }
+.feature-card.cyan::before   { background: var(--cyan); }
+
+.feature-card:hover::before { opacity: 1; }
+
+.feature-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+  font-size: 18px;
+}
+
+.feature-card.purple .feature-icon { background: var(--purple-glow); color: var(--purple); }
+.feature-card.green .feature-icon  { background: var(--green-glow); color: var(--green); }
+.feature-card.amber .feature-icon  { background: var(--amber-glow); color: var(--amber); }
+.feature-card.cyan .feature-icon   { background: var(--cyan-glow); color: var(--cyan); }
+
+.feature-name {
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 4px;
+  letter-spacing: -0.01em;
+}
+
+.feature-card.purple .feature-name { color: var(--purple); }
+.feature-card.green .feature-name  { color: var(--green); }
+.feature-card.amber .feature-name  { color: var(--amber); }
+.feature-card.cyan .feature-name   { color: var(--cyan); }
+
+.feature-oneliner {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 12px;
+}
+
+.feature-desc {
+  font-size: 14px;
+  color: var(--text-dim);
+  line-height: 1.7;
+  margin-bottom: 16px;
+}
+
+.feature-code {
+  background: var(--bg-code);
+  border-radius: 8px;
+  padding: 14px 16px;
+  font-family: "SF Mono", "Fira Code", Menlo, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--text-dim);
+  overflow-x: auto;
+  border: 1px solid var(--border);
+}
+
+.feature-code .key { color: var(--cyan); }
+.feature-code .str { color: var(--green); }
+.feature-code .comment { color: var(--text-muted); }
+.feature-code .num { color: var(--amber); }
+.feature-code .dir { color: var(--purple); }
+
+/* ── Commands ── */
+.commands {
+  border-top: 1px solid var(--border);
+}
+
+.commands-table-wrap {
+  margin-top: 48px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+
+.commands-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.commands-table th {
+  text-align: left;
+  padding: 14px 24px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border);
+}
+
+.commands-table td {
+  padding: 14px 24px;
+  font-size: 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.commands-table tr:last-child td {
+  border-bottom: none;
+}
+
+.commands-table tr:hover td {
+  background: rgba(124, 58, 237, 0.03);
+}
+
+.commands-table td:first-child {
+  font-family: "SF Mono", "Fira Code", Menlo, Consolas, monospace;
+  color: var(--purple);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.commands-table td:last-child {
+  color: var(--text-dim);
+}
+
+/* ── Data Structure ── */
+.structure {
+  border-top: 1px solid var(--border);
+}
+
+.structure-block {
+  margin-top: 48px;
+  background: var(--bg-code);
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  padding: 32px;
+  font-family: "SF Mono", "Fira Code", Menlo, Consolas, monospace;
+  font-size: 13px;
+  line-height: 2;
+  overflow-x: auto;
+}
+
+.tree-line {
+  display: flex;
+  gap: 16px;
+}
+
+.tree-path { color: var(--text); white-space: nowrap; }
+.tree-path .dir-name { color: var(--purple); font-weight: 600; }
+.tree-path .file-name { color: var(--text); }
+.tree-comment { color: var(--text-muted); font-style: italic; }
+
+/* ── Install ── */
+.install {
+  border-top: 1px solid var(--border);
+  text-align: center;
+}
+
+.install .section-subtitle {
+  margin: 0 auto 48px;
+}
+
+.install-terminal {
+  max-width: 480px;
+  margin: 0 auto 32px;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  background: var(--bg-code);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.3);
+  text-align: left;
+}
+
+.install-terminal .terminal-body {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.install-copy {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+.install-copy:hover {
+  border-color: var(--purple);
+  color: var(--text);
+}
+
+.install-note {
+  font-size: 15px;
+  color: var(--text-dim);
+  margin-top: 24px;
+}
+
+/* ── Footer ── */
+.footer {
+  border-top: 1px solid var(--border);
+  padding: 48px 24px;
+  text-align: center;
+}
+
+.footer-inner {
+  max-width: 1120px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.footer-links {
+  display: flex;
+  gap: 24px;
+  list-style: none;
+}
+
+.footer-links a {
+  color: var(--text-dim);
+  text-decoration: none;
+  font-size: 14px;
+  transition: color 0.2s;
+}
+
+.footer-links a:hover {
+  color: var(--text);
+}
+
+.footer-credit {
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+.footer-credit a {
+  color: var(--text-dim);
+  text-decoration: none;
+  border-bottom: 1px solid var(--border);
+  transition: border-color 0.2s, color 0.2s;
+}
+
+.footer-credit a:hover {
+  color: var(--text);
+  border-color: var(--text-dim);
+}
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  section { padding: 72px 20px; }
+  .hero { padding-top: 120px; padding-bottom: 80px; }
+
+  .header-nav { display: none; }
+  .header-nav.open {
+    display: flex;
+    flex-direction: column;
+    position: absolute;
+    top: 60px;
+    left: 0;
+    right: 0;
+    background: rgba(10, 10, 10, 0.96);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border);
+    padding: 20px 24px;
+    gap: 16px;
+  }
+
+  .mobile-toggle { display: block; }
+  .philosophy-grid { grid-template-columns: 1fr; gap: 40px; }
+  .features-grid { grid-template-columns: 1fr; }
+  .feature-card { padding: 24px; }
+
+  .commands-table th,
+  .commands-table td { padding: 12px 16px; font-size: 13px; }
+
+  .structure-block { padding: 20px; font-size: 12px; }
+  .stats { gap: 10px; }
+  .stat-badge { padding: 8px 14px; font-size: 13px; }
+}
+
+/* ── Scroll Animation ── */
+.reveal {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+
+.reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<header class="header" id="header">
+  <div class="header-inner">
+    <a href="#hero" class="header-logo">omniscitus</a>
+    <button class="mobile-toggle" id="mobile-toggle" aria-label="Toggle navigation">&#9776;</button>
+    <nav>
+      <ul class="header-nav" id="header-nav">
+        <li><a href="#philosophy">Philosophy</a></li>
+        <li><a href="#features">Features</a></li>
+        <li><a href="#commands">Commands</a></li>
+        <li><a href="#structure">Data</a></li>
+        <li><a href="#install">Install</a></li>
+        <li><a href="https://github.com/omniscitus/omniscitus" target="_blank" rel="noopener">GitHub</a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+
+<!-- Hero -->
+<section class="hero" id="hero">
+  <div class="container">
+    <h1 class="hero-title">omniscitus</h1>
+    <p class="hero-tagline">Give your codebase a world model.</p>
+    <p class="hero-subtitle">
+      One plugin. Zero configuration. Your codebase gains a living memory
+      of every file, every session, and every test.
+    </p>
+
+    <div class="stats">
+      <span class="stat-badge"><span class="dot"></span> 4 Skills</span>
+      <span class="stat-badge"><span class="dot"></span> Auto Blueprints</span>
+      <span class="stat-badge"><span class="dot"></span> Birdview Dashboard</span>
+    </div>
+
+    <div class="terminal">
+      <div class="terminal-bar">
+        <span class="terminal-dot red"></span>
+        <span class="terminal-dot yellow"></span>
+        <span class="terminal-dot green"></span>
+        <span class="terminal-title">Terminal</span>
+      </div>
+      <div class="terminal-body">
+        <div><span class="terminal-prompt"><span class="symbol">$</span></span> <span class="terminal-cmd">claude plugin install omniscitus</span></div>
+        <div class="terminal-output"><span class="check">&#10003;</span> omniscitus installed</div>
+        <div class="terminal-output"><span class="check">&#10003;</span> hooks registered</div>
+        <div class="terminal-output"><span class="check">&#10003;</span> world model ready</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Philosophy -->
+<section class="philosophy" id="philosophy">
+  <div class="container">
+    <span class="section-label">Philosophy</span>
+    <h2 class="section-title">From Hierarchy to Intelligence</h2>
+    <p class="section-subtitle">Inspired by the idea that systems should track context so humans can focus on judgment.</p>
+
+    <div class="philosophy-grid" style="margin-top: 48px;">
+      <div class="philosophy-text">
+        <blockquote class="quote">
+          Instead of you tracking files, sessions, and tests &mdash; the system maintains a living world model. You focus on judgment.
+        </blockquote>
+        <p>
+          Traditional development relies on the developer's mental model &mdash; holding every file, every decision, every test in working memory. omniscitus externalizes that burden into a structured, always-current knowledge layer.
+        </p>
+      </div>
+      <div class="philosophy-diagram">
+        <div class="diagram-card old">
+          <div class="label">Traditional</div>
+          <div class="desc">
+            <strong>Human remembers everything.</strong><br>
+            File purposes, session history, test coverage &mdash; all in your head. Context is lost between sessions.
+          </div>
+        </div>
+        <div class="diagram-arrow">&darr;</div>
+        <div class="diagram-card new">
+          <div class="label">With Omniscitus</div>
+          <div class="desc">
+            <strong>System tracks, human decides.</strong><br>
+            Blueprints track every file. History preserves every session. Tests are scaffolded automatically. You only judge.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Features -->
+<section class="features" id="features">
+  <div class="container">
+    <span class="section-label">Features</span>
+    <h2 class="section-title">Four skills. Complete awareness.</h2>
+    <p class="section-subtitle">Each skill is designed to work silently, activated when needed, never in your way.</p>
+
+    <div class="features-grid">
+      <!-- Blueprint -->
+      <div class="feature-card purple reveal">
+        <div class="feature-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+        </div>
+        <h3 class="feature-name">Blueprint</h3>
+        <p class="feature-oneliner">Automatic codebase tracking</p>
+        <p class="feature-desc">
+          Every file write and edit is recorded. Purpose, creation date, change count,
+          full change log &mdash; all maintained automatically via hooks.
+          Distinguishes Claude-made vs. user-made changes.
+        </p>
+        <div class="feature-code">
+<span class="key">path</span>: src/auth/login.ts<br>
+<span class="key">purpose</span>: <span class="str">"OAuth login handler"</span><br>
+<span class="key">created</span>: <span class="num">2025-06-14</span><br>
+<span class="key">changes</span>: <span class="num">3</span><br>
+<span class="key">origin</span>: <span class="str">"claude"</span>
+        </div>
+      </div>
+
+      <!-- Wrap-up -->
+      <div class="feature-card green reveal">
+        <div class="feature-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+        </div>
+        <h3 class="feature-name">Wrap-up</h3>
+        <p class="feature-oneliner">Topic-based session history</p>
+        <p class="feature-desc">
+          No more duplicate session files. Work accumulates into cohesive
+          knowledge units. Related sessions append to the same unit.
+        </p>
+        <div class="feature-code">
+<span class="comment"># .omniscitus/history/auth.md</span><br>
+<br>
+<span class="key">## Session 2025-06-14</span><br>
+<span class="str">- Added OAuth flow</span><br>
+<span class="str">- Fixed token refresh bug</span><br>
+<br>
+<span class="key">## Session 2025-06-15</span><br>
+<span class="str">- Added rate limiting</span>
+        </div>
+      </div>
+
+      <!-- Test-add -->
+      <div class="feature-card amber reveal">
+        <div class="feature-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
+        </div>
+        <h3 class="feature-name">Test-add</h3>
+        <p class="feature-oneliner">Universal test scaffolds</p>
+        <p class="feature-desc">
+          Language-agnostic test definitions via meta.yaml. Works with
+          TypeScript, Python, Go, Rust, Ruby &mdash; any language.
+        </p>
+        <div class="feature-code">
+<span class="comment"># meta.yaml</span><br>
+<span class="key">target</span>: <span class="str">src/auth/login.ts</span><br>
+<span class="key">cases</span>:<br>
+&nbsp;&nbsp;- <span class="str">valid credentials return token</span><br>
+&nbsp;&nbsp;- <span class="str">expired token triggers refresh</span><br>
+&nbsp;&nbsp;- <span class="str">invalid credentials return 401</span><br>
+<span class="key">language</span>: <span class="str">typescript</span>
+        </div>
+      </div>
+
+      <!-- Birdview -->
+      <div class="feature-card cyan reveal">
+        <div class="feature-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+        </div>
+        <h3 class="feature-name">Birdview</h3>
+        <p class="feature-oneliner">Visual admin dashboard</p>
+        <p class="feature-desc">
+          Browse blueprints, history units, and test definitions
+          at <code style="color:var(--cyan)">localhost:3777</code>. Dark theme, zero dependencies.
+        </p>
+        <div class="feature-code">
+<span class="terminal-prompt"><span class="symbol">$</span></span> <span class="terminal-cmd">/birdview</span><br>
+<br>
+<span class="check" style="color:var(--green)">&#10003;</span> Server running at <span class="str">http://localhost:3777</span><br>
+<span class="check" style="color:var(--green)">&#10003;</span> <span class="num">42</span> blueprints loaded<br>
+<span class="check" style="color:var(--green)">&#10003;</span> <span class="num">8</span> history units<br>
+<span class="check" style="color:var(--green)">&#10003;</span> <span class="num">15</span> test definitions
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Commands -->
+<section class="commands" id="commands">
+  <div class="container">
+    <span class="section-label">Commands</span>
+    <h2 class="section-title">Slash commands</h2>
+    <p class="section-subtitle">Everything is accessible through simple commands inside Claude Code.</p>
+
+    <div class="commands-table-wrap reveal">
+      <table class="commands-table">
+        <thead>
+          <tr>
+            <th>Command</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>/wrap-up</td>
+            <td>Record session work into topic-based units</td>
+          </tr>
+          <tr>
+            <td>/follow-up</td>
+            <td>Review pending tasks across all units</td>
+          </tr>
+          <tr>
+            <td>/test-add {file}</td>
+            <td>Create test scaffold for any file</td>
+          </tr>
+          <tr>
+            <td>/birdview</td>
+            <td>Start visual dashboard at localhost:3777</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- Data Structure -->
+<section class="structure" id="structure">
+  <div class="container">
+    <span class="section-label">Data</span>
+    <h2 class="section-title">Where everything lives</h2>
+    <p class="section-subtitle">A single <code style="color:var(--purple); font-family: 'SF Mono', Menlo, monospace; font-size: 15px;">.omniscitus/</code> directory at your project root. Clean and self-contained.</p>
+
+    <div class="structure-block reveal">
+      <div class="tree-line"><span class="tree-path"><span class="dir-name">.omniscitus/</span></span></div>
+      <div class="tree-line"><span class="tree-path">&nbsp;&nbsp;&#9500;&#9472;&#9472; <span class="dir-name">blueprints/</span></span> <span class="tree-comment">&larr; auto-generated file metadata (YAML)</span></div>
+      <div class="tree-line"><span class="tree-path">&nbsp;&nbsp;&#9474;&nbsp;&nbsp; &#9500;&#9472;&#9472; <span class="file-name">src__auth__login.ts.yaml</span></span></div>
+      <div class="tree-line"><span class="tree-path">&nbsp;&nbsp;&#9474;&nbsp;&nbsp; &#9500;&#9472;&#9472; <span class="file-name">src__db__schema.ts.yaml</span></span></div>
+      <div class="tree-line"><span class="tree-path">&nbsp;&nbsp;&#9474;&nbsp;&nbsp; &#9492;&#9472;&#9472; <span class="file-name">...</span></span></div>
+      <div class="tree-line"><span class="tree-path">&nbsp;&nbsp;&#9500;&#9472;&#9472; <span class="dir-name">history/</span></span> <span class="tree-comment">&larr; topic-based session logs (Markdown)</span></div>
+      <div class="tree-line"><span class="tree-path">&nbsp;&nbsp;&#9474;&nbsp;&nbsp; &#9500;&#9472;&#9472; <span class="file-name">auth.md</span></span></div>
+      <div class="tree-line"><span class="tree-path">&nbsp;&nbsp;&#9474;&nbsp;&nbsp; &#9500;&#9472;&#9472; <span class="file-name">database.md</span></span></div>
+      <div class="tree-line"><span class="tree-path">&nbsp;&nbsp;&#9474;&nbsp;&nbsp; &#9492;&#9472;&#9472; <span class="file-name">...</span></span></div>
+      <div class="tree-line"><span class="tree-path">&nbsp;&nbsp;&#9500;&#9472;&#9472; <span class="dir-name">tests/</span></span> <span class="tree-comment">&larr; test scaffolds per target file</span></div>
+      <div class="tree-line"><span class="tree-path">&nbsp;&nbsp;&#9474;&nbsp;&nbsp; &#9492;&#9472;&#9472; <span class="dir-name">src__auth__login.ts/</span></span></div>
+      <div class="tree-line"><span class="tree-path">&nbsp;&nbsp;&#9474;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &#9500;&#9472;&#9472; <span class="file-name">meta.yaml</span></span></div>
+      <div class="tree-line"><span class="tree-path">&nbsp;&nbsp;&#9474;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &#9492;&#9472;&#9472; <span class="file-name">login.test.ts</span></span></div>
+      <div class="tree-line"><span class="tree-path">&nbsp;&nbsp;&#9492;&#9472;&#9472; <span class="dir-name">birdview/</span></span> <span class="tree-comment">&larr; dashboard server assets</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- Install -->
+<section class="install" id="install">
+  <div class="container">
+    <span class="section-label">Get Started</span>
+    <h2 class="section-title">One command. That's it.</h2>
+    <p class="section-subtitle">Start working &mdash; omniscitus activates automatically.</p>
+
+    <div class="install-terminal">
+      <div class="terminal-bar">
+        <span class="terminal-dot red"></span>
+        <span class="terminal-dot yellow"></span>
+        <span class="terminal-dot green"></span>
+        <span class="terminal-title">Terminal</span>
+      </div>
+      <div class="terminal-body">
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+          <span><span class="terminal-prompt"><span class="symbol">$</span></span> <span class="terminal-cmd">claude plugin install omniscitus</span></span>
+          <button class="install-copy" id="copy-btn" onclick="copyInstall()">Copy</button>
+        </div>
+      </div>
+    </div>
+
+    <p class="install-note">
+      Zero configuration. Zero dependencies. Works with any project.
+    </p>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer class="footer">
+  <div class="footer-inner">
+    <ul class="footer-links">
+      <li><a href="https://github.com/omniscitu/omniscitus" target="_blank" rel="noopener">GitHub</a></li>
+      <li><a href="https://github.com/omniscitu/omniscitus/blob/main/LICENSE" target="_blank" rel="noopener">MIT License</a></li>
+    </ul>
+    <p class="footer-credit">
+      Inspired by Sequoia's
+      <a href="https://www.sequoiacap.com/" target="_blank" rel="noopener">"From Hierarchy to Intelligence"</a>
+    </p>
+  </div>
+</footer>
+
+<script>
+// Header scroll effect
+const header = document.getElementById('header');
+window.addEventListener('scroll', () => {
+  header.classList.toggle('scrolled', window.scrollY > 10);
+}, { passive: true });
+
+// Mobile nav toggle
+const toggle = document.getElementById('mobile-toggle');
+const nav = document.getElementById('header-nav');
+toggle.addEventListener('click', () => {
+  nav.classList.toggle('open');
+  toggle.textContent = nav.classList.contains('open') ? '\u2715' : '\u2630';
+});
+
+// Close mobile nav on link click
+nav.querySelectorAll('a').forEach(a => {
+  a.addEventListener('click', () => {
+    nav.classList.remove('open');
+    toggle.textContent = '\u2630';
+  });
+});
+
+// Scroll reveal
+const reveals = document.querySelectorAll('.reveal');
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      entry.target.classList.add('visible');
+      observer.unobserve(entry.target);
+    }
+  });
+}, { threshold: 0.15 });
+
+reveals.forEach(el => observer.observe(el));
+
+// Copy install command
+function copyInstall() {
+  navigator.clipboard.writeText('claude plugin install omniscitus').then(() => {
+    const btn = document.getElementById('copy-btn');
+    btn.textContent = 'Copied!';
+    setTimeout(() => { btn.textContent = 'Copy'; }, 2000);
+  });
+}
+</script>
+
+</body>
+</html>

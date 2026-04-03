@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>History - Birdview</title>
+<style>
+  *,*::before,*::after{box-sizing:border-box}
+  body{background:#0d0d0d;color:#e0e0e0;margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh}
+  .container{max-width:1100px;margin:0 auto;padding:24px}
+  a{color:#93c5fd;text-decoration:none}
+  a:hover{text-decoration:underline}
+
+  .header{display:flex;align-items:center;gap:16px;margin-bottom:24px;padding-bottom:16px;border-bottom:1px solid #252525}
+  .back{color:#9ca3af;font-size:14px;display:flex;align-items:center;gap:4px;text-decoration:none}
+  .back:hover{color:#e0e0e0}
+  .header h1{font-size:24px;font-weight:700;margin:0;color:#fff}
+
+  .layout{display:grid;grid-template-columns:200px 1fr;gap:24px;align-items:start}
+  @media(max-width:768px){.layout{grid-template-columns:1fr}}
+
+  .sidebar{background:#1a1a1a;border-radius:12px;padding:12px 0;border:1px solid #252525;position:sticky;top:24px}
+  .sidebar-title{padding:8px 16px;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:#6b7280;font-weight:600}
+  .domain-item{padding:8px 16px;font-size:14px;cursor:pointer;transition:background 0.1s;display:flex;justify-content:space-between;align-items:center}
+  .domain-item:hover{background:#222}
+  .domain-item.active{background:#1e3a5f;color:#93c5fd}
+  .domain-count{font-size:11px;background:#252525;color:#9ca3af;padding:1px 6px;border-radius:10px;font-variant-numeric:tabular-nums}
+  .domain-item.active .domain-count{background:#1a365d;color:#93c5fd}
+
+  .main{min-width:0}
+  .unit-grid{display:flex;flex-direction:column;gap:12px}
+
+  .unit-card{background:#1a1a1a;border-radius:12px;padding:20px;border:1px solid #252525;cursor:pointer;transition:border-color 0.15s,box-shadow 0.15s}
+  .unit-card:hover{border-color:#374151;box-shadow:0 4px 16px rgba(0,0,0,0.3)}
+  .unit-card-header{display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap}
+  .unit-title{font-size:16px;font-weight:600;color:#fff;margin:0}
+  .badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:12px;font-weight:500}
+  .badge-open{background:#064e3b;color:#6ee7b7}
+  .badge-closed{background:#1a1a1a;color:#9ca3af;border:1px solid #374151}
+  .badge-domain{background:#1e293b;color:#94a3b8;font-size:11px}
+  .unit-meta{display:flex;gap:16px;font-size:12px;color:#6b7280}
+  .unit-meta span{display:flex;align-items:center;gap:4px}
+
+  .unit-detail{background:#111;border:1px solid #252525;border-radius:12px;padding:24px;margin-top:12px;display:none}
+  .unit-detail.visible{display:block}
+  .unit-detail-close{float:right;background:none;border:none;color:#6b7280;font-size:20px;cursor:pointer;padding:0 4px}
+  .unit-detail-close:hover{color:#e0e0e0}
+  .unit-detail h2{font-size:18px;color:#fff;margin:0 0 16px}
+
+  .md-content{line-height:1.7;font-size:14px}
+  .md-content h1{font-size:20px;color:#fff;margin:24px 0 12px;padding-bottom:8px;border-bottom:1px solid #252525}
+  .md-content h2{font-size:16px;color:#c4b5fd;margin:20px 0 8px}
+  .md-content h3{font-size:14px;color:#6ee7b7;margin:16px 0 6px}
+  .md-content p{margin:6px 0}
+  .md-content ul{padding-left:20px;margin:6px 0}
+  .md-content li{margin:3px 0}
+  .md-content strong{color:#fff}
+  .md-content code{background:#252525;padding:1px 5px;border-radius:3px;font-size:12px;font-family:'SF Mono',SFMono-Regular,Menlo,monospace}
+
+  .timeline-visual{border-left:2px solid #333;margin-left:8px;padding-left:20px}
+  .tl-date-header{position:relative;font-size:13px;font-weight:600;color:#6ee7b7;margin:16px 0 8px}
+  .tl-date-header::before{content:'';position:absolute;left:-25px;top:5px;width:10px;height:10px;border-radius:50%;background:#6ee7b7;border:2px solid #0d0d0d}
+  .tl-focus{font-size:13px;color:#d1d5db;margin:4px 0}
+  .tl-items{font-size:12px;color:#9ca3af;padding-left:16px;margin:4px 0}
+  .tl-items li{margin:2px 0}
+  .tl-learned{font-size:12px;color:#fbbf24;font-style:italic;margin:4px 0}
+
+  .pending-list{list-style:none;padding:0;margin:8px 0}
+  .pending-list li{padding:4px 0;font-size:13px;display:flex;align-items:center;gap:8px}
+  .pending-list li::before{content:'';display:inline-block;width:14px;height:14px;border:2px solid #374151;border-radius:3px;flex-shrink:0}
+  .pending-list li.done::before{background:#064e3b;border-color:#6ee7b7}
+
+  .empty{text-align:center;padding:48px 24px;color:#6b7280}
+  .empty-icon{font-size:32px;margin-bottom:12px}
+
+  .toast-container{position:fixed;top:16px;right:16px;z-index:1000;display:flex;flex-direction:column;gap:8px}
+  .toast{padding:10px 16px;border-radius:8px;font-size:13px;animation:toastIn 0.3s ease;background:#1a1a1a;border:1px solid #333}
+  .toast-error{border-color:#7f1d1d;color:#f87171}
+  .toast-info{border-color:#1e3a5f;color:#93c5fd}
+  @keyframes toastIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <a href="/" class="back">&larr; Birdview</a>
+    <h1>&#x1F4D7; History</h1>
+  </div>
+
+  <div class="layout">
+    <div class="sidebar">
+      <div class="sidebar-title">Domains</div>
+      <div id="domains">
+        <div class="domain-item active" data-domain="all">
+          <span>All</span>
+          <span class="domain-count" id="all-count">0</span>
+        </div>
+      </div>
+    </div>
+    <div class="main">
+      <div class="unit-grid" id="units"></div>
+      <div class="empty" id="empty" style="display:none">
+        <div class="empty-icon">&#x1F4ED;</div>
+        <p>No history units found. Run <code>/wrap-up</code> to record a session.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="unit-detail" id="detail">
+    <button class="unit-detail-close" id="detail-close">&times;</button>
+    <div id="detail-content"></div>
+  </div>
+</div>
+
+<div class="toast-container" id="toasts"></div>
+
+<script>
+function esc(s) {
+  if (s == null) return '';
+  var div = document.createElement('div');
+  div.appendChild(document.createTextNode(String(s)));
+  return div.innerHTML;
+}
+function escAttr(s) {
+  return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function toast(msg, type) {
+  var el = document.createElement('div');
+  el.className = 'toast toast-' + (type || 'info');
+  el.textContent = msg;
+  document.getElementById('toasts').appendChild(el);
+  setTimeout(function() { el.remove(); }, 4000);
+}
+
+var allUnits = [];
+var allDomains = [];
+var activeDomain = 'all';
+
+function renderDomains() {
+  var container = document.getElementById('domains');
+  var domainCounts = {};
+  for (var i = 0; i < allUnits.length; i++) {
+    var d = allUnits[i].domain || 'other';
+    domainCounts[d] = (domainCounts[d] || 0) + 1;
+  }
+
+  var html = '<div class="domain-item' + (activeDomain === 'all' ? ' active' : '') + '" data-domain="all"><span>All</span><span class="domain-count">' + allUnits.length + '</span></div>';
+  for (var j = 0; j < allDomains.length; j++) {
+    var dom = allDomains[j];
+    var cnt = domainCounts[dom] || 0;
+    html += '<div class="domain-item' + (activeDomain === dom ? ' active' : '') + '" data-domain="' + escAttr(dom) + '">';
+    html += '<span>' + esc(dom) + '</span>';
+    html += '<span class="domain-count">' + cnt + '</span></div>';
+  }
+  container.innerHTML = html;
+}
+
+function renderUnits() {
+  var container = document.getElementById('units');
+  var empty = document.getElementById('empty');
+
+  var filtered = allUnits.filter(function(u) {
+    return activeDomain === 'all' || u.domain === activeDomain;
+  });
+
+  if (filtered.length === 0) {
+    container.innerHTML = '';
+    empty.style.display = '';
+    return;
+  }
+  empty.style.display = 'none';
+
+  var html = '';
+  for (var i = 0; i < filtered.length; i++) {
+    var u = filtered[i];
+    html += '<div class="unit-card" data-idx="' + i + '" data-id="' + escAttr(u.id) + '">';
+    html += '<div class="unit-card-header">';
+    html += '<h3 class="unit-title">' + esc(u.title || u.id) + '</h3>';
+    html += '<span class="badge badge-' + esc(u.status) + '">' + esc(u.status) + '</span>';
+    html += '<span class="badge badge-domain">' + esc(u.domain) + '</span>';
+    html += '</div>';
+    html += '<div class="unit-meta">';
+    html += '<span>' + esc(u.session_count) + ' session' + (u.session_count !== 1 ? 's' : '') + '</span>';
+    html += '<span>' + esc(u.created) + ' &rarr; ' + esc(u.last_updated) + '</span>';
+    html += '</div>';
+    html += '</div>';
+  }
+  container.innerHTML = html;
+}
+
+function renderMarkdown(md) {
+  if (!md) return '<p style="color:#6b7280">No content available.</p>';
+  var lines = md.split('\n');
+  var html = '';
+  var inList = false;
+
+  for (var i = 0; i < lines.length; i++) {
+    var line = lines[i];
+
+    // headings
+    var h3 = line.match(/^### (.+)/);
+    if (h3) { if (inList) { html += '</ul>'; inList = false; } html += '<h3>' + esc(h3[1]) + '</h3>'; continue; }
+    var h2 = line.match(/^## (.+)/);
+    if (h2) { if (inList) { html += '</ul>'; inList = false; } html += '<h2>' + esc(h2[1]) + '</h2>'; continue; }
+    var h1 = line.match(/^# (.+)/);
+    if (h1) { if (inList) { html += '</ul>'; inList = false; } html += '<h1>' + esc(h1[1]) + '</h1>'; continue; }
+
+    // list items
+    var li = line.match(/^[-*] \[([x ])\] (.+)/);
+    if (li) {
+      if (!inList) { html += '<ul class="pending-list">'; inList = true; }
+      html += '<li class="' + (li[1] === 'x' ? 'done' : '') + '">' + esc(li[2]) + '</li>';
+      continue;
+    }
+    var plain_li = line.match(/^[-*] (.+)/);
+    if (plain_li) {
+      if (!inList) { html += '<ul>'; inList = true; }
+      html += '<li>' + inlineFormat(plain_li[1]) + '</li>';
+      continue;
+    }
+
+    if (inList && line.trim() === '') { html += '</ul>'; inList = false; }
+
+    // paragraph
+    if (line.trim()) {
+      html += '<p>' + inlineFormat(line) + '</p>';
+    }
+  }
+  if (inList) html += '</ul>';
+  return html;
+}
+
+function inlineFormat(text) {
+  var s = esc(text);
+  s = s.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  s = s.replace(/`(.+?)`/g, '<code>$1</code>');
+  return s;
+}
+
+function showDetail(unit) {
+  var detail = document.getElementById('detail');
+  var content = document.getElementById('detail-content');
+
+  var html = '<h2>' + esc(unit.title || unit.id) + '</h2>';
+  html += '<div style="margin-bottom:16px">';
+  html += '<span class="badge badge-' + esc(unit.status) + '">' + esc(unit.status) + '</span> ';
+  html += '<span class="badge badge-domain">' + esc(unit.domain) + '</span> ';
+  if (unit.file) html += '<span style="font-size:12px;color:#6b7280;margin-left:8px">' + esc(unit.file) + '</span>';
+  html += '</div>';
+  html += '<div class="md-content">' + renderMarkdown(unit.content) + '</div>';
+
+  content.innerHTML = html;
+  detail.classList.add('visible');
+  detail.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+document.getElementById('detail-close').addEventListener('click', function() {
+  document.getElementById('detail').classList.remove('visible');
+});
+
+document.getElementById('domains').addEventListener('click', function(ev) {
+  var item = ev.target.closest('.domain-item');
+  if (!item) return;
+  activeDomain = item.getAttribute('data-domain');
+  renderDomains();
+  renderUnits();
+});
+
+document.getElementById('units').addEventListener('click', function(ev) {
+  var card = ev.target.closest('.unit-card');
+  if (!card) return;
+  var id = card.getAttribute('data-id');
+  var unit = allUnits.find(function(u) { return u.id === id; });
+  if (unit) showDetail(unit);
+});
+
+fetch('/api/units')
+  .then(function(r) { return r.json(); })
+  .then(function(d) {
+    allUnits = d.units || [];
+    allDomains = d.domains || [];
+    renderDomains();
+    renderUnits();
+  })
+  .catch(function(err) { toast('Failed to load history: ' + err.message, 'error'); });
+</script>
+</body>
+</html>

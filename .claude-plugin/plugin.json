@@ -1,0 +1,18 @@
+{
+  "name": "omniscitus",
+  "version": "0.1.0",
+  "description": "Codebase world model — automatic blueprint tracking, topic-based session history, universal test management, and a birdview dashboard.",
+  "author": {
+    "name": "Dan"
+  },
+  "license": "MIT",
+  "keywords": [
+    "claude-code",
+    "plugin",
+    "world-model",
+    "blueprint",
+    "history",
+    "testing",
+    "dashboard"
+  ]
+}
