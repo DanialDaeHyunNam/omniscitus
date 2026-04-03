@@ -68,6 +68,36 @@
   @keyframes toastIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
 
   .count{font-size:13px;color:#6b7280;margin-left:auto;white-space:nowrap}
+
+  /* ── Review System ── */
+  .review-fab{position:fixed;bottom:24px;right:24px;width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,#7c3aed,#6366f1);border:none;color:white;font-size:20px;cursor:pointer;box-shadow:0 4px 20px rgba(124,58,237,0.4);z-index:900;display:flex;align-items:center;justify-content:center;transition:transform 0.15s}
+  .review-fab:hover{transform:scale(1.1)}
+  .review-fab .badge-count{position:absolute;top:-4px;right:-4px;background:#f87171;color:white;font-size:11px;min-width:18px;height:18px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-weight:600}
+  .review-panel{position:fixed;top:0;right:-400px;width:400px;height:100vh;background:#111;border-left:1px solid #252525;z-index:1000;transition:right 0.25s ease;display:flex;flex-direction:column}
+  .review-panel.open{right:0}
+  .review-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:999;display:none}
+  .review-overlay.open{display:block}
+  .review-panel-header{padding:16px 20px;border-bottom:1px solid #252525;display:flex;align-items:center;gap:10px}
+  .review-panel-header h3{font-size:16px;font-weight:600;color:#fff;margin:0;flex:1}
+  .review-panel-close{background:none;border:none;color:#6b7280;font-size:20px;cursor:pointer;padding:0}
+  .review-panel-close:hover{color:#e0e0e0}
+  .review-list{flex:1;overflow-y:auto;padding:12px 16px}
+  .review-item{background:#1a1a1a;border:1px solid #252525;border-radius:8px;padding:12px;margin-bottom:8px;cursor:pointer;transition:opacity 0.15s}
+  .review-item.resolved{opacity:0.5}
+  .review-item.resolved .review-comment{text-decoration:line-through}
+  .review-author{font-size:12px;font-weight:600;color:#c4b5fd}
+  .review-time{font-size:11px;color:#6b7280;margin-left:8px}
+  .review-context{font-size:11px;color:#9ca3af;margin:4px 0;font-family:'SF Mono',SFMono-Regular,Menlo,monospace}
+  .review-comment{font-size:13px;color:#d1d5db;line-height:1.5;margin-top:4px}
+  .review-resolved-tag{font-size:10px;color:#6ee7b7;margin-left:6px}
+  .review-form{border-top:1px solid #252525;padding:16px;display:flex;flex-direction:column;gap:10px}
+  .review-form input,.review-form textarea{width:100%;padding:8px 10px;background:#1a1a1a;border:1px solid #333;border-radius:6px;color:#e0e0e0;font-size:13px;font-family:inherit;outline:none}
+  .review-form input:focus,.review-form textarea:focus{border-color:#7c3aed}
+  .review-form textarea{resize:vertical;min-height:60px}
+  .review-form button{padding:8px 16px;background:#7c3aed;color:#fff;border:none;border-radius:6px;font-size:13px;cursor:pointer;font-weight:500}
+  .review-form button:hover{background:#6d28d9}
+  .review-form button:disabled{background:#3b1d6e;color:#6b7280;cursor:not-allowed}
+  .review-empty{text-align:center;padding:24px;color:#6b7280;font-size:13px}
 </style>
 </head>
 <body>
@@ -110,6 +140,20 @@
 </div>
 
 <div class="toast-container" id="toasts"></div>
+
+<!-- Review FAB + Panel -->
+<button class="review-fab" id="review-fab">&#x1F4AC;<span class="badge-count" id="review-count" style="display:none">0</span></button>
+<div class="review-overlay" id="review-overlay"></div>
+<div class="review-panel" id="review-panel">
+  <div class="review-panel-header"><h3>Reviews for this page</h3><button class="review-panel-close" id="review-panel-close">&times;</button></div>
+  <div class="review-list" id="review-list"></div>
+  <div class="review-form" id="review-form">
+    <input type="text" id="review-context" placeholder="Context (file path, etc.)" />
+    <input type="text" id="review-author" placeholder="Your name" />
+    <textarea id="review-comment" placeholder="Leave a review or comment..."></textarea>
+    <button id="review-submit">Submit Review</button>
+  </div>
+</div>
 
 <script>
 function esc(s) {
@@ -229,6 +273,78 @@ fetch('/api/blueprints')
     render();
   })
   .catch(function(err) { toast('Failed to load blueprints: ' + err.message, 'error'); });
+
+/* ════════════════════════════════════════════
+   Review System
+   ════════════════════════════════════════════ */
+var REVIEW_PAGE = 'blueprint';
+var _reviews = [];
+
+function relativeTime(ts) {
+  if (!ts) return '';
+  var diff = Date.now() - new Date(ts).getTime();
+  var mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return mins + 'm ago';
+  var hrs = Math.floor(mins / 60);
+  if (hrs < 24) return hrs + 'h ago';
+  var days = Math.floor(hrs / 24);
+  return days + 'd ago';
+}
+
+function renderReviews() {
+  var list = document.getElementById('review-list');
+  var filtered = _reviews.filter(function(r) { return r.page === REVIEW_PAGE; });
+  var countEl = document.getElementById('review-count');
+  if (filtered.length > 0) { countEl.textContent = filtered.length; countEl.style.display = 'flex'; }
+  else { countEl.style.display = 'none'; }
+  if (filtered.length === 0) { list.innerHTML = '<div class="review-empty">No reviews yet for this page.</div>'; return; }
+  var html = '';
+  for (var i = 0; i < filtered.length; i++) {
+    var r = filtered[i];
+    html += '<div class="review-item' + (r.resolved ? ' resolved' : '') + '" data-review-id="' + escAttr(r._id) + '" data-resolved="' + (r.resolved ? 'true' : 'false') + '">';
+    html += '<span class="review-author">' + esc(r.author) + '</span>';
+    html += '<span class="review-time">' + esc(relativeTime(r.timestamp)) + '</span>';
+    if (r.resolved) html += '<span class="review-resolved-tag">[resolved]</span>';
+    if (r.context) html += '<div class="review-context">' + esc(r.context) + '</div>';
+    html += '<div class="review-comment">' + esc(r.comment) + '</div>';
+    html += '</div>';
+  }
+  list.innerHTML = html;
+}
+
+function loadReviews() {
+  fetch('/api/reviews').then(function(r) { return r.json(); }).then(function(d) { _reviews = d.reviews || []; renderReviews(); }).catch(function() {});
+}
+
+document.getElementById('review-list').addEventListener('click', function(ev) {
+  var item = ev.target.closest('.review-item');
+  if (!item) return;
+  var id = item.getAttribute('data-review-id');
+  var isResolved = item.getAttribute('data-resolved') === 'true';
+  fetch('/api/reviews/' + encodeURIComponent(id), { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ resolved: !isResolved }) }).then(function() { loadReviews(); }).catch(function() {});
+});
+
+document.getElementById('review-submit').addEventListener('click', function() {
+  var context = document.getElementById('review-context').value.trim();
+  var author = document.getElementById('review-author').value.trim() || 'anonymous';
+  var comment = document.getElementById('review-comment').value.trim();
+  if (!comment) { toast('Please enter a comment', 'error'); return; }
+  localStorage.setItem('birdview-review-author', author);
+  var btn = document.getElementById('review-submit');
+  btn.disabled = true; btn.textContent = 'Submitting...';
+  fetch('/api/reviews', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ page: REVIEW_PAGE, context: context, author: author, comment: comment }) })
+  .then(function(r) { return r.json(); }).then(function() { document.getElementById('review-context').value = ''; document.getElementById('review-comment').value = ''; btn.disabled = false; btn.textContent = 'Submit Review'; toast('Review submitted', 'success'); loadReviews(); })
+  .catch(function(err) { btn.disabled = false; btn.textContent = 'Submit Review'; toast('Failed: ' + err.message, 'error'); });
+});
+
+document.getElementById('review-fab').addEventListener('click', function() { document.getElementById('review-panel').classList.add('open'); document.getElementById('review-overlay').classList.add('open'); renderReviews(); });
+document.getElementById('review-panel-close').addEventListener('click', function() { document.getElementById('review-panel').classList.remove('open'); document.getElementById('review-overlay').classList.remove('open'); });
+document.getElementById('review-overlay').addEventListener('click', function() { document.getElementById('review-panel').classList.remove('open'); document.getElementById('review-overlay').classList.remove('open'); });
+
+var savedAuthor = localStorage.getItem('birdview-review-author');
+if (savedAuthor) document.getElementById('review-author').value = savedAuthor;
+loadReviews();
 </script>
 </body>
 </html>

@@ -25,7 +25,7 @@ function jsonRes(res, code, data) {
   res.writeHead(code, {
     'Content-Type': 'application/json',
     'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Allow-Methods': 'GET, POST, PATCH, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type'
   });
   res.end(body);
@@ -468,6 +468,266 @@ function parseMetaYaml(text) {
   return result;
 }
 
+// --- Prompt Meta YAML Parser ---
+
+function parsePromptMetaYaml(text) {
+  var result = {
+    target: '', type: '', prompt_name: '', last_updated: '',
+    judge: { model: '', temperature: 0, max_retries: 0 },
+    criteria: [], checks: [], thresholds: { pass: 0, warn: 0, per_criterion: {} },
+    cases: []
+  };
+  if (!text) return result;
+
+  var lines = text.split('\n');
+  var i = 0;
+  var section = ''; // track which top-level key we're in
+
+  while (i < lines.length) {
+    var line = lines[i];
+    if (line.trim() === '') { i++; continue; }
+
+    // top-level scalars
+    var topMatch = line.match(/^(target|type|prompt_name|last_updated):\s*(.+)/);
+    if (topMatch) {
+      result[topMatch[1]] = topMatch[2].replace(/^["']|["']$/g, '').trim();
+      section = '';
+      i++; continue;
+    }
+
+    // judge block
+    if (line.match(/^judge:\s*$/)) {
+      section = 'judge';
+      i++;
+      while (i < lines.length) {
+        var jl = lines[i];
+        if (jl.trim() === '') { i++; continue; }
+        var jm = jl.match(/^\s+(model|temperature|max_retries):\s*(.+)/);
+        if (jm) {
+          var jv = jm[2].trim().replace(/^["']|["']$/g, '');
+          if (jm[1] === 'temperature') jv = parseFloat(jv) || 0;
+          else if (jm[1] === 'max_retries') jv = parseInt(jv) || 0;
+          result.judge[jm[1]] = jv;
+          i++; continue;
+        }
+        if (!jl.match(/^\s/)) break;
+        i++;
+      }
+      continue;
+    }
+
+    // criteria block
+    if (line.match(/^criteria:\s*$/)) {
+      section = 'criteria';
+      i++;
+      var currentCrit = null;
+      while (i < lines.length) {
+        var cl = lines[i];
+        if (cl.trim() === '') { i++; continue; }
+        var cindent = cl.match(/^(\s*)/);
+        if (cindent && cindent[1].length === 0 && !cl.match(/^\s*-/)) {
+          if (currentCrit) result.criteria.push(currentCrit);
+          break;
+        }
+        var critStart = cl.match(/^\s*- name:\s*(.+)/);
+        if (critStart) {
+          if (currentCrit) result.criteria.push(currentCrit);
+          currentCrit = { name: critStart[1].replace(/^["']|["']$/g, '').trim(), weight: 0, rubric: '', scale: '' };
+          i++; continue;
+        }
+        if (currentCrit) {
+          var critProp = cl.match(/^\s+(weight|rubric|scale):\s*(.+)/);
+          if (critProp) {
+            var cv = critProp[2].trim().replace(/^["']|["']$/g, '');
+            if (critProp[1] === 'weight') cv = parseFloat(cv) || 0;
+            currentCrit[critProp[1]] = cv;
+            i++; continue;
+          }
+        }
+        i++;
+      }
+      if (currentCrit) result.criteria.push(currentCrit);
+      continue;
+    }
+
+    // checks block
+    if (line.match(/^checks:\s*$/)) {
+      section = 'checks';
+      i++;
+      var currentCheck = null;
+      while (i < lines.length) {
+        var ckl = lines[i];
+        if (ckl.trim() === '') { i++; continue; }
+        var ckindent = ckl.match(/^(\s*)/);
+        if (ckindent && ckindent[1].length === 0 && !ckl.match(/^\s*-/)) {
+          if (currentCheck) result.checks.push(currentCheck);
+          break;
+        }
+        var checkStart = ckl.match(/^\s*- name:\s*(.+)/);
+        if (checkStart) {
+          if (currentCheck) result.checks.push(currentCheck);
+          currentCheck = { name: checkStart[1].replace(/^["']|["']$/g, '').trim(), type: '', rule: '', prompt: '', pass_condition: '' };
+          i++; continue;
+        }
+        if (currentCheck) {
+          var checkProp = ckl.match(/^\s+(type|rule|prompt|pass_condition):\s*(.+)/);
+          if (checkProp) {
+            currentCheck[checkProp[1]] = checkProp[2].trim().replace(/^["']|["']$/g, '');
+            i++; continue;
+          }
+        }
+        i++;
+      }
+      if (currentCheck) result.checks.push(currentCheck);
+      continue;
+    }
+
+    // thresholds block
+    if (line.match(/^thresholds:\s*$/)) {
+      section = 'thresholds';
+      i++;
+      var inPerCrit = false;
+      while (i < lines.length) {
+        var tl = lines[i];
+        if (tl.trim() === '') { i++; continue; }
+        var tindent = tl.match(/^(\s*)/);
+        if (tindent && tindent[1].length === 0) break;
+        if (tl.match(/^\s+per_criterion:\s*$/)) {
+          inPerCrit = true;
+          i++; continue;
+        }
+        if (inPerCrit) {
+          var pcMatch = tl.match(/^\s{4,}(\w+):\s*(.+)/);
+          if (pcMatch) {
+            result.thresholds.per_criterion[pcMatch[1]] = parseFloat(pcMatch[2]) || 0;
+            i++; continue;
+          }
+          if (tl.match(/^\s{2}\w/)) { inPerCrit = false; }
+        }
+        var threshProp = tl.match(/^\s+(pass|warn):\s*(.+)/);
+        if (threshProp) {
+          result.thresholds[threshProp[1]] = parseFloat(threshProp[2]) || 0;
+          i++; continue;
+        }
+        i++;
+      }
+      continue;
+    }
+
+    // cases block
+    if (line.match(/^cases:\s*$/)) {
+      section = 'cases';
+      i++;
+      var currentCase = null;
+      var inCaseInput = false;
+      var inManualOverride = false;
+      var inExpectedScoreRange = false;
+      while (i < lines.length) {
+        var cal = lines[i];
+        if (cal.trim() === '') { i++; continue; }
+        var caindent = cal.match(/^(\s*)/);
+        if (caindent && caindent[1].length === 0 && !cal.match(/^\s*-/)) {
+          if (currentCase) result.cases.push(currentCase);
+          break;
+        }
+        var caseStart = cal.match(/^\s*- title:\s*(.+)/);
+        if (caseStart) {
+          if (currentCase) result.cases.push(currentCase);
+          currentCase = {
+            title: caseStart[1].replace(/^["']|["']$/g, '').trim(),
+            category: '', input: {}, expected_behavior: '',
+            expected_score_range: { min: 0, max: 0 }
+          };
+          inCaseInput = false; inManualOverride = false; inExpectedScoreRange = false;
+          i++; continue;
+        }
+        if (currentCase) {
+          // category / expected_behavior
+          var caseProp = cal.match(/^\s{4}(category|expected_behavior):\s*(.+)/);
+          if (caseProp) {
+            currentCase[caseProp[1]] = caseProp[2].trim().replace(/^["']|["']$/g, '');
+            inCaseInput = false; inManualOverride = false; inExpectedScoreRange = false;
+            i++; continue;
+          }
+          // input block
+          if (cal.match(/^\s{4}input:\s*$/)) {
+            inCaseInput = true; inManualOverride = false; inExpectedScoreRange = false;
+            i++; continue;
+          }
+          if (inCaseInput) {
+            var inputProp = cal.match(/^\s{6,}(\w+):\s*(.+)/);
+            if (inputProp) {
+              currentCase.input[inputProp[1]] = inputProp[2].trim().replace(/^["']|["']$/g, '');
+              i++; continue;
+            }
+            if (!cal.match(/^\s{6}/)) inCaseInput = false;
+          }
+          // expected_score_range block
+          if (cal.match(/^\s{4}expected_score_range:\s*$/)) {
+            inExpectedScoreRange = true; inCaseInput = false; inManualOverride = false;
+            i++; continue;
+          }
+          if (inExpectedScoreRange) {
+            var srMatch = cal.match(/^\s{6}(min|max):\s*(.+)/);
+            if (srMatch) {
+              currentCase.expected_score_range[srMatch[1]] = parseFloat(srMatch[2]) || 0;
+              i++; continue;
+            }
+            if (!cal.match(/^\s{6}/)) inExpectedScoreRange = false;
+          }
+          // manual_override block
+          if (cal.match(/^\s{4}manual_override:\s*$/)) {
+            inManualOverride = true; inCaseInput = false; inExpectedScoreRange = false;
+            currentCase.manual_override = { score: 0, timestamp: '', reason: '' };
+            i++; continue;
+          }
+          if (inManualOverride) {
+            var moMatch = cal.match(/^\s{6}(score|timestamp|reason):\s*(.+)/);
+            if (moMatch) {
+              var moVal = moMatch[2].trim().replace(/^["']|["']$/g, '');
+              if (moMatch[1] === 'score') moVal = parseFloat(moVal) || 0;
+              currentCase.manual_override[moMatch[1]] = moVal;
+              i++; continue;
+            }
+            if (!cal.match(/^\s{6}/)) inManualOverride = false;
+          }
+        }
+        i++;
+      }
+      if (currentCase) result.cases.push(currentCase);
+      continue;
+    }
+
+    i++;
+  }
+
+  return result;
+}
+
+function scanPromptTests(dir) {
+  var results = [];
+  var entries = safeReadDir(dir);
+  for (var i = 0; i < entries.length; i++) {
+    var entry = entries[i];
+    var fullPath = path.join(dir, entry);
+    try {
+      var stat = fs.statSync(fullPath);
+      if (stat.isDirectory()) {
+        results = results.concat(scanPromptTests(fullPath));
+      } else if (entry === 'prompt-meta.yaml') {
+        var text = safeReadFile(fullPath);
+        var meta = parsePromptMetaYaml(text);
+        meta._dir = path.relative(path.join(OMNISCITUS_DIR, 'tests', 'prompts'), path.dirname(fullPath));
+        // also try to read judge.md alongside
+        var judgePath = path.join(path.dirname(fullPath), 'judge.md');
+        meta._judgeMd = safeReadFile(judgePath);
+        results.push(meta);
+      }
+    } catch (e) { /* skip */ }
+  }
+  return results;
+}
+
 // --- API Handlers ---
 
 function handleApiBlueprints(req, res) {
@@ -533,7 +793,138 @@ function scanTestsRecursive(dir, base) {
 function handleApiTests(req, res) {
   var testsDir = path.join(OMNISCITUS_DIR, 'tests');
   var tests = scanTestsRecursive(testsDir, testsDir);
+  // Add type: "code" to each test result
+  for (var i = 0; i < tests.length; i++) {
+    tests[i].type = 'code';
+  }
   jsonRes(res, 200, { tests: tests });
+}
+
+function handleApiPromptTests(req, res) {
+  var promptsDir = path.join(OMNISCITUS_DIR, 'tests', 'prompts');
+  var tests = scanPromptTests(promptsDir);
+  jsonRes(res, 200, { tests: tests });
+}
+
+// --- Reviews API Handlers ---
+
+function getReviewsDir() {
+  return path.join(OMNISCITUS_DIR, 'reviews');
+}
+
+function handleGetReviews(req, res) {
+  var urlParts = req.url.split('?');
+  var query = {};
+  if (urlParts[1]) {
+    var pairs = urlParts[1].split('&');
+    for (var i = 0; i < pairs.length; i++) {
+      var kv = pairs[i].split('=');
+      query[decodeURIComponent(kv[0])] = decodeURIComponent(kv[1] || '');
+    }
+  }
+  var filterPage = query.page || '';
+
+  var reviewsDir = getReviewsDir();
+  var files = safeReadDir(reviewsDir).filter(function(f) { return f.endsWith('.json'); });
+  var reviews = [];
+
+  for (var i = 0; i < files.length; i++) {
+    var content = safeReadFile(path.join(reviewsDir, files[i]));
+    if (!content) continue;
+    try {
+      var review = JSON.parse(content);
+      review._id = files[i];
+      if (!filterPage || review.page === filterPage) {
+        reviews.push(review);
+      }
+    } catch (e) { /* skip invalid JSON */ }
+  }
+
+  // Sort by timestamp descending (newest first)
+  reviews.sort(function(a, b) {
+    return (b.timestamp || '').localeCompare(a.timestamp || '');
+  });
+
+  jsonRes(res, 200, { reviews: reviews });
+}
+
+function handlePostReview(req, res) {
+  readBody(req).then(function(bodyStr) {
+    var body;
+    try {
+      body = JSON.parse(bodyStr);
+    } catch (e) {
+      return jsonRes(res, 400, { success: false, message: 'Invalid JSON body' });
+    }
+
+    if (!body.page || !body.comment) {
+      return jsonRes(res, 400, { success: false, message: 'Missing required fields: page, comment' });
+    }
+
+    var reviewsDir = getReviewsDir();
+    try {
+      fs.mkdirSync(reviewsDir, { recursive: true });
+    } catch (e) { /* already exists */ }
+
+    var timestamp = new Date().toISOString();
+    var filename = Date.now() + '-' + body.page + '.json';
+    var review = {
+      page: body.page,
+      context: body.context || '',
+      author: body.author || 'anonymous',
+      timestamp: timestamp,
+      comment: body.comment,
+      resolved: false
+    };
+
+    try {
+      fs.writeFileSync(path.join(reviewsDir, filename), JSON.stringify(review, null, 2), 'utf-8');
+    } catch (e) {
+      return jsonRes(res, 500, { success: false, message: 'Failed to write review: ' + e.message });
+    }
+
+    jsonRes(res, 201, { success: true, id: filename });
+  }).catch(function(e) {
+    jsonRes(res, 500, { success: false, message: 'Error reading request: ' + e.message });
+  });
+}
+
+function handlePatchReview(req, res, reviewId) {
+  readBody(req).then(function(bodyStr) {
+    var body;
+    try {
+      body = JSON.parse(bodyStr);
+    } catch (e) {
+      return jsonRes(res, 400, { success: false, message: 'Invalid JSON body' });
+    }
+
+    var reviewPath = path.join(getReviewsDir(), reviewId);
+    var content = safeReadFile(reviewPath);
+    if (!content) {
+      return jsonRes(res, 404, { success: false, message: 'Review not found: ' + reviewId });
+    }
+
+    var review;
+    try {
+      review = JSON.parse(content);
+    } catch (e) {
+      return jsonRes(res, 500, { success: false, message: 'Corrupt review file' });
+    }
+
+    if (body.resolved !== undefined) {
+      review.resolved = !!body.resolved;
+    }
+
+    try {
+      fs.writeFileSync(reviewPath, JSON.stringify(review, null, 2), 'utf-8');
+    } catch (e) {
+      return jsonRes(res, 500, { success: false, message: 'Failed to update review: ' + e.message });
+    }
+
+    jsonRes(res, 200, { success: true });
+  }).catch(function(e) {
+    jsonRes(res, 500, { success: false, message: 'Error reading request: ' + e.message });
+  });
 }
 
 // --- YAML Writer Helpers ---
@@ -757,7 +1148,7 @@ var server = http.createServer(function (req, res) {
   if (req.method === 'OPTIONS') {
     res.writeHead(204, {
       'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+      'Access-Control-Allow-Methods': 'GET, POST, PATCH, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type'
     });
     return res.end();
@@ -777,6 +1168,17 @@ var server = http.createServer(function (req, res) {
   if (url === '/api/tests' && req.method === 'GET') return handleApiTests(req, res);
   if (url === '/api/tests/case' && req.method === 'POST') return handlePostTestCase(req, res);
   if (url === '/api/tests/run' && req.method === 'POST') return handlePostTestRun(req, res);
+  if (url === '/api/prompt-tests' && req.method === 'GET') return handleApiPromptTests(req, res);
+
+  // Reviews routes
+  if (url === '/api/reviews' && req.method === 'GET') return handleGetReviews(req, res);
+  if (url === '/api/reviews' && req.method === 'POST') return handlePostReview(req, res);
+
+  // PATCH /api/reviews/:id
+  var reviewPatchMatch = url.match(/^\/api\/reviews\/(.+)$/);
+  if (reviewPatchMatch && req.method === 'PATCH') {
+    return handlePatchReview(req, res, reviewPatchMatch[1]);
+  }
 
   // 404
   res.writeHead(404, { 'Content-Type': 'text/plain' });

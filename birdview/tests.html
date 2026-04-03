@@ -43,6 +43,15 @@
   .badge-type-array{background:#083344;color:#22d3ee}
   .badge-type-void{background:#1f1f1f;color:#6b7280}
 
+  /* Top tab bar */
+  .top-tabs{display:flex;gap:2px;background:#1a1a1a;border-radius:8px;padding:3px;margin-bottom:24px;width:fit-content}
+  .top-tab{padding:8px 20px;border-radius:6px;font-size:14px;cursor:pointer;color:#9ca3af;border:none;background:transparent;transition:all 0.15s;font-weight:500}
+  .top-tab:hover{color:#e0e0e0}
+  .top-tab.active{background:#2e1065;color:#c4b5fd}
+
+  .tab-content{display:none}
+  .tab-content.active{display:block}
+
   .tree{display:flex;flex-direction:column;gap:8px}
   .tree-node{background:#1a1a1a;border-radius:12px;border:1px solid #252525;overflow:hidden;transition:border-color 0.15s}
   .tree-node:hover{border-color:#374151}
@@ -188,6 +197,106 @@
 
   /* Error case toggle in form */
   .error-section{margin-top:12px;padding-top:12px;border-top:1px solid #252525}
+
+  /* ── Prompt Tests Styles ── */
+  .pt-card{background:#1a1a1a;border-radius:12px;border:1px solid #252525;overflow:hidden;margin-bottom:16px}
+  .pt-card-header{padding:16px 20px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:background 0.1s}
+  .pt-card-header:hover{background:#222}
+  .pt-name{font-size:16px;font-weight:600;color:#fff;flex:1}
+  .pt-target{font-family:'SF Mono',SFMono-Regular,Menlo,monospace;font-size:12px;color:#9ca3af}
+  .pt-date{font-size:12px;color:#6b7280}
+  .pt-body{display:none;border-top:1px solid #252525;background:#111;padding:20px}
+  .pt-body.open{display:block}
+
+  .pt-section{margin-bottom:20px}
+  .pt-section:last-child{margin-bottom:0}
+  .pt-section-title{font-size:13px;font-weight:600;color:#c4b5fd;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+
+  /* Criteria cards */
+  .criteria-grid{display:grid;grid-template-columns:repeat(auto-fill, minmax(280px, 1fr));gap:10px}
+  .criterion-card{background:#1a1a1a;border:1px solid #252525;border-radius:8px;padding:14px}
+  .criterion-name{font-size:14px;font-weight:600;color:#e0e0e0;margin-bottom:6px}
+  .criterion-weight{margin-bottom:8px}
+  .weight-bar-bg{background:#252525;border-radius:4px;height:6px;overflow:hidden}
+  .weight-bar-fill{background:linear-gradient(90deg, #7c3aed, #6366f1);height:100%;border-radius:4px;transition:width 0.3s}
+  .weight-label{font-size:11px;color:#9ca3af;margin-top:4px}
+  .criterion-rubric{font-size:12px;color:#9ca3af;line-height:1.5;margin-bottom:4px}
+  .criterion-scale{font-size:11px;color:#6b7280}
+
+  /* Check items */
+  .check-item{display:flex;align-items:center;gap:10px;padding:10px 14px;background:#1a1a1a;border:1px solid #252525;border-radius:8px;margin-bottom:6px}
+  .check-name{font-size:13px;color:#e0e0e0;font-weight:500;flex:1}
+  .badge-deterministic{background:#1e3a5f;color:#93c5fd}
+  .badge-llm_judge{background:#2e1065;color:#c4b5fd}
+  .check-detail{font-size:12px;color:#6b7280;margin-top:4px}
+  .check-detail code{background:#252525;padding:1px 5px;border-radius:3px;font-size:11px;color:#d1d5db}
+
+  /* Cases grouped by category */
+  .category-group{margin-bottom:16px}
+  .category-header{font-size:13px;font-weight:600;color:#e0e0e0;margin-bottom:8px;display:flex;align-items:center;gap:8px}
+  .badge-element{background:#064e3b;color:#6ee7b7}
+  .badge-mixed{background:#3b1d00;color:#fbbf24}
+  .badge-edge{background:#450a0a;color:#f87171}
+  .badge-zero_condition{background:#1e293b;color:#94a3b8}
+  .badge-category{padding:2px 8px;border-radius:4px;font-size:11px;font-weight:500}
+
+  .pt-case-card{background:#1a1a1a;border:1px solid #252525;border-radius:8px;padding:14px 16px;margin-bottom:8px}
+  .pt-case-title{font-size:14px;font-weight:500;color:#e0e0e0;margin-bottom:6px}
+  .pt-case-behavior{font-size:12px;color:#9ca3af;line-height:1.5;margin-bottom:8px}
+  .score-range{margin:8px 0}
+  .score-bar-bg{background:#252525;border-radius:4px;height:8px;position:relative;overflow:hidden}
+  .score-bar-fill{position:absolute;height:100%;border-radius:4px;background:linear-gradient(90deg, #6ee7b7, #7c3aed)}
+  .score-labels{display:flex;justify-content:space-between;font-size:11px;color:#6b7280;margin-top:4px}
+  .override-badge{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;background:#3b1d00;border:1px solid #5c3d00;border-radius:6px;margin-top:8px;font-size:12px;color:#fbbf24}
+  .override-badge .score{font-weight:700}
+
+  /* Thresholds visual */
+  .threshold-bar{position:relative;height:24px;border-radius:6px;overflow:hidden;background:#252525;margin-bottom:8px}
+  .threshold-zone{position:absolute;top:0;height:100%}
+  .threshold-fail{background:#450a0a;left:0}
+  .threshold-warn{background:#3b2d00}
+  .threshold-pass{background:#064e3b}
+  .threshold-labels{display:flex;gap:16px;font-size:12px}
+  .threshold-label{display:flex;align-items:center;gap:6px}
+  .threshold-dot{width:8px;height:8px;border-radius:50%}
+  .threshold-dot-pass{background:#6ee7b7}
+  .threshold-dot-warn{background:#fbbf24}
+  .threshold-dot-fail{background:#f87171}
+
+  /* Judge modal */
+  .judge-btn{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;background:transparent;border:1px solid #333;border-radius:6px;color:#9ca3af;font-size:12px;cursor:pointer;transition:all 0.15s}
+  .judge-btn:hover{border-color:#7c3aed;color:#c4b5fd}
+  .judge-md-content{background:#0d0d0d;border:1px solid #252525;border-radius:8px;padding:16px;font-size:13px;line-height:1.7;white-space:pre-wrap;max-height:400px;overflow-y:auto;color:#d1d5db}
+
+  /* ── Review System Styles ── */
+  .review-fab{position:fixed;bottom:24px;right:24px;width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,#7c3aed,#6366f1);border:none;color:white;font-size:20px;cursor:pointer;box-shadow:0 4px 20px rgba(124,58,237,0.4);z-index:900;display:flex;align-items:center;justify-content:center;transition:transform 0.15s}
+  .review-fab:hover{transform:scale(1.1)}
+  .review-fab .badge-count{position:absolute;top:-4px;right:-4px;background:#f87171;color:white;font-size:11px;min-width:18px;height:18px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-weight:600}
+  .review-panel{position:fixed;top:0;right:-400px;width:400px;height:100vh;background:#111;border-left:1px solid #252525;z-index:1000;transition:right 0.25s ease;display:flex;flex-direction:column}
+  .review-panel.open{right:0}
+  .review-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:999;display:none}
+  .review-overlay.open{display:block}
+  .review-panel-header{padding:16px 20px;border-bottom:1px solid #252525;display:flex;align-items:center;gap:10px}
+  .review-panel-header h3{font-size:16px;font-weight:600;color:#fff;margin:0;flex:1}
+  .review-panel-close{background:none;border:none;color:#6b7280;font-size:20px;cursor:pointer;padding:0}
+  .review-panel-close:hover{color:#e0e0e0}
+  .review-list{flex:1;overflow-y:auto;padding:12px 16px}
+  .review-item{background:#1a1a1a;border:1px solid #252525;border-radius:8px;padding:12px;margin-bottom:8px;cursor:pointer;transition:opacity 0.15s}
+  .review-item.resolved{opacity:0.5}
+  .review-item.resolved .review-comment{text-decoration:line-through}
+  .review-author{font-size:12px;font-weight:600;color:#c4b5fd}
+  .review-time{font-size:11px;color:#6b7280;margin-left:8px}
+  .review-context{font-size:11px;color:#9ca3af;margin:4px 0;font-family:'SF Mono',SFMono-Regular,Menlo,monospace}
+  .review-comment{font-size:13px;color:#d1d5db;line-height:1.5;margin-top:4px}
+  .review-resolved-tag{font-size:10px;color:#6ee7b7;margin-left:6px}
+  .review-form{border-top:1px solid #252525;padding:16px;display:flex;flex-direction:column;gap:10px}
+  .review-form input,.review-form textarea{width:100%;padding:8px 10px;background:#1a1a1a;border:1px solid #333;border-radius:6px;color:#e0e0e0;font-size:13px;font-family:inherit;outline:none}
+  .review-form input:focus,.review-form textarea:focus{border-color:#7c3aed}
+  .review-form textarea{resize:vertical;min-height:60px}
+  .review-form button{padding:8px 16px;background:#7c3aed;color:#fff;border:none;border-radius:6px;font-size:13px;cursor:pointer;font-weight:500}
+  .review-form button:hover{background:#6d28d9}
+  .review-form button:disabled{background:#3b1d6e;color:#6b7280;cursor:not-allowed}
+  .review-empty{text-align:center;padding:24px;color:#6b7280;font-size:13px}
 </style>
 </head>
 <body>
@@ -198,36 +307,73 @@
     <span class="meta" id="meta"></span>
   </div>
 
-  <div class="summary" id="summary" style="display:none">
-    <div class="summary-stat">
-      <div class="summary-num" id="stat-files">0</div>
-      <div class="summary-label">Files</div>
+  <div class="top-tabs">
+    <button class="top-tab active" data-tab="code-tests">Code Tests</button>
+    <button class="top-tab" data-tab="prompt-tests">Prompt Tests</button>
+  </div>
+
+  <!-- Code Tests Tab -->
+  <div class="tab-content active" id="tab-code-tests">
+    <div class="summary" id="summary" style="display:none">
+      <div class="summary-stat">
+        <div class="summary-num" id="stat-files">0</div>
+        <div class="summary-label">Files</div>
+      </div>
+      <div class="summary-stat">
+        <div class="summary-num" id="stat-functions">0</div>
+        <div class="summary-label">Functions</div>
+      </div>
+      <div class="summary-stat">
+        <div class="summary-num" id="stat-cases">0</div>
+        <div class="summary-label">Test Cases</div>
+      </div>
+      <div class="summary-stat summary-stat-highlight">
+        <div class="summary-num" id="stat-coverage">0%</div>
+        <div class="summary-label">Coverage</div>
+      </div>
     </div>
-    <div class="summary-stat">
-      <div class="summary-num" id="stat-functions">0</div>
-      <div class="summary-label">Functions</div>
-    </div>
-    <div class="summary-stat">
-      <div class="summary-num" id="stat-cases">0</div>
-      <div class="summary-label">Test Cases</div>
-    </div>
-    <div class="summary-stat summary-stat-highlight">
-      <div class="summary-num" id="stat-coverage">0%</div>
-      <div class="summary-label">Coverage</div>
+
+    <div class="tree" id="tree"></div>
+
+    <div class="empty" id="empty" style="display:none">
+      <div class="empty-icon">&#x1F4ED;</div>
+      <p>No test definitions found. Run <code>/test-add {file}</code> to create one.</p>
     </div>
   </div>
 
-  <div class="tree" id="tree"></div>
+  <!-- Prompt Tests Tab -->
+  <div class="tab-content" id="tab-prompt-tests">
+    <div class="summary" id="pt-summary" style="display:none">
+      <div class="summary-stat">
+        <div class="summary-num" id="pt-stat-prompts">0</div>
+        <div class="summary-label">Prompts</div>
+      </div>
+      <div class="summary-stat">
+        <div class="summary-num" id="pt-stat-criteria">0</div>
+        <div class="summary-label">Criteria</div>
+      </div>
+      <div class="summary-stat">
+        <div class="summary-num" id="pt-stat-cases">0</div>
+        <div class="summary-label">Cases</div>
+      </div>
+      <div class="summary-stat">
+        <div class="summary-num" id="pt-stat-checks">0</div>
+        <div class="summary-label">Checks</div>
+      </div>
+    </div>
 
-  <div class="empty" id="empty" style="display:none">
-    <div class="empty-icon">&#x1F4ED;</div>
-    <p>No test definitions found. Run <code>/test-add {file}</code> to create one.</p>
+    <div id="pt-tree"></div>
+
+    <div class="empty" id="pt-empty" style="display:none">
+      <div class="empty-icon">&#x1F4ED;</div>
+      <p>No prompt test definitions found. Create <code>prompt-meta.yaml</code> in <code>.omniscitus/tests/prompts/</code>.</p>
+    </div>
   </div>
 </div>
 
 <div class="toast-container" id="toasts"></div>
 
-<!-- Modal -->
+<!-- Modal (shared for add test case and judge view) -->
 <div class="modal-overlay" id="modal-overlay">
   <div class="modal" id="modal">
     <div class="modal-header">
@@ -235,10 +381,27 @@
       <button class="modal-close" id="modal-close">&times;</button>
     </div>
     <div class="modal-body" id="modal-body"></div>
-    <div class="modal-footer">
+    <div class="modal-footer" id="modal-footer">
       <button class="btn btn-ghost" id="modal-cancel">Cancel</button>
       <button class="btn btn-primary" id="modal-submit">Add Test Case</button>
     </div>
+  </div>
+</div>
+
+<!-- Review FAB + Panel -->
+<button class="review-fab" id="review-fab">&#x1F4AC;<span class="badge-count" id="review-count" style="display:none">0</span></button>
+<div class="review-overlay" id="review-overlay"></div>
+<div class="review-panel" id="review-panel">
+  <div class="review-panel-header">
+    <h3>Reviews for this page</h3>
+    <button class="review-panel-close" id="review-panel-close">&times;</button>
+  </div>
+  <div class="review-list" id="review-list"></div>
+  <div class="review-form" id="review-form">
+    <input type="text" id="review-context" placeholder="Context (file path, test name, etc.)" />
+    <input type="text" id="review-author" placeholder="Your name" />
+    <textarea id="review-comment" placeholder="Leave a review or comment..."></textarea>
+    <button id="review-submit">Submit Review</button>
   </div>
 </div>
 
@@ -267,6 +430,19 @@ function formatValue(val) {
   }
   return String(val);
 }
+
+/* ── Tab switching ── */
+var currentTestTab = 'code-tests';
+document.querySelector('.top-tabs').addEventListener('click', function(ev) {
+  var tab = ev.target.closest('.top-tab');
+  if (!tab) return;
+  var tabId = tab.getAttribute('data-tab');
+  currentTestTab = tabId;
+  document.querySelectorAll('.top-tab').forEach(function(t) { t.classList.remove('active'); });
+  tab.classList.add('active');
+  document.querySelectorAll('.tab-content').forEach(function(tc) { tc.classList.remove('active'); });
+  document.getElementById('tab-' + tabId).classList.add('active');
+});
 
 /* ── Type colors ── */
 var TYPE_COLORS = {
@@ -363,7 +539,7 @@ function countTotals(tests) {
 /* ── Store test data globally for modal ── */
 var _testsData = [];
 
-/* ── Render ── */
+/* ── Render Code Tests ── */
 function renderTree(tests) {
   _testsData = tests;
   var container = document.getElementById('tree');
@@ -504,6 +680,220 @@ function renderTree(tests) {
   container.innerHTML = html;
 }
 
+/* ── Render Prompt Tests ── */
+var _promptTestsData = [];
+
+function renderPromptTests(tests) {
+  _promptTestsData = tests;
+  var container = document.getElementById('pt-tree');
+  var empty = document.getElementById('pt-empty');
+  var summaryEl = document.getElementById('pt-summary');
+
+  if (!tests || tests.length === 0) {
+    container.innerHTML = '';
+    empty.style.display = '';
+    summaryEl.style.display = 'none';
+    return;
+  }
+  empty.style.display = 'none';
+  summaryEl.style.display = 'flex';
+
+  var totalCriteria = 0, totalCases = 0, totalChecks = 0;
+  for (var i = 0; i < tests.length; i++) {
+    totalCriteria += (tests[i].criteria || []).length;
+    totalCases += (tests[i].cases || []).length;
+    totalChecks += (tests[i].checks || []).length;
+  }
+  document.getElementById('pt-stat-prompts').textContent = tests.length;
+  document.getElementById('pt-stat-criteria').textContent = totalCriteria;
+  document.getElementById('pt-stat-cases').textContent = totalCases;
+  document.getElementById('pt-stat-checks').textContent = totalChecks;
+
+  var html = '';
+  for (var i = 0; i < tests.length; i++) {
+    var t = tests[i];
+    html += '<div class="pt-card" data-pt-idx="' + i + '">';
+
+    /* Header */
+    html += '<div class="pt-card-header" data-pt-toggle="' + i + '">';
+    html += '<span class="tree-arrow" id="pt-arrow-' + i + '">&#9654;</span>';
+    html += '<span class="pt-name">' + esc(t.prompt_name || t._dir || 'Unknown Prompt') + '</span>';
+    html += '<span class="pt-target">' + esc(t.target) + '</span>';
+    html += '<span class="pt-date">' + esc(t.last_updated) + '</span>';
+    if (t._judgeMd) {
+      html += '<button class="judge-btn" data-judge-idx="' + i + '" onclick="event.stopPropagation()">View Judge Template</button>';
+    }
+    html += '</div>';
+
+    /* Body */
+    html += '<div class="pt-body" id="pt-body-' + i + '">';
+
+    /* Criteria section */
+    if (t.criteria && t.criteria.length > 0) {
+      html += '<div class="pt-section">';
+      html += '<div class="pt-section-title">Criteria (' + t.criteria.length + ')</div>';
+      html += '<div class="criteria-grid">';
+      for (var ci = 0; ci < t.criteria.length; ci++) {
+        var crit = t.criteria[ci];
+        var weightPct = Math.round((crit.weight || 0) * 100);
+        html += '<div class="criterion-card">';
+        html += '<div class="criterion-name">' + esc(crit.name) + '</div>';
+        html += '<div class="criterion-weight">';
+        html += '<div class="weight-bar-bg"><div class="weight-bar-fill" style="width:' + weightPct + '%"></div></div>';
+        html += '<div class="weight-label">' + weightPct + '% weight</div>';
+        html += '</div>';
+        if (crit.rubric) html += '<div class="criterion-rubric">' + esc(crit.rubric) + '</div>';
+        if (crit.scale) html += '<div class="criterion-scale">Scale: ' + esc(crit.scale) + '</div>';
+        html += '</div>';
+      }
+      html += '</div></div>';
+    }
+
+    /* Checks section */
+    if (t.checks && t.checks.length > 0) {
+      html += '<div class="pt-section">';
+      html += '<div class="pt-section-title">Checks (' + t.checks.length + ')</div>';
+      for (var chi = 0; chi < t.checks.length; chi++) {
+        var chk = t.checks[chi];
+        var chkBadgeClass = chk.type === 'deterministic' ? 'badge-deterministic' : 'badge-llm_judge';
+        html += '<div class="check-item">';
+        html += '<span class="check-name">' + esc(chk.name) + '</span>';
+        html += '<span class="badge ' + chkBadgeClass + '">' + esc(chk.type) + '</span>';
+        html += '</div>';
+        if (chk.rule || chk.prompt || chk.pass_condition) {
+          html += '<div class="check-detail" style="margin-left:14px;margin-bottom:8px">';
+          if (chk.rule) html += '<div>Rule: <code>' + esc(chk.rule) + '</code></div>';
+          if (chk.prompt) html += '<div>Prompt: <code>' + esc(chk.prompt) + '</code></div>';
+          if (chk.pass_condition) html += '<div>Pass: <code>' + esc(chk.pass_condition) + '</code></div>';
+          html += '</div>';
+        }
+      }
+      html += '</div>';
+    }
+
+    /* Cases section - grouped by category */
+    if (t.cases && t.cases.length > 0) {
+      html += '<div class="pt-section">';
+      html += '<div class="pt-section-title">Cases (' + t.cases.length + ')</div>';
+
+      var groups = {};
+      for (var cai = 0; cai < t.cases.length; cai++) {
+        var cas = t.cases[cai];
+        var cat = cas.category || 'other';
+        if (!groups[cat]) groups[cat] = [];
+        groups[cat].push(cas);
+      }
+
+      var catOrder = ['element', 'mixed', 'edge', 'zero_condition'];
+      var allCats = Object.keys(groups);
+      // sort: known categories first, then others
+      allCats.sort(function(a, b) {
+        var ai = catOrder.indexOf(a); if (ai === -1) ai = 99;
+        var bi = catOrder.indexOf(b); if (bi === -1) bi = 99;
+        return ai - bi;
+      });
+
+      for (var gi = 0; gi < allCats.length; gi++) {
+        var catName = allCats[gi];
+        var catCases = groups[catName];
+        var badgeClass = 'badge-category badge-' + catName;
+
+        html += '<div class="category-group">';
+        html += '<div class="category-header">';
+        html += '<span class="badge ' + badgeClass + '">' + esc(catName) + '</span>';
+        html += '<span style="color:#6b7280;font-size:12px">' + catCases.length + ' case' + (catCases.length !== 1 ? 's' : '') + '</span>';
+        html += '</div>';
+
+        for (var cci = 0; cci < catCases.length; cci++) {
+          var cc = catCases[cci];
+          html += '<div class="pt-case-card">';
+          html += '<div class="pt-case-title">' + esc(cc.title) + '</div>';
+
+          /* Input as code block */
+          if (cc.input && typeof cc.input === 'object' && Object.keys(cc.input).length > 0) {
+            html += '<div class="case-block"><div class="case-label">Input</div>';
+            html += '<div class="case-code">' + esc(formatValue(cc.input)) + '</div></div>';
+          }
+
+          /* Expected behavior */
+          if (cc.expected_behavior) {
+            html += '<div class="pt-case-behavior">' + esc(cc.expected_behavior) + '</div>';
+          }
+
+          /* Score range bar */
+          if (cc.expected_score_range) {
+            var minS = cc.expected_score_range.min || 0;
+            var maxS = cc.expected_score_range.max || 0;
+            var leftPct = Math.round(minS * 100);
+            var widthPct = Math.round((maxS - minS) * 100);
+            html += '<div class="score-range">';
+            html += '<div class="score-bar-bg"><div class="score-bar-fill" style="left:' + leftPct + '%;width:' + widthPct + '%"></div></div>';
+            html += '<div class="score-labels"><span>' + minS.toFixed(2) + '</span><span>' + maxS.toFixed(2) + '</span></div>';
+            html += '</div>';
+          }
+
+          /* Manual override */
+          if (cc.manual_override) {
+            var mo = cc.manual_override;
+            html += '<div class="override-badge">';
+            html += 'Override: <span class="score">' + esc(mo.score) + '</span>';
+            if (mo.timestamp) html += ' <span style="color:#9ca3af">(' + esc(mo.timestamp) + ')</span>';
+            if (mo.reason) html += ' - ' + esc(mo.reason);
+            html += '</div>';
+          }
+
+          html += '</div>'; /* pt-case-card */
+        }
+
+        html += '</div>'; /* category-group */
+      }
+
+      html += '</div>'; /* pt-section */
+    }
+
+    /* Thresholds section */
+    if (t.thresholds) {
+      var th = t.thresholds;
+      html += '<div class="pt-section">';
+      html += '<div class="pt-section-title">Thresholds</div>';
+
+      var passVal = th.pass || 0;
+      var warnVal = th.warn || 0;
+      var passPct = Math.round(passVal * 100);
+      var warnPct = Math.round(warnVal * 100);
+
+      html += '<div class="threshold-bar">';
+      html += '<div class="threshold-zone threshold-fail" style="left:0;width:' + warnPct + '%"></div>';
+      html += '<div class="threshold-zone threshold-warn" style="left:' + warnPct + '%;width:' + (passPct - warnPct) + '%"></div>';
+      html += '<div class="threshold-zone threshold-pass" style="left:' + passPct + '%;width:' + (100 - passPct) + '%"></div>';
+      html += '</div>';
+      html += '<div class="threshold-labels">';
+      html += '<span class="threshold-label"><span class="threshold-dot threshold-dot-fail"></span>Fail &lt; ' + warnVal.toFixed(2) + '</span>';
+      html += '<span class="threshold-label"><span class="threshold-dot threshold-dot-warn"></span>Warn ' + warnVal.toFixed(2) + ' - ' + passVal.toFixed(2) + '</span>';
+      html += '<span class="threshold-label"><span class="threshold-dot threshold-dot-pass"></span>Pass &ge; ' + passVal.toFixed(2) + '</span>';
+      html += '</div>';
+
+      /* Per-criterion thresholds */
+      if (th.per_criterion && Object.keys(th.per_criterion).length > 0) {
+        html += '<div style="margin-top:12px;font-size:12px;color:#9ca3af">';
+        html += '<div style="font-weight:600;margin-bottom:6px">Per-criterion minimums:</div>';
+        var pcKeys = Object.keys(th.per_criterion);
+        for (var pci = 0; pci < pcKeys.length; pci++) {
+          html += '<div style="margin-left:12px">' + esc(pcKeys[pci]) + ': ' + th.per_criterion[pcKeys[pci]].toFixed(2) + '</div>';
+        }
+        html += '</div>';
+      }
+
+      html += '</div>';
+    }
+
+    html += '</div>'; /* pt-body */
+    html += '</div>'; /* pt-card */
+  }
+
+  container.innerHTML = html;
+}
+
 /* ── Tree expand/collapse ── */
 document.getElementById('tree').addEventListener('click', function(ev) {
   /* File-level toggle */
@@ -539,6 +929,64 @@ document.getElementById('tree').addEventListener('click', function(ev) {
   }
 });
 
+/* ── Prompt test expand/collapse + judge button ── */
+document.getElementById('pt-tree').addEventListener('click', function(ev) {
+  /* Judge button */
+  var judgeBtn = ev.target.closest('.judge-btn');
+  if (judgeBtn) {
+    var judgeIdx = parseInt(judgeBtn.getAttribute('data-judge-idx'), 10);
+    openJudgeModal(judgeIdx);
+    return;
+  }
+
+  /* Toggle */
+  var header = ev.target.closest('.pt-card-header');
+  if (header) {
+    var idx = header.getAttribute('data-pt-toggle');
+    var body = document.getElementById('pt-body-' + idx);
+    var arrow = document.getElementById('pt-arrow-' + idx);
+    body.classList.toggle('open');
+    arrow.classList.toggle('open');
+    return;
+  }
+});
+
+/* ── Judge Modal ── */
+function openJudgeModal(idx) {
+  var t = _promptTestsData[idx];
+  document.getElementById('modal-title').textContent = 'Judge Template: ' + (t.prompt_name || t._dir);
+  var html = '<div class="judge-md-content">' + esc(t._judgeMd || 'No judge.md found.') + '</div>';
+  html += '<div style="margin-top:16px">';
+  html += '<div style="font-size:13px;font-weight:600;color:#d1d5db;margin-bottom:8px">Leave a comment about this judge template:</div>';
+  html += '<textarea class="form-input form-textarea" id="judge-comment" placeholder="Your notes or suggestions..."></textarea>';
+  html += '<button class="btn btn-primary" style="margin-top:8px" onclick="submitJudgeComment(' + idx + ')">Submit as Review</button>';
+  html += '</div>';
+  document.getElementById('modal-body').innerHTML = html;
+  document.getElementById('modal-footer').style.display = 'none';
+  document.getElementById('modal-overlay').classList.add('open');
+}
+
+function submitJudgeComment(idx) {
+  var t = _promptTestsData[idx];
+  var comment = (document.getElementById('judge-comment').value || '').trim();
+  if (!comment) { toast('Please enter a comment', 'error'); return; }
+  var author = localStorage.getItem('birdview-review-author') || 'anonymous';
+  fetch('/api/reviews', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      page: 'prompt-tests',
+      context: 'judge.md for ' + (t.prompt_name || t._dir),
+      author: author,
+      comment: comment
+    })
+  }).then(function(r) { return r.json(); }).then(function() {
+    toast('Review submitted', 'success');
+    closeModal();
+    loadReviews();
+  }).catch(function(err) { toast('Failed: ' + err.message, 'error'); });
+}
+
 /* ── Modal state ── */
 var _modalFileIdx = -1;
 var _modalSuiteIdx = -1;
@@ -546,6 +994,7 @@ var _modalSuiteIdx = -1;
 function openAddTestModal(fileIdx, suiteIdx) {
   _modalFileIdx = fileIdx;
   _modalSuiteIdx = suiteIdx;
+  document.getElementById('modal-footer').style.display = 'flex';
 
   var t = _testsData[fileIdx];
   var suite = t.suites[suiteIdx];
@@ -989,6 +1438,7 @@ function submitTestCase() {
 /* ── Close modal ── */
 function closeModal() {
   document.getElementById('modal-overlay').classList.remove('open');
+  document.getElementById('modal-footer').style.display = 'flex';
   _modalFileIdx = -1;
   _modalSuiteIdx = -1;
   var submitBtn = document.getElementById('modal-submit');
@@ -1016,7 +1466,156 @@ function loadTests() {
     .catch(function(err) { toast('Failed to load tests: ' + err.message, 'error'); });
 }
 
+function loadPromptTests() {
+  fetch('/api/prompt-tests')
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      renderPromptTests(d.tests || []);
+    })
+    .catch(function(err) { toast('Failed to load prompt tests: ' + err.message, 'error'); });
+}
+
 loadTests();
+loadPromptTests();
+
+/* ════════════════════════════════════════════
+   Review System
+   ════════════════════════════════════════════ */
+var REVIEW_PAGE = 'tests';
+var _reviews = [];
+
+function getReviewPage() {
+  return currentTestTab === 'prompt-tests' ? 'prompt-tests' : 'tests';
+}
+
+function relativeTime(ts) {
+  if (!ts) return '';
+  var diff = Date.now() - new Date(ts).getTime();
+  var mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return mins + 'm ago';
+  var hrs = Math.floor(mins / 60);
+  if (hrs < 24) return hrs + 'h ago';
+  var days = Math.floor(hrs / 24);
+  return days + 'd ago';
+}
+
+function renderReviews() {
+  var list = document.getElementById('review-list');
+  var page = getReviewPage();
+  var filtered = _reviews.filter(function(r) { return r.page === page; });
+  var countEl = document.getElementById('review-count');
+
+  if (filtered.length > 0) {
+    countEl.textContent = filtered.length;
+    countEl.style.display = 'flex';
+  } else {
+    countEl.style.display = 'none';
+  }
+
+  if (filtered.length === 0) {
+    list.innerHTML = '<div class="review-empty">No reviews yet for this page.</div>';
+    return;
+  }
+
+  var html = '';
+  for (var i = 0; i < filtered.length; i++) {
+    var r = filtered[i];
+    html += '<div class="review-item' + (r.resolved ? ' resolved' : '') + '" data-review-id="' + escAttr(r._id) + '" data-resolved="' + (r.resolved ? 'true' : 'false') + '">';
+    html += '<span class="review-author">' + esc(r.author) + '</span>';
+    html += '<span class="review-time">' + esc(relativeTime(r.timestamp)) + '</span>';
+    if (r.resolved) html += '<span class="review-resolved-tag">[resolved]</span>';
+    if (r.context) html += '<div class="review-context">' + esc(r.context) + '</div>';
+    html += '<div class="review-comment">' + esc(r.comment) + '</div>';
+    html += '</div>';
+  }
+  list.innerHTML = html;
+}
+
+function loadReviews() {
+  fetch('/api/reviews')
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      _reviews = d.reviews || [];
+      renderReviews();
+    })
+    .catch(function() {});
+}
+
+/* Toggle resolved */
+document.getElementById('review-list').addEventListener('click', function(ev) {
+  var item = ev.target.closest('.review-item');
+  if (!item) return;
+  var id = item.getAttribute('data-review-id');
+  var isResolved = item.getAttribute('data-resolved') === 'true';
+  fetch('/api/reviews/' + encodeURIComponent(id), {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ resolved: !isResolved })
+  }).then(function() { loadReviews(); }).catch(function() {});
+});
+
+/* Submit review */
+document.getElementById('review-submit').addEventListener('click', function() {
+  var context = document.getElementById('review-context').value.trim();
+  var author = document.getElementById('review-author').value.trim() || 'anonymous';
+  var comment = document.getElementById('review-comment').value.trim();
+  if (!comment) { toast('Please enter a comment', 'error'); return; }
+
+  localStorage.setItem('birdview-review-author', author);
+
+  var btn = document.getElementById('review-submit');
+  btn.disabled = true;
+  btn.textContent = 'Submitting...';
+
+  fetch('/api/reviews', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      page: getReviewPage(),
+      context: context,
+      author: author,
+      comment: comment
+    })
+  }).then(function(r) { return r.json(); }).then(function() {
+    document.getElementById('review-context').value = '';
+    document.getElementById('review-comment').value = '';
+    btn.disabled = false;
+    btn.textContent = 'Submit Review';
+    toast('Review submitted', 'success');
+    loadReviews();
+  }).catch(function(err) {
+    btn.disabled = false;
+    btn.textContent = 'Submit Review';
+    toast('Failed: ' + err.message, 'error');
+  });
+});
+
+/* FAB toggle */
+document.getElementById('review-fab').addEventListener('click', function() {
+  document.getElementById('review-panel').classList.add('open');
+  document.getElementById('review-overlay').classList.add('open');
+  renderReviews();
+});
+document.getElementById('review-panel-close').addEventListener('click', function() {
+  document.getElementById('review-panel').classList.remove('open');
+  document.getElementById('review-overlay').classList.remove('open');
+});
+document.getElementById('review-overlay').addEventListener('click', function() {
+  document.getElementById('review-panel').classList.remove('open');
+  document.getElementById('review-overlay').classList.remove('open');
+});
+
+/* Re-render reviews when switching tabs */
+document.querySelector('.top-tabs').addEventListener('click', function() {
+  setTimeout(renderReviews, 50);
+});
+
+/* Restore author from localStorage */
+var savedAuthor = localStorage.getItem('birdview-review-author');
+if (savedAuthor) document.getElementById('review-author').value = savedAuthor;
+
+loadReviews();
 </script>
 </body>
 </html>
