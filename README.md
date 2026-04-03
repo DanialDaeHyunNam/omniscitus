@@ -4,7 +4,7 @@
 
 One plugin. Zero configuration. Install it, and your codebase gains a living memory of every file, every session, and every test.
 
-Inspired by [From Hierarchy to Intelligence](https://sequoiacap.com/article/from-hierarchy-to-intelligence/) — instead of you tracking files, sessions, and tests, the system maintains a living world model. You focus on judgment.
+Instead of you tracking files, sessions, and tests, the system maintains a living world model. You focus on judgment.
 
 ## Install
 
@@ -179,10 +179,9 @@ Add `.omniscitus/` to `.gitignore` for personal use, or commit it for team shari
 
 ## Philosophy
 
-> "For 2,000 years, the speed of information flow was constrained by hierarchical structure. Humans are no longer the only option. Block is building what comes next."
-> — Jack Dorsey, [From Hierarchy to Intelligence](https://sequoiacap.com/article/from-hierarchy-to-intelligence/)
+A codebase is a living system. As it grows, no single person can hold the full picture — which file does what, what changed when, which functions are tested, what's left to do. Omniscitus externalizes that mental burden into a system that tracks everything automatically, so developers focus on what humans do best: judgment, intuition, and creative decisions.
 
-Omniscitus applies this to codebases. Instead of developers maintaining mental models of every file's purpose and every session's context, the system maintains a living world model. Developers focus on what humans do best: judgment, intuition, and creative decisions.
+See also: Sequoia's [From Hierarchy to Intelligence](https://sequoiacap.com/article/from-hierarchy-to-intelligence/) for a parallel take on replacing hierarchical information flow with system-level intelligence.
 
 ## License
 
