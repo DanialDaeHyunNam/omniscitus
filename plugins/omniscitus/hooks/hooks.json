@@ -1,6 +1,17 @@
 {
-  "description": "Omniscitus: automatic blueprint tracking on file changes",
+  "description": "Omniscitus: blueprint tracking + wrap-up reminders",
   "hooks": {
+    "PreCompact": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "message",
+            "message": "[omniscitus] Context is about to be compacted. Run /wrap-up now to preserve session knowledge before it's lost. Also run /blueprint-sync if user-created files may exist."
+          }
+        ]
+      }
+    ],
     "PostToolUse": [
       {
         "matcher": "Write",

@@ -124,14 +124,22 @@ If closing: set `status: closed` in `_index.yaml`, create a new unit.
     title: "{Topic Title}"
 ```
 
-### Step 5: Fill Blueprint Purposes
+### Step 5: Blueprint Sync + Fill Purposes
 
-Read `.omniscitus/blueprints.yaml`. Find entries where `purpose: ""`.
+**First, sync with filesystem** to catch user-created files:
 
-For each empty-purpose file that was touched in this session:
+```bash
+find . -type f -not -path "./.git/*" -not -path "./node_modules/*" -not -path "./.omniscitus/*" -not -path "./.next/*" -not -path "./dist/*" -not -path "./.vercel/*" -not -name "*.lock" -not -name ".DS_Store" | sort
+```
+
+Compare against `blueprints.yaml`:
+- Files on disk but not in blueprint → add with `source: user`, `purpose: ""`
+- Files in blueprint but not on disk → mark `status: deleted`
+
+**Then fill empty purposes** for all `purpose: ""` entries:
 - Read the file content
 - Write a concise purpose description (1 line)
-- Update the entry using Edit tool
+- Update via Edit tool
 
 Also check for `source: user` entries with empty purposes — these are files the user created outside Claude. Read them and fill purposes.
 
