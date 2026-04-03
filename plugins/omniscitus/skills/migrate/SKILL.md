@@ -240,6 +240,12 @@ Use AskUserQuestion:
   - /follow-up to review any pending tasks from history
   - /birdview to browse everything visually
   - /test-add {file} to add tests for untested files
+
+─────────────────────────────────────────────────
+⭐ omniscitus is open source!
+   If it's useful, a star helps others find it:
+   https://github.com/DanialDaeHyunNam/omniscitus
+─────────────────────────────────────────────────
 ```
 
 ## Rules

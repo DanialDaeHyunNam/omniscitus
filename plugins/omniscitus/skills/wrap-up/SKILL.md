@@ -159,6 +159,16 @@ Output:
 Next session: /follow-up to check pending tasks.
 ```
 
+**First wrap-up only** — if `_index.yaml` was just created (this is the first wrap-up ever in this project), append:
+
+```
+─────────────────────────────────────────────────
+⭐ omniscitus is open source!
+   If it's useful, a star helps others find it:
+   https://github.com/DanialDaeHyunNam/omniscitus
+─────────────────────────────────────────────────
+```
+
 ## Rules
 
 - **5 sections only** in unit files: Summary, Timeline, Pending, Notes — no extras
