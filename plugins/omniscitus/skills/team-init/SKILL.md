@@ -110,7 +110,61 @@ This project uses [omniscitus](https://github.com/DanialDaeHyunNam/omniscitus) t
 **Daily use:** Just code normally. File tracking is automatic via hooks. Run `/wrap-up` at session end.
 ```
 
-### Step 7: Report
+### Step 7: Status Line Integration
+
+Add the omniscitus indicator to the user's Claude Code status bar.
+
+Check if `~/.claude/statusline-command.sh` (or the script referenced in `~/.claude/settings.json` → `statusLine.command`) exists:
+
+**If status line script exists and does NOT already contain "omniscitus":**
+
+Append these lines to the end of the script (before the final `printf` line):
+
+```bash
+# Omniscitus indicator
+_omni_dir="${cwd_full:-.}"
+while [ "$_omni_dir" != "/" ]; do
+  if [ -d "$_omni_dir/.omniscitus" ]; then _omni_label="\033[38;5;81m⦿ omniscitus\033[0m"; break; fi
+  _omni_dir=$(dirname "$_omni_dir")
+done
+```
+
+Then add `${_omni_label:+${SEP}${_omni_label}}` to the final `printf` output.
+
+Note: The variable `cwd_full` may not exist in the script. If the script uses `cwd` as a shortened folder name, also capture the full path before it gets shortened. Look for a line like `cwd="${cwd##*/}"` and add `cwd_full="$cwd"` before it.
+
+**If no status line script exists:**
+
+Create `~/.claude/statusline-command.sh`:
+
+```bash
+#!/usr/bin/env bash
+input=$(cat)
+cwd=$(echo "$input" | jq -r '.workspace.current_dir // .cwd // ""')
+model=$(echo "$input" | jq -r '.model.display_name // "Claude"')
+
+# Omniscitus indicator
+_omni_label=""
+_omni_dir="$cwd"
+while [ "$_omni_dir" != "/" ]; do
+  if [ -d "$_omni_dir/.omniscitus" ]; then _omni_label="\033[38;5;81m⦿ omniscitus\033[0m"; break; fi
+  _omni_dir=$(dirname "$_omni_dir")
+done
+
+DIM="\033[2m"
+RST="\033[0m"
+SEP=" ${DIM}|${RST} "
+printf '%b' "\033[35m${model}${RST}${_omni_label:+${SEP}${_omni_label}}"
+```
+
+Then ensure `~/.claude/settings.json` has:
+```json
+"statusLine": { "type": "command", "command": "~/.claude/statusline-command.sh" }
+```
+
+**Always ask before modifying the user's status line script.**
+
+### Step 8: Report
 
 ```
 ✅ Team init complete!
@@ -120,6 +174,7 @@ This project uses [omniscitus](https://github.com/DanialDaeHyunNam/omniscitus) t
 🔗 Hooks: active ✓
 📁 Blueprints: {N} files tracked across {M} blueprint files
 📝 CLAUDE.md: onboarding block {added / already present / skipped}
+📊 Status bar: omniscitus indicator {added / already present / skipped}
 
 You're ready to go. Your changes will be attributed as "claude:{username}".
 ```

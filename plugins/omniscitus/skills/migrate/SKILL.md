@@ -41,11 +41,38 @@ Use AskUserQuestion:
 - "Who works on this? Just you, or a team?"
 - "Any existing docs or notes system I should know about?" (Notion, wiki, local markdown, etc.)
 
-#### Step 1.2: Detect Existing Documentation Systems
+#### Step 1.2: Survey File Scope (gitignore + large directory detection)
+
+**Use `git ls-files` to respect all `.gitignore` rules** (root and nested):
+
+```bash
+# Count tracked files per top-level directory
+git ls-files --cached --others --exclude-standard | cut -d/ -f1 | sort | uniq -c | sort -rn
+```
+
+This automatically excludes everything in `.gitignore`, `**/.gitignore`, and `.git/info/exclude`.
+
+**Detect unusually large directories**: If any top-level directory has more than 5,000 tracked files,
+flag it and ask:
+
+Use AskUserQuestion:
+- "The `{dir}/` directory has {N} files. This is unusually large. Should I include it in blueprint tracking? Large asset/resource directories can be excluded to keep blueprints focused on source code."
+- options: "Include it" / "Exclude it" / "Let me check first"
+
+Record excluded directories in `.omniscitus/migrate-config.yaml`:
+
+```yaml
+excluded_directories:
+  - resources/    # Excluded: static assets (35,000+ files)
+```
+
+This file is referenced during blueprint construction to skip excluded dirs.
+
+#### Step 1.3: Detect Existing Documentation Systems
 
 Search for existing history/notes/docs patterns:
 ```bash
-find . -name "*.md" -not -path "./.git/*" -not -path "./node_modules/*" | head -50
+git ls-files --cached --others --exclude-standard | grep '\.md$' | head -50
 ```
 
 Look for patterns like:
@@ -53,10 +80,21 @@ Look for patterns like:
 - Session logs, meeting notes, decision records (ADRs)
 - Any structured markdown with dates
 
+**Also check for Claude Code team structure** (`.claude/member/`):
+```bash
+ls -d .claude/member/*/ 2>/dev/null
+```
+
+If `.claude/member/` exists, this is a team project with existing AI agent documentation:
+- Read `.claude/member/README.md` for team structure overview
+- Read each member's `INTRODUCTION.md` for role descriptions
+- Check `done/`, `to-do/`, `session/` directories for work history
+- These are **rich sources for history unit construction** in Phase 3
+
 If found, read them and understand the structure. Use AskUserQuestion:
 - "I found {pattern}. Should I incorporate this into omniscitus history units, or keep it separate?"
 
-#### Step 1.3: Survey Test Code
+#### Step 1.4: Survey Test Code
 
 Find all test files:
 ```bash
@@ -77,7 +115,23 @@ Create `.omniscitus/blueprints/` directory. Blueprint entries are split per top-
 - `plugins/omniscitus/server.js` → `.omniscitus/blueprints/plugins.yaml`
 - `README.md` (root-level) → `.omniscitus/blueprints/_root.yaml`
 
-For every source file in the project, build entries from git history:
+Get all files to track using `git ls-files` (respects .gitignore automatically):
+
+```bash
+git ls-files --cached --others --exclude-standard | grep -v '^\.omniscitus/'
+```
+
+**Exclude directories marked in Step 1.2**: If `.omniscitus/migrate-config.yaml` lists
+excluded directories, filter them out:
+
+```bash
+git ls-files --cached --others --exclude-standard \
+  | grep -v '^\.omniscitus/' \
+  | grep -v '^resources/' \   # example: excluded in Step 1.2
+  | sort
+```
+
+For every source file, build entries from git history:
 
 ```bash
 git log --format="%H %ai" --diff-filter=A -- "{file}" | tail -1   # created date
@@ -91,11 +145,13 @@ For each file, determine:
 - `purpose`: infer from file path, name, and content (read the file briefly)
 - `change_log`: extract from recent git log (last 5 changes per file)
 
-**Important**: Don't process every single file blindly. Prioritize:
-1. Source code files (src/, lib/, app/)
+**Prioritize** to avoid overwhelming large repos:
+1. Source code files (src/, lib/, app/, server/, web/)
 2. Configuration files (root-level configs)
 3. Documentation files
-4. Skip: node_modules, .git, build output, generated files, lockfiles
+4. Automatically skipped: everything in .gitignore + excluded directories from Step 1.2
+
+**For repos with 500+ tracked files**: batch by top-level directory and ask user which to prioritize.
 
 Use AskUserQuestion periodically:
 - "I've processed {N} files so far. Here are the ones I'm unsure about: {list}. Can you clarify their purpose?"
@@ -137,12 +193,38 @@ For each identified topic cluster:
 Use AskUserQuestion:
 - "I identified these topic clusters from your git history: {list}. Does this grouping make sense? Any I should merge or split?"
 
-#### Step 3.3: Incorporate Existing Docs
+#### Step 3.3: Incorporate Existing Docs and Team Member History
 
+**Standard documentation** (changelogs, ADRs, notes):
 If existing documentation/notes were found in Phase 1:
 - Convert them into unit format where appropriate
 - Cross-reference with git history units
 - Add to `## Notes` section of relevant units with links to original files
+
+**Claude Code team member documents** (`.claude/member/`):
+If `.claude/member/` was detected in Step 1.3, this is a rich source of structured work history.
+For each team member directory (e.g., `.claude/member/ned-server/`):
+
+1. Read `INTRODUCTION.md` to understand their domain/role → maps to omniscitus domain
+2. Read all files in `done/` — each is a completed task/feature:
+   - Extract date from filename (e.g., `20260304-persona-api-implementation.md`)
+   - Extract topic, summary, and details from content
+   - Create closed history units grouped by domain
+   - Attribute to the member: add `**Author**: {member-name}` in unit metadata
+3. Read all files in `to-do/` — these become `## Pending` items in open units
+4. Read all files in `session/` — these map to timeline entries within units
+
+**Mapping `.claude/member/` roles to omniscitus domains**:
+- `*-server` → `server` domain
+- `*-web` → `web` domain
+- `*-native` → `native` domain
+- `*-iac` → `devops` domain
+- `*-pm` → `product` domain
+- `*-designer` → `product` or `web` (ask user)
+- Other roles → ask user for domain mapping
+
+Use AskUserQuestion:
+- "I found {N} team members in `.claude/member/` with {M} done tasks and {P} pending tasks. Should I convert these into omniscitus history units?"
 
 ### Phase 4: Test System Construction
 
