@@ -19,6 +19,22 @@ with the user.
 
 ## Instructions
 
+### Pre-check: Already Migrated?
+
+Check if `.omniscitus/history/_index.yaml` exists. If it does, this project has already been migrated.
+
+```
+⚠️ This project has already been migrated to omniscitus.
+
+  History units: {N} (from _index.yaml)
+  Blueprints: {list .omniscitus/blueprints/*.yaml}
+
+  If you want to re-migrate, delete .omniscitus/ first and run again.
+  If you want to sync new files, use /blueprint-sync instead.
+```
+
+Stop here. Do NOT proceed with migration.
+
 ### Phase 1: Reconnaissance
 
 **Do NOT create any files yet. Only read and ask.**

@@ -21,6 +21,25 @@ real-time sync system.
 
 ## Instructions
 
+### Pre-check: Already Configured?
+
+Check if `.omniscitus/cloud.yaml` exists.
+
+If it exists, read the `enabled` field and report:
+
+```
+☁️ Cloud config already exists.
+
+  Provider: {backend.provider}
+  Enabled: {enabled}
+  Sync strategy: {sync.conflict_strategy}
+
+  To modify, edit .omniscitus/cloud.yaml directly.
+  To start over, delete .omniscitus/cloud.yaml and run again.
+```
+
+Stop here. Do NOT regenerate.
+
 ### Step 1: Assess Current State
 
 ```bash

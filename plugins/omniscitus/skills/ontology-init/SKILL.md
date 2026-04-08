@@ -24,7 +24,21 @@ all team members classify work consistently.
 
 ### Step 1: Check Existing Ontology
 
-Read `.omniscitus/ontology.yaml` if it exists. If not, proceed to create one.
+Read `.omniscitus/ontology.yaml` if it exists.
+
+If it exists, show the current domains and ask:
+
+```
+📋 Ontology already exists with {N} domains:
+  {list of domain names + descriptions}
+
+Want to update it, or keep as-is?
+```
+
+Use AskUserQuestion with options: "Update domains" / "Keep as-is".
+If "Keep as-is", stop here.
+
+If ontology does not exist, proceed to create one.
 
 ### Step 2: Gather Context
 

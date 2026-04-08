@@ -21,6 +21,26 @@ and optionally generates a CLAUDE.md block so future team members get auto-guide
 
 ## Instructions
 
+### Pre-check: Already Initialized?
+
+Run a quick check:
+```bash
+ls -d .omniscitus/blueprints/ 2>/dev/null && git config user.name 2>/dev/null
+```
+
+If blueprints/ exists AND git user.name is set AND the plugin is installed:
+
+```
+✅ omniscitus is already set up for this project.
+
+  👤 Identity: {git user.name}
+  📁 Blueprints: {count of .yaml files} files
+
+  Nothing to do. If you're having issues, try restarting Claude Code.
+```
+
+Stop here. Do NOT re-run setup.
+
 ### Step 1: Check Current State
 
 Run these checks:
