@@ -131,7 +131,7 @@ If closing: set `status: closed` in `_index.yaml`, create a new unit.
 **First, sync with filesystem** to catch user-created files:
 
 ```bash
-find . -type f -not -path "./.git/*" -not -path "./node_modules/*" -not -path "./.omniscitus/*" -not -path "./.next/*" -not -path "./dist/*" -not -path "./.vercel/*" -not -name "*.lock" -not -name ".DS_Store" | sort
+git ls-files --cached --others --exclude-standard | grep -v '^\.omniscitus/' | sort
 ```
 
 Compare against `.omniscitus/blueprints/*.yaml` (per-directory blueprint files):

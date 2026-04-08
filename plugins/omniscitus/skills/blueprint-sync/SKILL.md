@@ -35,7 +35,16 @@ mkdir -p .omniscitus/blueprints
 
 ### Step 2: Scan Filesystem
 
-Get all source files in the project (excluding generated/vendor):
+Use `git ls-files` to get all tracked (non-ignored) files. This automatically respects
+`.gitignore` at all levels (root and nested):
+
+```bash
+git ls-files --cached --others --exclude-standard \
+  | grep -v '^\.omniscitus/' \
+  | sort
+```
+
+If not a git repo, fall back to:
 
 ```bash
 find . -type f \

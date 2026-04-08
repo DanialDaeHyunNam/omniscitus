@@ -192,6 +192,17 @@ async function main() {
   // Skip files inside .omniscitus/ itself
   if (relPath.startsWith('.omniscitus')) return;
 
+  // Skip gitignored files
+  try {
+    childProcess.execSync('git check-ignore -q "' + relPath + '"', {
+      cwd: projectRoot, timeout: 1000
+    });
+    // If check-ignore succeeds (exit 0), the file IS ignored → skip
+    return;
+  } catch (e) {
+    // Exit code 1 means NOT ignored → continue
+  }
+
   // Determine which per-directory blueprint file to use
   var bpKey = getBlueprintKey(relPath);
   var blueprintPath = getBlueprintFilePath(omniscitusDir, bpKey);
