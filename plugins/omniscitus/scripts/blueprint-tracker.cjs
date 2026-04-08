@@ -2,7 +2,25 @@
 
 var fs = require('fs');
 var path = require('path');
+var childProcess = require('child_process');
 var readStdin = require('./lib/stdin.cjs').readStdin;
+
+// --- Git identity ---
+
+var _gitUser = null;
+
+function getGitUser(projectRoot) {
+  if (_gitUser !== null) return _gitUser;
+  try {
+    var name = childProcess.execSync('git config user.name', {
+      cwd: projectRoot, timeout: 1000, encoding: 'utf-8'
+    }).trim();
+    _gitUser = name || '';
+  } catch (e) {
+    _gitUser = '';
+  }
+  return _gitUser;
+}
 
 // --- YAML helpers (zero-dep, schema-specific) ---
 
@@ -129,6 +147,19 @@ function findProjectRoot(dir) {
   return dir;
 }
 
+// --- Per-directory blueprint helpers ---
+
+function getBlueprintKey(relPath) {
+  var first = relPath.split(path.sep)[0];
+  // Root-level files (no directory) go into _root
+  if (first === relPath) return '_root';
+  return first;
+}
+
+function getBlueprintFilePath(omniscitusDir, key) {
+  return path.join(omniscitusDir, 'blueprints', key + '.yaml');
+}
+
 // --- Main ---
 
 async function main() {
@@ -145,11 +176,11 @@ async function main() {
   var cwd = input.cwd || process.cwd();
   var projectRoot = findProjectRoot(cwd);
   var omniscitusDir = path.join(projectRoot, '.omniscitus');
-  var blueprintPath = path.join(omniscitusDir, 'blueprints.yaml');
+  var blueprintsDir = path.join(omniscitusDir, 'blueprints');
 
-  // Ensure .omniscitus/ exists
-  if (!fs.existsSync(omniscitusDir)) {
-    fs.mkdirSync(omniscitusDir, { recursive: true });
+  // Ensure .omniscitus/blueprints/ exists
+  if (!fs.existsSync(blueprintsDir)) {
+    fs.mkdirSync(blueprintsDir, { recursive: true });
   }
 
   // Make file path relative to project root
@@ -160,6 +191,10 @@ async function main() {
 
   // Skip files inside .omniscitus/ itself
   if (relPath.startsWith('.omniscitus')) return;
+
+  // Determine which per-directory blueprint file to use
+  var bpKey = getBlueprintKey(relPath);
+  var blueprintPath = getBlueprintFilePath(omniscitusDir, bpKey);
 
   // Read existing or create new
   var data;
@@ -174,22 +209,26 @@ async function main() {
   var toolName = (input.tool_name || 'write').toLowerCase();
   var action = toolName === 'edit' ? 'edit' : 'write';
 
+  // Build source label: "claude:username" for team attribution
+  var gitUser = getGitUser(projectRoot);
+  var sourceLabel = gitUser ? 'claude:' + gitUser : 'claude';
+
   // Update or create file entry
   if (data.files[relPath]) {
     var entry = data.files[relPath];
     entry.status = 'active';
     entry.last_modified = now;
     entry.change_count = (entry.change_count || 0) + 1;
-    entry.change_log.unshift({ date: now, action: action, source: 'claude' });
+    entry.change_log.unshift({ date: now, action: action, source: sourceLabel });
   } else {
     data.files[relPath] = {
       status: 'active',
-      source: 'claude',
+      source: sourceLabel,
       created: today,
       last_modified: now,
       change_count: 1,
       purpose: '',
-      change_log: [{ date: now, action: action, source: 'claude' }]
+      change_log: [{ date: now, action: action, source: sourceLabel }]
     };
   }
 

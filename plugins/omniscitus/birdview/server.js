@@ -731,10 +731,41 @@ function scanPromptTests(dir) {
 // --- API Handlers ---
 
 function handleApiBlueprints(req, res) {
-  var filePath = path.join(OMNISCITUS_DIR, 'blueprints.yaml');
-  var text = safeReadFile(filePath);
-  if (!text) return jsonRes(res, 200, { version: 1, updated: '', files: {} });
-  jsonRes(res, 200, parseBlueprints(text));
+  var blueprintsDir = path.join(OMNISCITUS_DIR, 'blueprints');
+  var merged = { version: 1, updated: '', files: {} };
+
+  // Read all per-directory blueprint files from blueprints/ folder
+  var yamlFiles = safeReadDir(blueprintsDir).filter(function (f) {
+    return f.endsWith('.yaml');
+  });
+
+  for (var i = 0; i < yamlFiles.length; i++) {
+    var text = safeReadFile(path.join(blueprintsDir, yamlFiles[i]));
+    if (!text) continue;
+    var parsed = parseBlueprints(text);
+    if (parsed.updated > merged.updated) merged.updated = parsed.updated;
+    var paths = Object.keys(parsed.files);
+    for (var j = 0; j < paths.length; j++) {
+      merged.files[paths[j]] = parsed.files[paths[j]];
+    }
+  }
+
+  // Fallback: also check legacy single blueprints.yaml
+  var legacyPath = path.join(OMNISCITUS_DIR, 'blueprints.yaml');
+  var legacyText = safeReadFile(legacyPath);
+  if (legacyText) {
+    var legacy = parseBlueprints(legacyText);
+    if (legacy.updated > merged.updated) merged.updated = legacy.updated;
+    var legacyPaths = Object.keys(legacy.files);
+    for (var k = 0; k < legacyPaths.length; k++) {
+      // Only add if not already present in per-directory files (per-dir takes precedence)
+      if (!merged.files[legacyPaths[k]]) {
+        merged.files[legacyPaths[k]] = legacy.files[legacyPaths[k]];
+      }
+    }
+  }
+
+  jsonRes(res, 200, merged);
 }
 
 function handleApiUnits(req, res) {

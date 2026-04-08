@@ -37,13 +37,15 @@ Gather what was done in this session:
 
 1. Run `git diff --name-only` and `git diff --cached --name-only` to see changed files
 2. Review the conversation history for work performed
-3. Classify work into domains:
-   - `server` — backend, API, DB, auth
-   - `web` — frontend, UI, components, styling
-   - `native` — mobile, desktop
-   - `devops` — CI/CD, deployment, infrastructure
-   - `product` — planning, PRD, requirements, design
-   - Other domains may exist — check `_index.yaml` for existing domains
+3. Classify work into domains. Check `.omniscitus/ontology.yaml` first:
+   - If ontology exists: use its `domains` definitions, `keywords`, and `directories` for classification
+   - If ontology does not exist, use these defaults:
+     - `server` — backend, API, DB, auth
+     - `web` — frontend, UI, components, styling
+     - `native` — mobile, desktop
+     - `devops` — CI/CD, deployment, infrastructure
+     - `product` — planning, PRD, requirements, design
+   - Also check `_index.yaml` for existing domains not in ontology
 
 ### Step 3: Match to Existing Units
 
@@ -86,7 +88,7 @@ If closing: set `status: closed` in `_index.yaml`, create a new unit.
 
 **If creating a new unit:**
 
-1. Choose a kebab-case topic name (2-4 words, descriptive)
+1. Choose a topic name following `ontology.yaml` `topic_conventions` if available (default: kebab-case, 2-4 words, descriptive)
 2. Create `history/{domain}/{YYYY-MM-DD}-{topic-name}.md` using this format:
 
 ```markdown
@@ -132,9 +134,12 @@ If closing: set `status: closed` in `_index.yaml`, create a new unit.
 find . -type f -not -path "./.git/*" -not -path "./node_modules/*" -not -path "./.omniscitus/*" -not -path "./.next/*" -not -path "./dist/*" -not -path "./.vercel/*" -not -name "*.lock" -not -name ".DS_Store" | sort
 ```
 
-Compare against `blueprints.yaml`:
-- Files on disk but not in blueprint → add with `source: user`, `purpose: ""`
+Compare against `.omniscitus/blueprints/*.yaml` (per-directory blueprint files):
+- Each top-level directory has its own file: `blueprints/src.yaml`, `blueprints/plugins.yaml`, etc.
+- Root-level files are tracked in `blueprints/_root.yaml`
+- Files on disk but not in their corresponding blueprint → add with `source: user:{git user.name}` (run `git config user.name`), `purpose: ""`
 - Files in blueprint but not on disk → mark `status: deleted`
+- When adding/updating entries, write to the correct per-directory file based on the file's top-level directory
 
 **Then fill empty purposes** for all `purpose: ""` entries:
 - Read the file content

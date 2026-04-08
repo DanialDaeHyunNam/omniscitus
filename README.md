@@ -42,10 +42,10 @@ Nothing is deleted — omniscitus is a non-destructive overlay.
 
 ## What Happens Automatically
 
-Once installed, every file Claude writes or edits is tracked in `.omniscitus/blueprints.yaml` via a PostToolUse hook. No action needed from you.
+Once installed, every file Claude writes or edits is tracked in `.omniscitus/blueprints/` via a PostToolUse hook. No action needed from you. Blueprints are split per top-level directory (e.g. `blueprints/src.yaml`, `blueprints/plugins.yaml`) to minimize merge conflicts in team environments.
 
 Each entry records:
-- File path, status (`active` / `deleted`), source (`claude` / `user`)
+- File path, status (`active` / `deleted`), source with identity (`claude:dan` / `user:dan`)
 - Creation date, last modified, change count
 - Full change log with timestamps
 - Purpose description (filled during `/wrap-up`)
@@ -62,6 +62,20 @@ User-created files (outside Claude) are detected at session start and during wra
 | `/test-add:prompt {name}` | Create LLM judge-based prompt test scaffold |
 | `/birdview` | Start visual admin dashboard at `localhost:3777` |
 | `/omniscitus-migrate` | Migrate an existing project into omniscitus |
+| `/team-init` | Onboard a new team member (install, verify hooks, configure identity) |
+| `/ontology-init` | Define project domains and topic conventions for consistent classification |
+| `/cloud-setup` | Generate cloud sync config and architecture guide for real-time collaboration |
+
+## Team Onboarding
+
+When a new team member clones a repo that already uses omniscitus:
+
+1. They open Claude Code in the project
+2. Run `/team-init`
+3. The skill checks plugin installation, git identity, and hook status
+4. Optionally adds an onboarding block to `CLAUDE.md` so future members are auto-guided
+
+**Tip**: Add the omniscitus onboarding block to your project's `CLAUDE.md` so Claude Code automatically tells new users to run `/team-init` on first use.
 
 ## Features
 
@@ -70,7 +84,7 @@ User-created files (outside Claude) are detected at session start and during wra
 Every file change is automatically tracked. The blueprint records what each file is for, when it was created, how many times it changed, and who changed it (Claude vs. human).
 
 ```yaml
-# .omniscitus/blueprints.yaml
+# .omniscitus/blueprints/src.yaml
 files:
   src/lib/auth.ts:
     status: active
@@ -172,7 +186,11 @@ All data lives in `.omniscitus/` in your project root:
 
 ```
 .omniscitus/
-├── blueprints.yaml              ← file tracking (auto-updated by hook)
+├── blueprints/                  ← file tracking (per-directory, auto-updated by hook)
+│   ├── _root.yaml               ← root-level files (README.md, etc.)
+│   ├── src.yaml                  ← files under src/
+│   └── plugins.yaml              ← files under plugins/
+├── ontology.yaml                ← domain taxonomy + topic conventions (optional, for teams)
 ├── history/
 │   ├── _index.yaml              ← unit index
 │   └── {domain}/
@@ -193,8 +211,8 @@ Add `.omniscitus/` to `.gitignore` for personal use, or commit it for team shari
 │         ↓                                       │
 │  PostToolUse hook fires                         │
 │         ↓                                       │
-│  blueprint-tracker.cjs updates blueprints.yaml  │
-│  (path, timestamp, status, source=claude)       │
+│  blueprint-tracker.cjs updates blueprints/{dir}.yaml │
+│  (path, timestamp, status, source=claude)            │
 └─────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────┐
