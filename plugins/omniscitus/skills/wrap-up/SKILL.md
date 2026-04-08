@@ -164,7 +164,7 @@ Output:
 Next session: /follow-up to check pending tasks.
 ```
 
-**First wrap-up only** — if `_index.yaml` was just created (this is the first wrap-up ever in this project), append:
+**First wrap-up only** — if `_index.yaml` had zero units before this wrap-up (i.e., this is the very first unit ever created, not after `/migrate` which pre-populates units), append:
 
 ```
 ─────────────────────────────────────────────────
