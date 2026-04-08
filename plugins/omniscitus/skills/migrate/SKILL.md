@@ -70,9 +70,12 @@ Also check for:
 
 ### Phase 2: Blueprint Construction
 
-#### Step 2.1: Build Initial Blueprint
+#### Step 2.1: Build Initial Blueprints
 
-Create `.omniscitus/` and `blueprints.yaml`.
+Create `.omniscitus/blueprints/` directory. Blueprint entries are split per top-level directory:
+- `src/utils/auth.ts` → `.omniscitus/blueprints/src.yaml`
+- `plugins/omniscitus/server.js` → `.omniscitus/blueprints/plugins.yaml`
+- `README.md` (root-level) → `.omniscitus/blueprints/_root.yaml`
 
 For every source file in the project, build entries from git history:
 
@@ -84,7 +87,7 @@ git log --oneline -- "{file}" | wc -l                              # change coun
 
 For each file, determine:
 - `status`: active (exists on disk) or deleted (in git history but not on disk)
-- `source`: check first commit author — if it matches the user's git config, `user`; otherwise `claude` or `unknown`
+- `source`: check first commit author — format as `user:{author name}`, `claude:{author name}`, or `unknown`. Use git log author name for attribution.
 - `purpose`: infer from file path, name, and content (read the file briefly)
 - `change_log`: extract from recent git log (last 5 changes per file)
 
