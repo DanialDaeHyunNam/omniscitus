@@ -196,9 +196,14 @@ All data lives in `.omniscitus/` in your project root:
 │   └── {domain}/
 │       └── {date}-{topic}.md    ← knowledge units
 └── tests/
-    └── {source-path-mirror}/
-        ├── meta.yaml            ← test definitions
-        └── {file}.test.{ext}    ← generated test code
+    ├── {source-path-mirror}/
+    │   ├── meta.yaml            ← code test definitions
+    │   └── {file}.test.{ext}    ← generated test code
+    └── prompts/
+        └── {prompt-name}/
+            ├── prompt-meta.yaml ← prompt test config (points to existing infra or self-contained)
+            ├── judge.md         ← LLM judge template
+            └── runner.{ext}     ← test execution code
 ```
 
 Add `.omniscitus/` to `.gitignore` for personal use, or commit it for team sharing.

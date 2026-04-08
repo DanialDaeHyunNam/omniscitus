@@ -252,9 +252,58 @@ Create `.omniscitus/tests/{mirrored-path}/meta.yaml` for each test file:
 
 #### Step 4.3: Detect Prompt Tests
 
-If any test files use LLM judge patterns (look for evaluation, scoring, rubrics):
-- Create `prompt-meta.yaml` in `.omniscitus/tests/prompts/{name}/`
-- Extract criteria, checks, and cases from existing test logic
+Search for LLM judge / prompt evaluation patterns:
+- Files with "evaluation", "scoring", "rubric", "judge", "prompt-test" in name or content
+- Directories like `prompt-optimization/`, `eval/`, `tests/evaluation/`
+- Spec/criteria documents (markdown with scoring rubrics)
+- Test case collections (especially language-partitioned or category-partitioned)
+- Execution logs (JSONL files with score results)
+
+For each prompt test system found, create `prompt-meta.yaml` in
+`.omniscitus/tests/prompts/{name}/` as a **metadata layer over existing files**:
+
+```yaml
+target: {path-to-prompt-implementation}
+type: prompt
+prompt_name: {name}
+test_root: {path-to-existing-test-directory}     # point to existing infra
+runner: {path-to-existing-runner}                 # relative to test_root
+config: {path-to-env-or-config-if-needed}
+
+evaluation:
+  type: multi_criteria                            # detect from existing system
+
+criteria:                                         # extract from existing specs
+  - name: {criterion}
+    weight: {weight}
+    rubric: {path-to-spec-file}                   # external reference
+    scale: {scale}
+
+specs:
+  pattern: "{path-to-spec-docs}/**/*.md"          # glob to existing specs
+
+cases:
+  source: external
+  pattern: "{path-to-test-cases}/**/*.{ts,yaml}"  # glob to existing cases
+
+overrides:
+  source: {path-to-existing-overrides}            # if found
+
+logs:
+  directory: {path-to-existing-logs}
+  format: jsonl
+
+analysis:
+  directory: {path-to-existing-analysis}
+```
+
+**Key principle**: Do NOT move or copy existing test files. The prompt-meta.yaml
+is a metadata layer that points to where things already live. Existing runners,
+cases, specs, and logs stay in their original locations.
+
+Use AskUserQuestion:
+- "I found a prompt evaluation system at `{path}` with {N} test cases, {M} specs,
+  and {L} log files. Should I create an omniscitus index for it?"
 
 ### Phase 5: Legacy Inventory
 

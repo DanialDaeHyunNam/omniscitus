@@ -58,13 +58,33 @@ type: prompt                           # distinguishes from code tests
 prompt_name: {prompt-name}
 last_updated: {YYYY-MM-DD}
 
-# Judge configuration
+# --- Test infrastructure references ---
+# For new prompts, omniscitus generates these in-place.
+# For existing projects, these point to where things already live.
+
+test_root: .omniscitus/tests/prompts/{prompt-name}/   # default (self-contained)
+# test_root: web/scripts/prompt-optimization/          # or point to existing infra
+
+runner: runner.ts                       # relative to test_root
+config: null                            # e.g., .env.local if needed
+
+# --- Judge configuration ---
 judge:
   model: gpt-4o                        # or project-specific model
   temperature: 0                       # deterministic judging
   max_retries: 2                       # retry on judge failure
 
-# Evaluation dimensions — each gets scored independently
+# --- Evaluation type ---
+# Determines how outputs are scored.
+#   multi_criteria — weighted rubric scoring (default)
+#   binary         — pass/fail per case
+#   comparison     — A/B: which output is better
+#   regression     — did this version get worse than previous
+evaluation:
+  type: multi_criteria
+
+# --- Criteria ---
+# Each criterion can have rubric inline (string) or as external file path.
 criteria:
   - name: correctness
     weight: 0.4                        # 40% of final score
@@ -105,7 +125,13 @@ criteria:
       1: Wrong format entirely
     scale: 5
 
-# Validation checks — run before/after judge scoring
+# --- Specs (optional) ---
+# External specification documents that define evaluation rules in detail.
+# Omit for simple prompts. Use for complex systems with language-specific scoring.
+# specs:
+#   pattern: "docs/prompt/specs/**/*.md"   # glob relative to project root
+
+# --- Validation checks ---
 checks:
   - name: output_not_empty
     type: deterministic                # deterministic | llm_judge
@@ -120,41 +146,90 @@ checks:
       Answer YES or NO with brief explanation.
     pass_condition: "NO"
 
-# Thresholds
+# --- Thresholds ---
 thresholds:
   pass: 70                             # weighted score >= 70 to pass
   warn: 50                             # below 50 = critical failure
   per_criterion:                       # optional per-criterion minimums
     safety: 80                         # safety must score >= 80 regardless
 
-# Test cases
+# --- Test cases ---
+# Two modes:
+#   inline   — cases listed directly below (default, good for <30 cases)
+#   external — cases in separate files (for large/partitioned test suites)
 cases:
-  - title: "{descriptive name}"
-    category: element                  # element | mixed | edge | zero_condition
-    input:
-      {variable}: {value}             # prompt input variables
-    expected_behavior: |
-      {natural language description of what good output looks like}
-    expected_score_range:
-      min: 75
-      max: 90
-    manual_override:                   # optional — for known AI inconsistency
-      score: 86
-      timestamp: "2026-04-03T10:00:00Z"
-      reason: "AI consistently scores higher due to lenient grammar check"
+  source: inline                       # "inline" | "external"
+  # When external:
+  #   pattern: "test-cases/**/*.{ts,yaml,json}"   # glob relative to test_root
+  #   schema: test-cases/_schema.yaml              # optional case format definition
+  items:
+    - title: "{descriptive name}"
+      category: element                # element | mixed | edge | zero_condition
+      input:
+        {variable}: {value}           # prompt input variables
+      expected_behavior: |
+        {natural language description of what good output looks like}
+      expected_score_range:
+        min: 75
+        max: 90
 
-  - title: "{zero condition test}"
-    category: zero_condition
-    input:
-      {variable}: {nonsense or wrong-language input}
-    expected_behavior: |
-      Should reject or score very low
-    expected_score_range:
-      min: 0
-      max: 10
+    - title: "{zero condition test}"
+      category: zero_condition
+      input:
+        {variable}: {nonsense or wrong-language input}
+      expected_behavior: |
+        Should reject or score very low
+      expected_score_range:
+        min: 0
+        max: 10
+
+# --- Overrides (optional) ---
+# Manual score overrides for cases where AI evaluation is inconsistent.
+# Stored separately to keep test cases clean.
+# overrides:
+#   source: overrides/overrides.yaml   # or inline list
+#   items:
+#     - case_ref: "english/countable-uncountable"
+#       score: 85
+#       timestamp: "2026-02-18T11:01:29Z"
+#       reason: "Consistent across 10 validation runs"
+
+# --- Logs & Analysis (optional) ---
+# Where test execution results are stored.
+# logs:
+#   directory: logs/                   # relative to test_root (default)
+#   format: jsonl                      # jsonl | json | csv
+# analysis:
+#   directory: logs/analysis/          # relative to test_root (default)
 ```
 
+**Field reference — when to use what:**
+
+| Field | New prompt (`/test-add:prompt`) | Existing infra (`/migrate`) |
+|-------|------|------|
+| `test_root` | `.omniscitus/tests/prompts/{name}/` | path to existing test dir |
+| `runner` | generated by Step 6 | path to existing runner |
+| `cases.source` | `inline` | `external` with `pattern` |
+| `specs.pattern` | omitted | glob to existing spec docs |
+| `logs.directory` | `logs/` (created) | path to existing logs dir |
+| `overrides` | omitted initially | populated from existing overrides |
+
 ### Step 4: Design Test Cases by Category
+
+**For inline cases** (`cases.source: inline`, default for new prompts):
+Generate test cases directly in prompt-meta.yaml under `cases.items`.
+
+**For external cases** (`cases.source: external`, for large suites):
+Create case files under `{test_root}/test-cases/`. Partition by whatever axis
+makes sense for the project (language, feature, difficulty, etc.):
+
+```
+test-cases/
+├── _schema.yaml          ← optional: defines expected case format
+├── english.yaml           ← or by-feature.yaml, by-model.yaml, etc.
+├── french.yaml
+└── edge-cases.yaml
+```
 
 Generate test cases across these categories:
 
@@ -223,17 +298,20 @@ PASS: {YES/NO based on threshold}
 Create `.omniscitus/tests/prompts/{prompt-name}/runner.ts` (or .py, .js based on project):
 
 The runner should:
-1. Load prompt-meta.yaml
-2. For each test case:
+1. Load prompt-meta.yaml (read `cases.source` to determine where cases are)
+2. If `cases.source: external`, load cases from `cases.pattern` glob
+3. If `overrides` defined, load overrides
+4. For each test case:
    a. Construct prompt with test case input
    b. Call the prompt (via the project's AI SDK)
    c. Run deterministic checks
    d. Send output to LLM judge with judge.md template
    e. Parse judge scores
-   f. Apply criterion weights → weighted score
+   f. Apply criterion weights → weighted score (for `multi_criteria` type)
    g. Compare against thresholds
-   h. Apply manual overrides if present
-3. Output results as JSONL log + summary
+   h. Apply overrides if present
+5. Write results to `logs.directory` as JSONL (default: `{test_root}/logs/`)
+6. Generate analysis summary in `analysis.directory` (default: `{test_root}/logs/analysis/`)
 
 ### Step 7: Report
 
@@ -244,10 +322,12 @@ The runner should:
 📄 Judge:   .omniscitus/tests/prompts/{name}/judge.md
 📄 Runner:  .omniscitus/tests/prompts/{name}/runner.{ext}
 
-  {N} criteria, {M} test cases
+  Evaluation: {type}
+  {N} criteria, {M} test cases ({inline/external})
   Categories: {element: X, mixed: Y, edge: Z, zero: W}
-
   Thresholds: pass={P}%, warn={W}%
+
+  Logs → {logs.directory}
 ```
 
 ## Rules
