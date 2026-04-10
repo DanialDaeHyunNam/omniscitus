@@ -276,16 +276,50 @@ function findProjectRoot(dir) {
 
 // --- Main ---
 
+// Optional debug logging. Set OMNISCITUS_DEBUG=1 in your Claude Code
+// env (or settings.json) to have the hook append an entry to
+// ${TMPDIR}/omniscitus-hook.log every time it fires. Zero overhead
+// when the env var isn't set.
+function debugLog(msg) {
+  if (!process.env.OMNISCITUS_DEBUG) return;
+  try {
+    var os = require('os');
+    var logPath = path.join(os.tmpdir(), 'omniscitus-hook.log');
+    fs.appendFileSync(logPath, new Date().toISOString() + ' ' + msg + '\n');
+  } catch (e) { /* never let logging break the hook */ }
+}
+
+// Extract a file path from the PostToolUse input. Write and Edit use
+// tool_input.file_path; MultiEdit passes a list under tool_input.edits
+// (each with file_path), but in practice the top-level file_path is
+// also set for the primary file. NotebookEdit uses notebook_path.
+function extractFilePath(input) {
+  if (!input || !input.tool_input) return null;
+  var ti = input.tool_input;
+  if (ti.file_path) return ti.file_path;
+  if (ti.path) return ti.path;
+  if (ti.notebook_path) return ti.notebook_path;
+  // MultiEdit: edits is an array of { file_path, ... }
+  if (Array.isArray(ti.edits) && ti.edits.length > 0 && ti.edits[0].file_path) {
+    return ti.edits[0].file_path;
+  }
+  return null;
+}
+
 async function main() {
   var input = await readStdin(2000);
-  if (!input) return;
-
-  // Extract file path from tool input
-  var filePath = null;
-  if (input.tool_input) {
-    filePath = input.tool_input.file_path || input.tool_input.path || null;
+  if (!input) {
+    debugLog('abort no_stdin');
+    return;
   }
-  if (!filePath) return;
+
+  debugLog('invoked tool=' + (input.tool_name || 'unknown'));
+
+  var filePath = extractFilePath(input);
+  if (!filePath) {
+    debugLog('abort no_file_path');
+    return;
+  }
 
   var cwd = input.cwd || process.cwd();
   var projectRoot = findProjectRoot(cwd);
@@ -304,7 +338,10 @@ async function main() {
   }
 
   // Skip files inside .omniscitus/ itself
-  if (relPath.startsWith('.omniscitus')) return;
+  if (relPath.startsWith('.omniscitus')) {
+    debugLog('skip inside_omniscitus path=' + relPath);
+    return;
+  }
 
   // Skip gitignored files
   try {
@@ -312,6 +349,7 @@ async function main() {
       cwd: projectRoot, timeout: 1000
     });
     // If check-ignore succeeds (exit 0), the file IS ignored → skip
+    debugLog('skip gitignored path=' + relPath);
     return;
   } catch (e) {
     // Exit code 1 means NOT ignored → continue
@@ -375,6 +413,10 @@ async function main() {
   // Mark any ancestor folder summaries as stale so /wrap-up knows to
   // refresh them later. No-op if _summaries.yaml doesn't exist yet.
   markAncestorSummariesStale(blueprintsDir, relPath);
+
+  debugLog('wrote blueprint=' + blueprintPath + ' rel=' + relPath);
 }
 
-main().catch(function () {});
+main().catch(function (err) {
+  debugLog('ERROR ' + (err && err.stack || err));
+});

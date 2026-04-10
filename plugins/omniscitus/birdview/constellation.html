@@ -1150,17 +1150,64 @@ if (webglAvailable) {
 // ── Animation loop ────────────────────────────────────
 if (webglAvailable) {
   const clock = new THREE.Clock();
+  // Dim appearance applied to non-selected nodes when any selection is
+  // active. Constants live here so the dim/restore code paths stay in
+  // sync.
+  const DIM_OPACITY = 0.12;
+  const DIM_EMISSIVE = 0.04;
+  const COVERED_EMISSIVE = 1.2;
+
   function animate() {
     requestAnimationFrame(animate);
     const t = clock.getElapsedTime();
+    const hasSelection = selected.size > 0 || selectedFolders.size > 0;
+
     for (let i = 0; i < nodes.length; i++) {
       const n = nodes[i];
+      if (!n.mesh || !n.mesh.material) continue;
+
+      // Directly selected node: toggleSelect() already set the glow + scale.
+      // Leave it alone so the highlight stays stable.
       if (selected.has(i)) continue;
-      if (n.status === 'open' && n.mesh && n.mesh.material) {
+
+      // File covered by a selected folder: treat as "softly highlighted"
+      // so the user sees what the folder captured.
+      const covered = n.type === 'blueprint' && n.path && pathIsCoveredByFolder(n.path);
+      if (covered) {
+        n.mesh.material.transparent = false;
+        n.mesh.material.opacity = 1;
+        n.mesh.material.emissiveIntensity = COVERED_EMISSIVE;
+        continue;
+      }
+
+      if (hasSelection) {
+        // Dim everything else so the selection pops.
+        n.mesh.material.transparent = true;
+        n.mesh.material.opacity = DIM_OPACITY;
+        n.mesh.material.emissiveIntensity = DIM_EMISSIVE;
+      } else {
+        // Nothing selected — restore baseline + resume the pulse on open nodes.
+        n.mesh.material.transparent = false;
+        n.mesh.material.opacity = 1;
         const base = n.mesh.userData._baseEmissive;
-        n.mesh.material.emissiveIntensity = base + Math.sin(t * 1.8 + i * 0.3) * 0.15;
+        if (n.status === 'open') {
+          n.mesh.material.emissiveIntensity = base + Math.sin(t * 1.8 + i * 0.3) * 0.15;
+        } else {
+          n.mesh.material.emissiveIntensity = base;
+        }
       }
     }
+
+    // Also fade edges when there's an active selection, otherwise they
+    // visually compete with the glowing selection.
+    if (edgeGroup) {
+      for (const edge of edgeGroup.children) {
+        if (edge.material) {
+          edge.material.opacity = hasSelection ? 0.04 : 0.15;
+        }
+      }
+    }
+
     controls.update();
     renderer.render(scene, camera);
   }
