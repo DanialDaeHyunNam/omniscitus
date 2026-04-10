@@ -166,6 +166,52 @@ Compare against `.omniscitus/blueprints/*.yaml` (per-directory blueprint files):
 
 Also check for `source: user` entries with empty purposes — these are files the user created outside Claude. Read them and fill purposes.
 
+### Step 5.5: Refresh Stale Folder Summaries
+
+The PostToolUse hook marks `_summaries.yaml` entries as `stale: true`
+whenever a file inside the folder is written or edited. The hook can't
+regenerate them — that requires an LLM call, which would block every
+tool use. /wrap-up is the natural place to do the async refresh because
+the user is already in an LLM session and Claude already has context on
+what changed this session.
+
+**Procedure:**
+
+1. Read `.omniscitus/blueprints/_summaries.yaml`. If the file doesn't
+   exist, skip this step (project hasn't run /omniscitus-migrate yet).
+
+2. Compute the set of folders that this session touched:
+   ```bash
+   git diff --name-only HEAD
+   git diff --cached --name-only
+   ```
+   For each changed file, walk its ancestors and collect every folder
+   path (e.g., `src/app/api/route.ts` → `src`, `src/app`, `src/app/api`).
+
+3. For each entry in `_summaries.yaml` where:
+   - `stale: true`, AND
+   - the entry's path is in the touched-folders set
+
+   regenerate its description using the same procedure documented in
+   `/omniscitus-migrate` Step 2.3:
+   - Read all `purpose:` fields under the folder from the blueprint
+   - Compose a one-line role description
+   - Update the entry with `stale: false`, `generated_at: <today>`,
+     `generated_by: wrap-up`, refreshed `file_count`
+
+4. Do **not** touch summaries that are stale but unrelated to this
+   session — they'll get refreshed in a future wrap-up that actually
+   touches their folders. /wrap-up should never refresh more than what
+   this session is responsible for.
+
+5. Do **not** create new summary entries here. /omniscitus-migrate is
+   the only place that bootstraps `_summaries.yaml`. /wrap-up only
+   refreshes existing entries.
+
+If `_summaries.yaml` exists but no stale-and-touched entries are found,
+silently skip — this is the common case for sessions that don't touch
+already-summarized folders.
+
 ### Step 6: Report
 
 Output:

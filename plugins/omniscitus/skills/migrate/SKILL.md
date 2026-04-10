@@ -181,6 +181,84 @@ For each file, check git blame to estimate claude vs. user ratio:
 
 Change log entries should also get source attribution where possible.
 
+#### Step 2.3: Generate Folder Purpose Summaries
+
+After all blueprint entries are written, walk the directory hierarchy
+bottom-up and generate a one-line summary describing what each folder
+is responsible for. Write the result to a single file:
+
+```
+.omniscitus/blueprints/_summaries.yaml
+```
+
+This file is a flat path-keyed map. Birdview reads it and shows the
+description directly under the folder name in the tree view, so users
+get an instant "what is this folder for" answer at every depth.
+
+**Schema:**
+
+```yaml
+# .omniscitus/blueprints/_summaries.yaml
+summaries:
+  src:
+    description: "Next.js App Router source — pages, API routes, components, utilities"
+    generated_at: 2026-04-10
+    generated_by: migrate
+    stale: false
+    file_count: 37
+  src/app:
+    description: "Routes — landing, apply flow, admin dashboard, blog, API endpoints"
+    generated_at: 2026-04-10
+    generated_by: migrate
+    stale: false
+    file_count: 16
+  src/lib:
+    description: "Shared utilities — HMAC signing, GA tracking, Prisma client, blog index"
+    generated_at: 2026-04-10
+    generated_by: migrate
+    stale: false
+    file_count: 4
+```
+
+**How to write each summary:**
+
+1. **List the folder's children**: read all `purpose:` fields under that
+   folder from the blueprint files. Include both direct files and one
+   level of subfolders for context.
+2. **Compose one line** (≤ 100 characters) that captures the *role*
+   of the folder within the project, not a file enumeration. Bad:
+   "Contains auth.ts, prisma.ts, utils.ts". Good: "Server-side
+   utility modules (auth, db, formatting)".
+3. **Skip noise folders**: if a folder has fewer than 2 files OR is
+   purely a single-file passthrough (e.g., `src/lib/` with only
+   `auth.ts`), do not write a summary for it. The tree view will
+   collapse single-child paths visually.
+4. **Bottom-up order**: write leaf folders first so their descriptions
+   are available when summarizing their parent.
+
+**Recommended phrasing** (not strict):
+- Lead with the role, not the contents
+- Use "—" to separate role from key examples
+- Avoid the word "folder" or "directory" — it's redundant
+- Korean OK if the project's other docs are Korean
+
+**Field semantics:**
+- `description` — the one-line summary itself
+- `generated_at` — date written (use today's date during migration)
+- `generated_by` — must be one of `migrate`, `wrap-up`, `manual`,
+  `blueprint-summarize`. This lets future readers (and you) trace
+  who last touched each entry.
+- `stale` — `false` after generation. The PostToolUse hook will set
+  this to `true` automatically when a file inside the folder changes.
+- `file_count` — snapshot of how many files were in the folder at
+  generation time. Used by the hook to detect drift later.
+
+This file is consumed by:
+- **birdview** (`/api/blueprints` endpoint) for rendering
+- **PostToolUse hook** (`scripts/blueprint-tracker.cjs`) for staleness
+- **/wrap-up** for refreshing stale entries this session touched
+- **/blueprint-summarize {dir}** for manual refresh
+
 ### Phase 3: History Unit Construction
 
 #### Step 3.1: Extract Topics from Git History
