@@ -72,6 +72,7 @@ function extractPurpose(filePath) {
     if (ext === '.md') {
       let inFrontmatter = false;
       let descFromFrontmatter = '';
+      let captureNextAsDescription = false;
       for (const line of lines) {
         const trimmed = line.trim();
         if (trimmed === '---') {
@@ -79,8 +80,29 @@ function extractPurpose(filePath) {
           continue;
         }
         if (inFrontmatter) {
-          const m = trimmed.match(/^description:\s*>?-?\s*(.+)$/);
-          if (m) descFromFrontmatter = m[1].trim();
+          // Support both inline and folded-block forms:
+          //   description: "Inline value"
+          //   description: >-
+          //     Folded multi-line
+          //     value continues here.
+          if (captureNextAsDescription && trimmed) {
+            descFromFrontmatter = trimmed;
+            captureNextAsDescription = false;
+            continue;
+          }
+          const foldedMatch = trimmed.match(/^description:\s*[>|][-+]?\s*$/);
+          if (foldedMatch) {
+            captureNextAsDescription = true;
+            continue;
+          }
+          const inlineMatch = trimmed.match(/^description:\s*(.+)$/);
+          if (inlineMatch) {
+            const v = inlineMatch[1].trim();
+            // Guard against the YAML block markers ">", ">-", "|", "|-"
+            if (v && !/^[>|][-+]?$/.test(v)) {
+              descFromFrontmatter = v.replace(/^["']|["']$/g, '');
+            }
+          }
           continue;
         }
         if (descFromFrontmatter) return descFromFrontmatter.slice(0, 140);
@@ -89,6 +111,7 @@ function extractPurpose(filePath) {
           return trimmed.replace(/[*_`]/g, '').slice(0, 140);
         }
       }
+      if (descFromFrontmatter) return descFromFrontmatter.slice(0, 140);
     }
 
     // JSON / YAML: name/description fields
@@ -100,20 +123,31 @@ function extractPurpose(filePath) {
       } catch {}
     }
 
-    // JS / shell / config — first comment line
+    // JS / shell / config — first meaningful comment line
     const commentPatterns = [
       /^\/\*\*?\s*(.+?)\s*\*?\/?$/,
       /^\/\/\s*(.+)$/,
       /^#\s*(.+)$/,
       /^\*\s*(.+)$/
     ];
+    // Separator/decoration line: contains only repeat-y chars.
+    // Covers ASCII dashes/equals and common Unicode box-drawing dashes.
+    const SEPARATOR_RE = /^[\s\-=*_#/\u2500-\u257F\u2014\u2015]{3,}$/;
     for (const line of lines) {
       const trimmed = line.trim();
       if (!trimmed) continue;
+      // Skip shebang lines — they're not documentation.
+      if (trimmed.startsWith('#!')) continue;
+      // Skip decorative separator-only lines.
+      if (SEPARATOR_RE.test(trimmed)) continue;
       for (const re of commentPatterns) {
         const m = trimmed.match(re);
-        if (m && m[1] && m[1].length > 8 && !/^[-=*]{3,}/.test(m[1])) {
-          return m[1].replace(/^\s*-\s*/, '').slice(0, 140);
+        if (!m || !m[1]) continue;
+        const body = m[1].trim();
+        // The captured body itself might be pure separator chars
+        if (SEPARATOR_RE.test(body)) continue;
+        if (body.length > 8) {
+          return body.replace(/^\s*-\s*/, '').slice(0, 140);
         }
       }
     }
@@ -309,8 +343,16 @@ function writeHistory() {
 
 // ── Go ──────────────────────────────────────────────────
 
-console.log('Seeding .omniscitus/ ...');
-fs.mkdirSync(OUT, { recursive: true });
-writeBlueprints();
-writeHistory();
-console.log('Done.');
+if (require.main === module) {
+  console.log('Seeding .omniscitus/ ...');
+  fs.mkdirSync(OUT, { recursive: true });
+  writeBlueprints();
+  writeHistory();
+  console.log('Done.');
+}
+
+// Exports for unit tests — the pure helpers are the valuable surface.
+module.exports = {
+  extractPurpose: extractPurpose,
+  escapeYamlString: escapeYamlString
+};
