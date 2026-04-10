@@ -52,6 +52,15 @@ Already have a codebase? Run `/omniscitus-migrate` after install to bootstrap bl
 
 After cloning a repo that already uses omniscitus, run `/team-init`. The skill verifies plugin installation, hook status, and configures your git identity for attribution.
 
+### Hooks not firing?
+
+If blueprints aren't being created automatically when you edit files:
+
+1. **Restart Claude Code** — hooks activate on session start. A fresh `/plugin install` doesn't enable them until you restart.
+2. **Check you're on the latest version** — run `/plugin install omniscitus@omniscitus --force` to reinstall even if the version matches.
+3. **Enable debug logging** — set `OMNISCITUS_DEBUG=1` in your environment (or Claude Code `settings.json` under `env`), then edit any file. Check `$TMPDIR/omniscitus-hook.log` for `invoked` / `wrote` entries. If no entries appear, the hook never fired — confirm the plugin is enabled. If entries appear but show `skip` or `ERROR`, the log tells you why.
+4. **Fallback** — `/blueprint-sync` re-scans the filesystem and rebuilds blueprints from the ground truth, regardless of hook history.
+
 ## Commands
 
 10 slash commands, organized by purpose.
