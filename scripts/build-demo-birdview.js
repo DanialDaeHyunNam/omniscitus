@@ -76,13 +76,18 @@ const FETCH_INTERCEPTOR = `
         status: 200, headers: { 'Content-Type': 'application/json' }
       }));
     }
-    // Rewrite /api/<name> → ./data/<name>.json
+    // Rewrite /api/<name> → ./data/<name>.json. If the snapshot file is
+    // missing (or any other non-OK response), silently return an empty
+    // object so the birdview JS keeps working.
     var m = url.match(/^\\/api\\/([^?#]+)/);
     if (m) {
       var file = m[1].replace(/\\//g, '_') + '.json';
-      return ORIG_FETCH(DEMO_BASE + file, init).catch(function() {
+      var emptyOk = function() {
         return new Response('{}', { status: 200, headers: { 'Content-Type': 'application/json' } });
-      });
+      };
+      return ORIG_FETCH(DEMO_BASE + file, init).then(function(res) {
+        return res && res.ok ? res : emptyOk();
+      }).catch(emptyOk);
     }
     return ORIG_FETCH(input, init);
   };
@@ -153,11 +158,15 @@ async function main() {
   const server = await startServer();
 
   try {
-    // Snapshot API data
+    // Snapshot API data. Keep this list in sync with the GET endpoints
+    // served by server.js — any missing entry 404s in the demo's console
+    // (the interceptor has a network-error fallback but not a 404 one,
+    // browsers still log failed requests).
     const endpoints = [
       { api: '/api/blueprints', file: 'blueprints.json' },
       { api: '/api/units', file: 'units.json' },
       { api: '/api/tests', file: 'tests.json' },
+      { api: '/api/prompt-tests', file: 'prompt-tests.json' },
       { api: '/api/reviews', file: 'reviews.json' }
     ];
     for (const { api, file } of endpoints) {
