@@ -1,6 +1,18 @@
 {
   "description": "Omniscitus: blueprint tracking + wrap-up reminders",
   "hooks": {
+    "SessionStart": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/blueprint-warn.cjs\"",
+            "timeout": 2
+          }
+        ]
+      }
+    ],
     "PreCompact": [
       {
         "matcher": ".*",
