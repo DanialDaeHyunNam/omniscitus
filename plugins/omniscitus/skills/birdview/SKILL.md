@@ -68,9 +68,10 @@ project root → `cwd()`, missing `BIRDVIEW_PORT` → 3777.
 🌐 Open: http://localhost:$PORT
    (3777 was taken — fell back to $PORT)   ← only show this line if PORT != 3777
 
-  📘 Blueprint — file tracking and change history
-  📗 History  — topic-based session units
-  📙 Tests    — test definitions and coverage
+  📘 Blueprint     — file tracking and change history
+  📗 History       — topic-based session units
+  📙 Tests         — test definitions and coverage
+  ✨ Constellation — 3D node space for onboarding nudges
 
 Press Ctrl+C in the terminal or run `kill $(lsof -i :$PORT -t)` to stop.
 ```
