@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
+<title>Constellation - Birdview</title>
+<style>
+  *,*::before,*::after{box-sizing:border-box}
+  html,body{margin:0;padding:0;height:100%;background:#050509;color:#e0e0e0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;overflow:hidden}
+  a{color:#93c5fd;text-decoration:none}
+  a:hover{text-decoration:underline}
+
+  /* ── Top bar ─────────────────────────────────────── */
+  .topbar{position:fixed;top:0;left:0;right:0;height:56px;display:flex;align-items:center;gap:16px;padding:0 20px;background:linear-gradient(180deg,rgba(5,5,9,0.92) 0%,rgba(5,5,9,0.0) 100%);z-index:30;pointer-events:none}
+  .topbar > *{pointer-events:auto}
+  .back{color:#9ca3af;font-size:13px;display:flex;align-items:center;gap:4px}
+  .back:hover{color:#e0e0e0}
+  .title{font-size:15px;font-weight:600;color:#fff;letter-spacing:-0.2px}
+  .title .dim{color:#6b7280;font-weight:400;margin-left:6px}
+  .spacer{flex:1}
+  .filter-group{display:flex;gap:6px;background:rgba(20,20,26,0.75);border:1px solid #242430;border-radius:8px;padding:4px;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+  .filter-btn{background:transparent;border:none;color:#9ca3af;font-size:12px;padding:6px 12px;border-radius:5px;cursor:pointer;font-family:inherit;font-weight:500;transition:all 0.15s;display:flex;align-items:center;gap:6px}
+  .filter-btn:hover{color:#e0e0e0}
+  .filter-btn.active{background:#2e1065;color:#c4b5fd}
+  .filter-btn .swatch{width:8px;height:8px;border-radius:50%;background:currentColor;box-shadow:0 0 6px currentColor}
+
+  /* ── Scene canvas ────────────────────────────────── */
+  #scene{position:fixed;inset:0;z-index:0}
+  #scene canvas{display:block;width:100%;height:100%}
+
+  /* ── Hover tooltip ───────────────────────────────── */
+  .tooltip{position:fixed;pointer-events:none;background:rgba(15,15,22,0.94);border:1px solid #2a2a3a;border-radius:6px;padding:6px 10px;font-size:12px;color:#e0e0e0;z-index:40;display:none;max-width:260px;box-shadow:0 4px 16px rgba(0,0,0,0.5);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+  .tooltip .tt-label{color:#fff;font-weight:600}
+  .tooltip .tt-path{color:#6b7280;font-size:10.5px;margin-top:2px;word-break:break-all;font-family:'SF Mono',SFMono-Regular,Menlo,monospace}
+  .tooltip .tt-meta{color:#9ca3af;font-size:10.5px;margin-top:4px}
+
+  /* ── Selection panel (right) ─────────────────────── */
+  .panel{position:fixed;top:72px;right:16px;width:320px;max-height:calc(100vh - 96px);background:rgba(15,15,22,0.9);border:1px solid #242430;border-radius:12px;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);z-index:20;display:flex;flex-direction:column;box-shadow:0 10px 40px rgba(0,0,0,0.5)}
+  .panel-header{padding:14px 18px;border-bottom:1px solid #242430;display:flex;align-items:center;gap:10px}
+  .panel-header h3{font-size:13px;font-weight:600;color:#fff;margin:0;flex:1;text-transform:uppercase;letter-spacing:0.4px}
+  .panel-header .count{font-size:11px;background:#2e1065;color:#c4b5fd;padding:2px 8px;border-radius:10px;font-variant-numeric:tabular-nums}
+  .panel-list{flex:1;overflow-y:auto;padding:8px 10px;min-height:80px}
+  .sel-item{padding:8px 10px;border-radius:6px;margin-bottom:4px;display:flex;align-items:flex-start;gap:8px;font-size:12px;background:rgba(30,30,42,0.6);border:1px solid #242430}
+  .sel-item .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:4px;box-shadow:0 0 6px currentColor}
+  .sel-item .info{flex:1;min-width:0}
+  .sel-item .label{color:#fff;font-weight:500;word-break:break-word}
+  .sel-item .path{color:#6b7280;font-size:10.5px;margin-top:2px;word-break:break-all;font-family:'SF Mono',SFMono-Regular,Menlo,monospace}
+  .sel-item .rm{background:none;border:none;color:#6b7280;cursor:pointer;padding:2px 6px;font-size:14px;line-height:1;border-radius:4px}
+  .sel-item .rm:hover{color:#f87171;background:rgba(248,113,113,0.1)}
+  .panel-empty{text-align:center;padding:24px 16px;color:#6b7280;font-size:12px;line-height:1.55}
+  .panel-footer{padding:12px 14px;border-top:1px solid #242430;display:flex;flex-direction:column;gap:8px}
+  .toggle-row{display:flex;align-items:center;gap:8px;font-size:11.5px;color:#9ca3af}
+  .toggle-row input{accent-color:#7c3aed;cursor:pointer}
+  .nudge-btn{background:linear-gradient(135deg,#7c3aed,#6366f1);border:none;color:#fff;padding:10px 14px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:transform 0.12s,box-shadow 0.12s}
+  .nudge-btn:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 6px 20px rgba(124,58,237,0.35)}
+  .nudge-btn:disabled{background:#2a2a3a;color:#6b7280;cursor:not-allowed}
+  .clear-btn{background:transparent;border:1px solid #2a2a3a;color:#9ca3af;padding:6px 10px;border-radius:6px;font-size:11px;cursor:pointer;font-family:inherit}
+  .clear-btn:hover{color:#e0e0e0;border-color:#3a3a4a}
+
+  /* ── Bottom controls hint ────────────────────────── */
+  .hint{position:fixed;bottom:16px;left:16px;background:rgba(15,15,22,0.85);border:1px solid #242430;border-radius:8px;padding:10px 14px;font-size:11px;color:#9ca3af;z-index:20;display:flex;gap:14px;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+  .hint kbd{background:#1f1f28;border:1px solid #2a2a3a;border-radius:4px;padding:1px 6px;font-size:10px;color:#e0e0e0;font-family:'SF Mono',SFMono-Regular,Menlo,monospace;margin-right:4px}
+
+  /* ── Stats overlay (bottom-right) ────────────────── */
+  .stats{position:fixed;bottom:16px;right:16px;background:rgba(15,15,22,0.85);border:1px solid #242430;border-radius:8px;padding:10px 14px;font-size:11px;color:#9ca3af;z-index:20;display:flex;gap:16px;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+  .stats .num{color:#c4b5fd;font-weight:600;font-variant-numeric:tabular-nums;margin-right:4px}
+
+  /* ── Loading overlay ─────────────────────────────── */
+  .loading{position:fixed;inset:0;background:#050509;display:flex;align-items:center;justify-content:center;z-index:100;transition:opacity 0.4s;color:#9ca3af;font-size:13px;flex-direction:column;gap:12px}
+  .loading.hidden{opacity:0;pointer-events:none}
+  .loading .spinner{width:32px;height:32px;border:2px solid #242430;border-top-color:#c4b5fd;border-radius:50%;animation:spin 0.8s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  /* ── Error banner ────────────────────────────────── */
+  .error{position:fixed;top:72px;left:50%;transform:translateX(-50%);background:rgba(40,15,15,0.95);border:1px solid #7f1d1d;color:#fca5a5;padding:12px 18px;border-radius:8px;font-size:13px;z-index:50;max-width:480px;text-align:center;display:none}
+  .error.visible{display:block}
+
+  /* ── Toast ───────────────────────────────────────── */
+  .toast-container{position:fixed;top:72px;left:50%;transform:translateX(-50%);z-index:60;display:flex;flex-direction:column;gap:8px;align-items:center}
+  .toast{padding:12px 20px;border-radius:8px;font-size:13px;background:rgba(15,15,22,0.95);border:1px solid #2a2a3a;color:#e0e0e0;box-shadow:0 8px 24px rgba(0,0,0,0.5);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);animation:toastIn 0.25s ease;max-width:420px;text-align:center;line-height:1.5}
+  .toast-success{border-color:#064e3b;color:#6ee7b7}
+  .toast-error{border-color:#7f1d1d;color:#fca5a5}
+  @keyframes toastIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+
+  @media(max-width:760px){
+    .panel{right:8px;left:8px;width:auto;top:64px}
+    .hint{display:none}
+    .stats{bottom:8px;right:8px}
+    .topbar{padding:0 12px;gap:8px}
+    .filter-group{padding:3px}
+    .filter-btn{padding:5px 9px;font-size:11px}
+  }
+</style>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+</head>
+<body>
+
+<div id="scene"></div>
+
+<div class="topbar">
+  <a href="/" class="back">&larr; Birdview</a>
+  <div class="title">Constellation <span class="dim">/ document space</span></div>
+  <div class="spacer"></div>
+  <div class="filter-group">
+    <button class="filter-btn active" id="filter-history" style="color:#6ee7b7">
+      <span class="swatch"></span> History
+    </button>
+    <button class="filter-btn active" id="filter-blueprint" style="color:#93c5fd">
+      <span class="swatch"></span> Blueprints
+    </button>
+  </div>
+</div>
+
+<div class="tooltip" id="tooltip"></div>
+
+<div class="panel" id="panel">
+  <div class="panel-header">
+    <h3>Selection</h3>
+    <span class="count" id="sel-count">0</span>
+  </div>
+  <div class="panel-list" id="sel-list">
+    <div class="panel-empty">
+      Click any node in the constellation to select it.<br><br>
+      Select the files a new Claude session should read to get oriented, then copy the nudge prompt below.
+    </div>
+  </div>
+  <div class="panel-footer">
+    <label class="toggle-row">
+      <input type="checkbox" id="include-root" checked>
+      Always include <code style="color:#c4b5fd;font-family:'SF Mono',SFMono-Regular,Menlo,monospace">CLAUDE.md</code>
+    </label>
+    <div style="display:flex;gap:8px">
+      <button class="clear-btn" id="clear-btn" disabled>Clear</button>
+      <button class="nudge-btn" id="nudge-btn" disabled style="flex:1">Copy Nudge Prompt</button>
+    </div>
+  </div>
+</div>
+
+<div class="hint">
+  <span><kbd>drag</kbd>rotate</span>
+  <span><kbd>scroll</kbd>zoom</span>
+  <span><kbd>click</kbd>select</span>
+  <span><kbd>esc</kbd>clear</span>
+</div>
+
+<div class="stats" id="stats">
+  <span><span class="num" id="stat-units">0</span>units</span>
+  <span><span class="num" id="stat-bp">0</span>blueprints</span>
+</div>
+
+<div class="loading" id="loading">
+  <div class="spinner"></div>
+  <div>Loading your constellation&hellip;</div>
+</div>
+
+<div class="error" id="error"></div>
+<div class="toast-container" id="toasts"></div>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+// ── Utilities ─────────────────────────────────────────
+const PALETTE = [
+  '#6ee7b7', '#93c5fd', '#fbbf24', '#f87171',
+  '#c4b5fd', '#5eead4', '#fda4af', '#fdba74',
+  '#a7f3d0', '#bfdbfe', '#fde68a', '#fca5a5'
+];
+function hashColor(key, cache) {
+  if (cache[key]) return cache[key];
+  const keys = Object.keys(cache);
+  cache[key] = PALETTE[keys.length % PALETTE.length];
+  return cache[key];
+}
+function fibSphere(i, total, offset = 0) {
+  const phi = Math.acos(1 - 2 * (i + 0.5 + offset) / (total + offset));
+  const theta = Math.PI * (1 + Math.sqrt(5)) * i;
+  return new THREE.Vector3(
+    Math.cos(theta) * Math.sin(phi),
+    Math.sin(theta) * Math.sin(phi),
+    Math.cos(phi)
+  );
+}
+function toast(msg, type = 'success') {
+  const el = document.createElement('div');
+  el.className = 'toast toast-' + type;
+  el.textContent = msg;
+  document.getElementById('toasts').appendChild(el);
+  setTimeout(() => { el.style.transition = 'opacity 0.3s'; el.style.opacity = '0'; }, 2800);
+  setTimeout(() => { el.remove(); }, 3200);
+}
+
+// ── Scene setup ───────────────────────────────────────
+const container = document.getElementById('scene');
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x050509);
+scene.fog = new THREE.Fog(0x050509, 50, 140);
+
+const camera = new THREE.PerspectiveCamera(55, container.clientWidth / container.clientHeight, 0.1, 500);
+camera.position.set(0, 18, 52);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(container.clientWidth, container.clientHeight);
+container.appendChild(renderer.domElement);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.06;
+controls.autoRotate = true;
+controls.autoRotateSpeed = 0.35;
+controls.minDistance = 8;
+controls.maxDistance = 180;
+controls.enablePan = false;
+
+// Stop auto-rotate on first interaction
+let userInteracted = false;
+function stopAutoRotate() {
+  if (userInteracted) return;
+  userInteracted = true;
+  controls.autoRotate = false;
+}
+renderer.domElement.addEventListener('pointerdown', stopAutoRotate);
+renderer.domElement.addEventListener('wheel', stopAutoRotate);
+
+// ── Lights ────────────────────────────────────────────
+scene.add(new THREE.AmbientLight(0xffffff, 0.35));
+const centerLight = new THREE.PointLight(0xc4b5fd, 2.5, 80, 1.2);
+centerLight.position.set(0, 0, 0);
+scene.add(centerLight);
+const fill = new THREE.DirectionalLight(0x93c5fd, 0.4);
+fill.position.set(30, 20, 30);
+scene.add(fill);
+
+// ── Starfield background ──────────────────────────────
+function createStars() {
+  const geo = new THREE.BufferGeometry();
+  const count = 1200;
+  const positions = new Float32Array(count * 3);
+  const colors = new Float32Array(count * 3);
+  for (let i = 0; i < count; i++) {
+    const r = 100 + Math.random() * 120;
+    const theta = Math.random() * Math.PI * 2;
+    const phi = Math.acos(2 * Math.random() - 1);
+    positions[i * 3]     = r * Math.sin(phi) * Math.cos(theta);
+    positions[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
+    positions[i * 3 + 2] = r * Math.cos(phi);
+    const shade = 0.5 + Math.random() * 0.5;
+    colors[i * 3] = shade; colors[i * 3 + 1] = shade; colors[i * 3 + 2] = shade;
+  }
+  geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+  const mat = new THREE.PointsMaterial({ size: 0.55, vertexColors: true, transparent: true, opacity: 0.7, sizeAttenuation: true });
+  return new THREE.Points(geo, mat);
+}
+scene.add(createStars());
+
+// ── Node data + meshes ────────────────────────────────
+// Each element: { mesh, type, path, label, cluster, color, status, selected, pickable }
+const nodes = [];
+const historyGroup = new THREE.Group();
+const blueprintGroup = new THREE.Group();
+const edgeGroup = new THREE.Group();
+scene.add(historyGroup);
+scene.add(blueprintGroup);
+scene.add(edgeGroup);
+
+function makeNodeMesh(radius, colorHex, intensity = 0.9) {
+  const geo = new THREE.SphereGeometry(radius, 20, 20);
+  const mat = new THREE.MeshStandardMaterial({
+    color: colorHex,
+    emissive: colorHex,
+    emissiveIntensity: intensity,
+    roughness: 0.35,
+    metalness: 0.15
+  });
+  const m = new THREE.Mesh(geo, mat);
+  m.userData._baseEmissive = intensity;
+  return m;
+}
+function makeEdgeLine(fromVec, toVec, colorHex, opacity = 0.14) {
+  const g = new THREE.BufferGeometry().setFromPoints([fromVec, toVec]);
+  const m = new THREE.LineBasicMaterial({ color: colorHex, transparent: true, opacity });
+  return new THREE.Line(g, m);
+}
+
+// ── Build scene from data ─────────────────────────────
+function buildScene(data) {
+  // 1. Root node (CLAUDE.md) — always at origin
+  const rootColor = '#c4b5fd';
+  const rootMesh = makeNodeMesh(1.5, rootColor, 1.2);
+  rootMesh.position.set(0, 0, 0);
+  scene.add(rootMesh);
+  nodes.push({
+    mesh: rootMesh, type: 'root', path: 'CLAUDE.md', label: 'CLAUDE.md',
+    cluster: 'root', color: rootColor, status: 'open', pickable: true
+  });
+
+  // 2. History units — clustered by domain
+  const domainMap = {};
+  (data.units || []).forEach(u => {
+    const d = u.domain || 'misc';
+    if (!domainMap[d]) domainMap[d] = [];
+    domainMap[d].push(u);
+  });
+  const domains = Object.keys(domainMap).sort();
+  const domainColorCache = {};
+  const totalDomainSlots = Math.max(domains.length, 4);
+
+  domains.forEach((d, i) => {
+    const color = hashColor(d, domainColorCache);
+    const dir = fibSphere(i, totalDomainSlots);
+    const clusterCenter = dir.clone().multiplyScalar(13);
+    domainMap[d].forEach((unit, j) => {
+      // Deterministic jitter based on unit id so positions stay stable across reloads
+      const seed = (unit.id || '').split('').reduce((a, c) => a + c.charCodeAt(0), 0) + j;
+      const r = 3.2 + ((seed * 13) % 100) / 100 * 1.8;
+      const t = ((seed * 7) % 628) / 100;
+      const p = ((seed * 11) % 314) / 100;
+      const offset = new THREE.Vector3(
+        Math.cos(t) * Math.sin(p) * r,
+        Math.sin(t) * Math.sin(p) * r,
+        Math.cos(p) * r
+      );
+      const pos = clusterCenter.clone().add(offset);
+      const isOpen = unit.status === 'open';
+      const size = isOpen ? 0.58 : 0.42;
+      const intensity = isOpen ? 0.95 : 0.55;
+      const mesh = makeNodeMesh(size, color, intensity);
+      mesh.position.copy(pos);
+      historyGroup.add(mesh);
+
+      // Edge to root
+      const edge = makeEdgeLine(pos, new THREE.Vector3(0, 0, 0), color, 0.15);
+      edgeGroup.add(edge);
+
+      const filePath = unit.file
+        ? '.omniscitus/history/' + unit.file
+        : '.omniscitus/history/' + d + '/' + unit.id + '.md';
+      nodes.push({
+        mesh, type: 'unit',
+        path: filePath,
+        label: unit.title || unit.id || 'Untitled unit',
+        cluster: d, color, status: unit.status || 'open',
+        meta: (unit.session_count || 1) + ' session' + ((unit.session_count || 1) > 1 ? 's' : '') + ' · ' + (unit.last_updated || unit.created || ''),
+        pickable: true
+      });
+    });
+  });
+
+  // 3. Blueprint files — grouped by top-level directory, outer shell
+  const bpFiles = data.blueprints || {};
+  const bpByDir = {};
+  Object.keys(bpFiles).forEach(p => {
+    if (!p) return;
+    const topDir = p.split('/')[0] || '_root';
+    if (!bpByDir[topDir]) bpByDir[topDir] = [];
+    bpByDir[topDir].push(p);
+  });
+  const bpDirs = Object.keys(bpByDir).sort();
+  const bpColorCache = {};
+  // Start palette index after the history domains so blueprint dirs get distinct colors
+  domains.forEach(d => bpColorCache['__skip_' + d] = hashColor(d, {}));
+  const totalBpSlots = Math.max(bpDirs.length, 5);
+
+  bpDirs.forEach((d, i) => {
+    const color = hashColor(d, bpColorCache);
+    // Push blueprint clusters to the opposite hemisphere from history
+    const dir = fibSphere(i, totalBpSlots).clone();
+    dir.y = -Math.abs(dir.y) - 0.2;
+    dir.normalize();
+    const clusterCenter = dir.multiplyScalar(30);
+
+    // Cap blueprint nodes per directory to keep scene manageable
+    const files = bpByDir[d].slice(0, 40);
+    files.forEach((p, j) => {
+      const seed = p.split('').reduce((a, c) => a + c.charCodeAt(0), 0) + j;
+      const r = 4.0 + ((seed * 13) % 100) / 100 * 3.5;
+      const t = ((seed * 7) % 628) / 100;
+      const phi = ((seed * 11) % 314) / 100;
+      const offset = new THREE.Vector3(
+        Math.cos(t) * Math.sin(phi) * r,
+        Math.sin(t) * Math.sin(phi) * r,
+        Math.cos(phi) * r
+      );
+      const pos = clusterCenter.clone().add(offset);
+      const mesh = makeNodeMesh(0.26, color, 0.7);
+      mesh.position.copy(pos);
+      blueprintGroup.add(mesh);
+
+      const purpose = (bpFiles[p] && bpFiles[p].purpose) || '';
+      nodes.push({
+        mesh, type: 'blueprint',
+        path: p,
+        label: p.split('/').pop() || p,
+        cluster: d, color, status: 'open',
+        meta: purpose ? purpose.slice(0, 120) : (d + '/'),
+        pickable: true
+      });
+    });
+  });
+
+  // Update stats
+  document.getElementById('stat-units').textContent = (data.units || []).length;
+  document.getElementById('stat-bp').textContent = Object.keys(bpFiles).length;
+}
+
+// ── Interaction: hover + select ───────────────────────
+const raycaster = new THREE.Raycaster();
+const pointer = new THREE.Vector2();
+const tooltip = document.getElementById('tooltip');
+let hoveredNode = null;
+const selected = new Set(); // stores node indices
+
+function pickableMeshes() {
+  return nodes.filter(n => n.pickable && n.mesh.visible && n.mesh.parent && n.mesh.parent.visible).map(n => n.mesh);
+}
+
+function nodeFromMesh(mesh) {
+  for (let i = 0; i < nodes.length; i++) if (nodes[i].mesh === mesh) return { node: nodes[i], index: i };
+  return null;
+}
+
+function onPointerMove(ev) {
+  const rect = renderer.domElement.getBoundingClientRect();
+  pointer.x = ((ev.clientX - rect.left) / rect.width) * 2 - 1;
+  pointer.y = -((ev.clientY - rect.top) / rect.height) * 2 + 1;
+  raycaster.setFromCamera(pointer, camera);
+  const meshes = pickableMeshes();
+  const hits = raycaster.intersectObjects(meshes, false);
+  if (hits.length > 0) {
+    const found = nodeFromMesh(hits[0].object);
+    if (found) {
+      hoveredNode = found.node;
+      document.body.style.cursor = 'pointer';
+      let html = '<div class="tt-label">' + escapeHtml(hoveredNode.label) + '</div>';
+      html += '<div class="tt-path">' + escapeHtml(hoveredNode.path) + '</div>';
+      if (hoveredNode.meta) html += '<div class="tt-meta">' + escapeHtml(hoveredNode.meta) + '</div>';
+      tooltip.innerHTML = html;
+      tooltip.style.display = 'block';
+      tooltip.style.left = (ev.clientX + 14) + 'px';
+      tooltip.style.top = (ev.clientY + 14) + 'px';
+      // Clamp to viewport
+      const tRect = tooltip.getBoundingClientRect();
+      if (tRect.right > window.innerWidth - 8) tooltip.style.left = (ev.clientX - tRect.width - 14) + 'px';
+      if (tRect.bottom > window.innerHeight - 8) tooltip.style.top = (ev.clientY - tRect.height - 14) + 'px';
+      return;
+    }
+  }
+  hoveredNode = null;
+  tooltip.style.display = 'none';
+  document.body.style.cursor = '';
+}
+
+function onPointerClick(ev) {
+  // Only treat as click if the pointer didn't drag too far
+  if (ev.button !== 0) return;
+  const rect = renderer.domElement.getBoundingClientRect();
+  pointer.x = ((ev.clientX - rect.left) / rect.width) * 2 - 1;
+  pointer.y = -((ev.clientY - rect.top) / rect.height) * 2 + 1;
+  raycaster.setFromCamera(pointer, camera);
+  const hits = raycaster.intersectObjects(pickableMeshes(), false);
+  if (hits.length === 0) return;
+  const found = nodeFromMesh(hits[0].object);
+  if (!found) return;
+  toggleSelect(found.index);
+}
+
+// Track drag to distinguish click vs rotate
+let downX = 0, downY = 0, moved = false;
+renderer.domElement.addEventListener('pointerdown', (ev) => { downX = ev.clientX; downY = ev.clientY; moved = false; });
+renderer.domElement.addEventListener('pointermove', (ev) => {
+  if (Math.abs(ev.clientX - downX) > 4 || Math.abs(ev.clientY - downY) > 4) moved = true;
+  onPointerMove(ev);
+});
+renderer.domElement.addEventListener('pointerup', (ev) => { if (!moved) onPointerClick(ev); });
+renderer.domElement.addEventListener('pointerleave', () => { tooltip.style.display = 'none'; hoveredNode = null; document.body.style.cursor = ''; });
+
+function toggleSelect(index) {
+  const n = nodes[index];
+  if (selected.has(index)) {
+    selected.delete(index);
+    n.mesh.material.emissiveIntensity = n.mesh.userData._baseEmissive;
+    n.mesh.scale.set(1, 1, 1);
+  } else {
+    selected.add(index);
+    n.mesh.material.emissiveIntensity = 1.6;
+    n.mesh.scale.set(1.35, 1.35, 1.35);
+  }
+  renderSelection();
+}
+
+function clearSelection() {
+  selected.forEach(i => {
+    nodes[i].mesh.material.emissiveIntensity = nodes[i].mesh.userData._baseEmissive;
+    nodes[i].mesh.scale.set(1, 1, 1);
+  });
+  selected.clear();
+  renderSelection();
+}
+
+function renderSelection() {
+  const list = document.getElementById('sel-list');
+  const count = document.getElementById('sel-count');
+  const nudgeBtn = document.getElementById('nudge-btn');
+  const clearBtn = document.getElementById('clear-btn');
+  count.textContent = selected.size;
+  nudgeBtn.disabled = selected.size === 0;
+  clearBtn.disabled = selected.size === 0;
+  if (selected.size === 0) {
+    list.innerHTML = '<div class="panel-empty">Click any node in the constellation to select it.<br><br>Select the files a new Claude session should read to get oriented, then copy the nudge prompt below.</div>';
+    return;
+  }
+  let html = '';
+  Array.from(selected).forEach(i => {
+    const n = nodes[i];
+    html += '<div class="sel-item">';
+    html += '<span class="dot" style="color:' + n.color + '"></span>';
+    html += '<div class="info">';
+    html += '<div class="label">' + escapeHtml(n.label) + '</div>';
+    html += '<div class="path">' + escapeHtml(n.path) + '</div>';
+    html += '</div>';
+    html += '<button class="rm" data-idx="' + i + '" title="Remove">&times;</button>';
+    html += '</div>';
+  });
+  list.innerHTML = html;
+  list.querySelectorAll('.rm').forEach(btn => {
+    btn.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      toggleSelect(parseInt(btn.dataset.idx, 10));
+    });
+  });
+}
+
+function escapeHtml(s) {
+  if (s == null) return '';
+  const div = document.createElement('div');
+  div.appendChild(document.createTextNode(String(s)));
+  return div.innerHTML;
+}
+
+// ── Filter toggles ────────────────────────────────────
+document.getElementById('filter-history').addEventListener('click', function() {
+  const on = this.classList.toggle('active');
+  historyGroup.visible = on;
+  edgeGroup.visible = on || blueprintGroup.visible; // show edges only with history
+});
+document.getElementById('filter-blueprint').addEventListener('click', function() {
+  const on = this.classList.toggle('active');
+  blueprintGroup.visible = on;
+});
+
+// ── Nudge copy ────────────────────────────────────────
+document.getElementById('nudge-btn').addEventListener('click', async function() {
+  const includeRoot = document.getElementById('include-root').checked;
+  const paths = [];
+  if (includeRoot) paths.push('CLAUDE.md');
+  Array.from(selected).forEach(i => {
+    const p = nodes[i].path;
+    if (p === 'CLAUDE.md') return; // avoid dupe with root
+    paths.push(p);
+  });
+  // De-dupe while preserving order
+  const unique = [];
+  const seen = new Set();
+  paths.forEach(p => { if (!seen.has(p)) { seen.add(p); unique.push(p); } });
+
+  const prompt =
+    "Before my next task, read these files to get oriented:\n\n" +
+    unique.map(p => '@' + p).join('\n') +
+    "\n\nAfter reading, briefly summarize the current context, then wait for my task description.";
+
+  try {
+    await navigator.clipboard.writeText(prompt);
+    toast('Copied to clipboard — paste it into your Claude session.', 'success');
+  } catch (err) {
+    // Fallback: temp textarea + execCommand
+    const ta = document.createElement('textarea');
+    ta.value = prompt;
+    ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try {
+      document.execCommand('copy');
+      toast('Copied to clipboard — paste it into your Claude session.', 'success');
+    } catch (e) {
+      toast('Could not copy — clipboard permission denied.', 'error');
+    }
+    ta.remove();
+  }
+});
+document.getElementById('clear-btn').addEventListener('click', clearSelection);
+
+// Esc clears selection
+window.addEventListener('keydown', (ev) => { if (ev.key === 'Escape') clearSelection(); });
+
+// ── Resize handling ───────────────────────────────────
+window.addEventListener('resize', () => {
+  camera.aspect = container.clientWidth / container.clientHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(container.clientWidth, container.clientHeight);
+});
+
+// ── Animation loop ────────────────────────────────────
+const clock = new THREE.Clock();
+function animate() {
+  requestAnimationFrame(animate);
+  const t = clock.getElapsedTime();
+  // Pulse open nodes
+  for (let i = 0; i < nodes.length; i++) {
+    const n = nodes[i];
+    if (selected.has(i)) continue; // keep selection glow stable
+    if (n.status === 'open') {
+      const base = n.mesh.userData._baseEmissive;
+      n.mesh.material.emissiveIntensity = base + Math.sin(t * 1.8 + i * 0.3) * 0.15;
+    }
+  }
+  controls.update();
+  renderer.render(scene, camera);
+}
+animate();
+
+// ── Data loading ──────────────────────────────────────
+async function load() {
+  try {
+    const [unitsRes, bpRes] = await Promise.all([
+      fetch('/api/units').then(r => r.json()).catch(() => ({ units: [], domains: [] })),
+      fetch('/api/blueprints').then(r => r.json()).catch(() => ({ files: {} }))
+    ]);
+    const hasData = (unitsRes.units && unitsRes.units.length > 0) ||
+                    (bpRes.files && Object.keys(bpRes.files).length > 0);
+    if (!hasData) {
+      showError('No history units or blueprints found. Run /wrap-up to start populating your constellation.');
+      document.getElementById('loading').classList.add('hidden');
+      return;
+    }
+    buildScene({ units: unitsRes.units || [], blueprints: bpRes.files || {} });
+    document.getElementById('loading').classList.add('hidden');
+  } catch (err) {
+    showError('Failed to load data: ' + (err && err.message || err));
+    document.getElementById('loading').classList.add('hidden');
+  }
+}
+function showError(msg) {
+  const el = document.getElementById('error');
+  el.textContent = msg;
+  el.classList.add('visible');
+}
+load();
+</script>
+</body>
+</html>

@@ -13,7 +13,7 @@
   .header{text-align:center;margin-bottom:48px}
   .header h1{font-size:36px;font-weight:700;margin:0;letter-spacing:-0.5px;color:#fff}
   .header p{color:#9ca3af;font-size:15px;margin:8px 0 0}
-  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+  .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:20px}
   .card{background:#1a1a1a;border-radius:12px;padding:28px 24px;text-decoration:none;color:#e0e0e0;transition:transform 0.2s ease,box-shadow 0.2s ease;display:flex;flex-direction:column;border:1px solid #252525}
   .card:hover{transform:translateY(-4px);box-shadow:0 8px 32px rgba(0,0,0,0.4)}
   .card-blueprint{border-top:3px solid #7c3aed}
@@ -22,6 +22,11 @@
   .card-history:hover{box-shadow:0 8px 32px rgba(110,231,183,0.15)}
   .card-tests{border-top:3px solid #fbbf24}
   .card-tests:hover{box-shadow:0 8px 32px rgba(251,191,36,0.15)}
+  .card-constellation{border-top:3px solid #c4b5fd;grid-column:1/-1;position:relative;overflow:hidden}
+  .card-constellation:hover{box-shadow:0 8px 32px rgba(196,181,253,0.18)}
+  .card-constellation::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at top right, rgba(196,181,253,0.08), transparent 60%);pointer-events:none}
+  .card-constellation .card-title{display:flex;align-items:center;gap:8px}
+  .card-constellation .pill{font-size:10px;font-weight:600;background:rgba(196,181,253,0.12);color:#c4b5fd;padding:2px 8px;border-radius:10px;letter-spacing:0.3px;text-transform:uppercase}
   .card-icon{font-size:32px;margin-bottom:12px}
   .card-title{font-size:18px;font-weight:600;margin:0 0 6px;color:#fff}
   .card-desc{font-size:13px;color:#9ca3af;margin:0;line-height:1.5}
@@ -87,6 +92,11 @@
       <div class="card-icon">&#x1F4D9;</div>
       <h2 class="card-title">Tests</h2>
       <p class="card-desc">Test definitions &amp; coverage</p>
+    </a>
+    <a href="/constellation" class="card card-constellation">
+      <div class="card-icon">&#x2728;</div>
+      <h2 class="card-title">Constellation <span class="pill">new</span></h2>
+      <p class="card-desc">See your docs as a 3D node space. Pick files and nudge a Claude session with onboarding context.</p>
     </a>
   </div>
   <div class="footer">

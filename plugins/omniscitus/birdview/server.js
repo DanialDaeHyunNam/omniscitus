@@ -1311,6 +1311,7 @@ var server = http.createServer(function (req, res) {
   if (url === '/blueprint' || url === '/blueprint.html') return htmlRes(res, path.join(BIRDVIEW_DIR, 'blueprint.html'));
   if (url === '/history' || url === '/history.html') return htmlRes(res, path.join(BIRDVIEW_DIR, 'history.html'));
   if (url === '/tests' || url === '/tests.html') return htmlRes(res, path.join(BIRDVIEW_DIR, 'tests.html'));
+  if (url === '/constellation' || url === '/constellation.html') return htmlRes(res, path.join(BIRDVIEW_DIR, 'constellation.html'));
 
   // Favicons (shared with the omniscitus marketing site)
   if (url === '/favicon-16.png') return staticRes(res, path.join(BIRDVIEW_DIR, 'favicon-16.png'), 'image/png');

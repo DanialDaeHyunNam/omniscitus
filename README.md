@@ -54,6 +54,10 @@ After cloning a repo that already uses omniscitus, run `/team-init`. The skill v
 
 10 slash commands, organized by purpose.
 
+> **Onboarding in 2 steps:**
+> 1. **After installing, run `/omniscitus-migrate` once.** It bootstraps blueprints and history from your existing project. One-time only.
+> 2. **Then only 4 commands matter day-to-day:** `/wrap-up`, `/follow-up`, `/blueprint-sync`, `/birdview`. Everything else below is optional — invoked only when the situation calls for it.
+
 **Daily workflow**
 
 | Command | What it does |
