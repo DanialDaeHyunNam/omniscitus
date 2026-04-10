@@ -96,9 +96,14 @@ function parseBlueprints(text) {
     var uMatch = line.match(/^updated:\s*(.+)/);
     if (uMatch) { result.updated = uMatch[1].trim(); i++; continue; }
 
-    var fMatch = line.match(/^  ([^\s].*):$/);
+    var fMatch = line.match(/^  ([^\s].*):\s*$/);
     if (fMatch) {
-      currentFile = fMatch[1];
+      // Strip surrounding YAML quotes from the file path key. Migration
+      // and blueprint-tracker both quote paths that contain dots, slashes,
+      // or other special characters; the key in result.files should be
+      // the bare path so consumers (and JSON serialization) see clean
+      // strings.
+      currentFile = fMatch[1].replace(/^["']|["']$/g, '');
       result.files[currentFile] = result.files[currentFile] || {
         status: 'active', source: 'claude', created: '', last_modified: '',
         change_count: 0, purpose: '', change_log: []
@@ -131,10 +136,10 @@ function parseBlueprints(text) {
           });
           i++; continue;
         }
-        var aMatch = line.match(/^        (action|source):\s*(.+)/);
+        var aMatch = line.match(/^        (action|source|message):\s*(.+)/);
         if (aMatch && result.files[currentFile].change_log.length > 0) {
           var last = result.files[currentFile].change_log[result.files[currentFile].change_log.length - 1];
-          last[aMatch[1]] = aMatch[2].trim();
+          last[aMatch[1]] = aMatch[2].replace(/^["']|["']$/g, '').trim();
           i++; continue;
         }
       }
@@ -745,17 +750,35 @@ function scanPromptTests(dir) {
 
 // --- API Handlers ---
 
+// Recursively walk a blueprints directory tree and yield every *.yaml file.
+// Skips _index.yaml files (those describe nested splits, not entries).
+function collectBlueprintYamls(dir) {
+  var out = [];
+  var entries = safeReadDir(dir);
+  for (var i = 0; i < entries.length; i++) {
+    var name = entries[i];
+    var full = path.join(dir, name);
+    var stat;
+    try { stat = fs.statSync(full); } catch (e) { continue; }
+    if (stat.isDirectory()) {
+      out = out.concat(collectBlueprintYamls(full));
+    } else if (name.endsWith('.yaml') && name !== '_index.yaml') {
+      out.push(full);
+    }
+  }
+  return out;
+}
+
 function handleApiBlueprints(req, res) {
   var blueprintsDir = path.join(OMNISCITUS_DIR, 'blueprints');
   var merged = { version: 1, updated: '', files: {} };
 
-  // Read all per-directory blueprint files from blueprints/ folder
-  var yamlFiles = safeReadDir(blueprintsDir).filter(function (f) {
-    return f.endsWith('.yaml');
-  });
-
-  for (var i = 0; i < yamlFiles.length; i++) {
-    var text = safeReadFile(path.join(blueprintsDir, yamlFiles[i]));
+  // Recursively read every blueprint yaml under blueprints/, including
+  // nested splits like blueprints/_claude/{_root,skills,wrap-up}.yaml
+  // declared via blueprint_splits (RFC #10).
+  var yamlPaths = collectBlueprintYamls(blueprintsDir);
+  for (var i = 0; i < yamlPaths.length; i++) {
+    var text = safeReadFile(yamlPaths[i]);
     if (!text) continue;
     var parsed = parseBlueprints(text);
     if (parsed.updated > merged.updated) merged.updated = parsed.updated;
