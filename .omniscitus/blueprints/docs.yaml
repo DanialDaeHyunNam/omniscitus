@@ -1,0 +1,23 @@
+version: 1
+updated: "2026-04-10"
+  "docs/favicon-16.png":
+    status: active
+    source: claude
+    created: "2026-04-04"
+    last_modified: "2026-04-04"
+    change_count: 1
+    purpose: "Image asset."
+  "docs/favicon-32.png":
+    status: active
+    source: claude
+    created: "2026-04-04"
+    last_modified: "2026-04-04"
+    change_count: 1
+    purpose: "Image asset."
+  "docs/index.html":
+    status: active
+    source: claude
+    created: "2026-04-04"
+    last_modified: "2026-04-10"
+    change_count: 9
+    purpose: ", *::before, *::after {"

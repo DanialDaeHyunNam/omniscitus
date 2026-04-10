@@ -1,0 +1,17 @@
+units:
+  - id: recent-development
+    domain: devops
+    status: open
+    created: "2026-04-04"
+    last_updated: "2026-04-10"
+    session_count: 6
+    title: "Recent development"
+    file: "devops/2026-04-10-recent-development.md"
+  - id: constellation-view
+    domain: web
+    status: open
+    created: "2026-04-09"
+    last_updated: "2026-04-10"
+    session_count: 2
+    title: "Constellation view"
+    file: "web/2026-04-10-constellation-view.md"
