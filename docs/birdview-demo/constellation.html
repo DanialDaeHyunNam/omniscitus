@@ -1,6 +1,49 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+
+<script>
+(function() {
+  var DEMO_BASE = new URL('./data/', document.baseURI).href;
+  var ORIG_FETCH = window.fetch;
+  window.fetch = function(input, init) {
+    var url = (typeof input === 'string') ? input : (input && input.url) || '';
+    // Writes are no-ops in demo mode — keep the UI responsive but do nothing.
+    if (init && init.method && ['POST','PATCH','PUT','DELETE'].indexOf(init.method.toUpperCase()) !== -1) {
+      return Promise.resolve(new Response(JSON.stringify({ ok: true, demo: true }), {
+        status: 200, headers: { 'Content-Type': 'application/json' }
+      }));
+    }
+    // Rewrite /api/<name> → ./data/<name>.json
+    var m = url.match(/^\/api\/([^?#]+)/);
+    if (m) {
+      var file = m[1].replace(/\//g, '_') + '.json';
+      return ORIG_FETCH(DEMO_BASE + file, init).catch(function() {
+        return new Response('{}', { status: 200, headers: { 'Content-Type': 'application/json' } });
+      });
+    }
+    return ORIG_FETCH(input, init);
+  };
+})();
+</script>
+<style>
+/* Demo banner shown on every birdview page in the hosted preview */
+.omni-demo-banner {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 10000;
+  background: linear-gradient(90deg, rgba(124,58,237,0.18), rgba(110,231,183,0.12));
+  border-bottom: 1px solid rgba(124,58,237,0.35);
+  color: #e4e4e7; font-size: 12px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  padding: 8px 16px; display: flex; align-items: center; gap: 12px;
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+}
+.omni-demo-banner strong { color: #c4b5fd; font-weight: 600; }
+.omni-demo-banner .omni-demo-dot { width: 7px; height: 7px; border-radius: 50%; background: #6ee7b7; box-shadow: 0 0 8px #6ee7b7; flex-shrink: 0; }
+.omni-demo-banner a { color: #93c5fd; text-decoration: none; font-weight: 500; }
+.omni-demo-banner a:hover { text-decoration: underline; }
+.omni-demo-banner .omni-demo-sep { color: #3a3a4a; }
+body { padding-top: 36px; }
+</style>
+
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
@@ -186,6 +229,14 @@
 </script>
 </head>
 <body>
+
+<div class="omni-demo-banner">
+  <span class="omni-demo-dot"></span>
+  <span>You're exploring a <strong>live demo</strong> of birdview, running against the omniscitus repo.</span>
+  <span class="omni-demo-sep">&bull;</span>
+  <a href="/" title="Back to landing page">&larr; Back to omniscitus.vercel.app</a>
+</div>
+
 
 <div id="scene"></div>
 
