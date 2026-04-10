@@ -181,7 +181,15 @@ async function main() {
   }
 }
 
-main().catch(err => {
-  console.error('Build failed:', err);
-  process.exit(1);
-});
+if (require.main === module) {
+  main().catch(err => {
+    console.error('Build failed:', err);
+    process.exit(1);
+  });
+}
+
+module.exports = {
+  patchHtml: patchHtml,
+  FETCH_INTERCEPTOR: FETCH_INTERCEPTOR,
+  DEMO_BANNER_HTML: DEMO_BANNER_HTML
+};

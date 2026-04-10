@@ -1341,6 +1341,19 @@ var server = http.createServer(function (req, res) {
   res.end('Not found');
 });
 
-server.listen(PORT, function () {
-  console.log('Birdview running at http://localhost:' + PORT);
-});
+// Only start the HTTP listener when the file is run directly. When it's
+// required from a test (or any other tool), callers just want the pure
+// yaml parsers exported below.
+if (require.main === module) {
+  server.listen(PORT, function () {
+    console.log('Birdview running at http://localhost:' + PORT);
+  });
+}
+
+// Exports for unit tests. Keeping these at the bottom avoids interfering
+// with the existing script structure.
+module.exports = {
+  parseBlueprints: parseBlueprints,
+  parseIndexYaml: parseIndexYaml,
+  parseNestedYaml: parseNestedYaml
+};
