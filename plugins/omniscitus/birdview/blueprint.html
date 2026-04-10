@@ -39,27 +39,27 @@
 
   /* ── Tree view ──────────────────────────────────────── */
   .tree-node{user-select:none}
-  .tree-row{display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:6px;cursor:pointer;transition:background 0.1s;font-size:13px}
+  .tree-row{display:flex;align-items:center;gap:8px;padding:3px 8px;border-radius:5px;cursor:pointer;transition:background 0.1s;font-size:12.5px;line-height:1.4;min-height:0}
   .tree-row:hover{background:#222}
   .tree-row.match{background:rgba(124,58,237,0.10)}
-  .tree-row .twisty{width:14px;height:14px;display:inline-flex;align-items:center;justify-content:center;color:#6b7280;font-size:10px;flex-shrink:0;transition:transform 0.15s}
+  .tree-row .twisty{width:12px;height:14px;display:inline-flex;align-items:center;justify-content:center;color:#6b7280;font-size:10px;flex-shrink:0;transition:transform 0.15s}
   .tree-row .twisty.empty{visibility:hidden}
   .tree-row.expanded > .twisty{transform:rotate(90deg)}
-  .tree-row .icon{width:16px;text-align:center;flex-shrink:0;font-size:13px;color:#6b7280}
+  .tree-row .icon{width:14px;text-align:center;flex-shrink:0;font-size:12px;color:#6b7280;line-height:1}
   .tree-row.folder .icon{color:#fbbf24}
-  .tree-row .label{font-family:'SF Mono',SFMono-Regular,Menlo,monospace;font-size:12.5px;color:#d1d5db;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .tree-row .label{font-family:'SF Mono',SFMono-Regular,Menlo,monospace;font-size:12px;color:#d1d5db;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .tree-row.folder .label{color:#fde68a;font-weight:500}
-  .tree-row .meta{display:flex;align-items:center;gap:10px;font-size:11px;color:#6b7280;flex-shrink:0;font-variant-numeric:tabular-nums}
-  .tree-row .meta .purpose{color:#9ca3af;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:-apple-system,sans-serif}
+  .tree-row .meta{display:flex;align-items:center;gap:10px;font-size:11px;color:#6b7280;flex-shrink:0;font-variant-numeric:tabular-nums;line-height:1}
   .tree-row .meta .count{font-weight:600;color:#9ca3af}
   .tree-row .meta .date{white-space:nowrap}
-  .tree-children{display:none;margin-left:18px;border-left:1px dashed #2a2a2e;padding-left:6px}
+  .tree-children{display:none;margin-left:14px;border-left:1px dashed #2a2a2e;padding-left:6px}
   .tree-node.expanded > .tree-children{display:block}
   .tree-node.empty .tree-row{opacity:0.5}
 
-  .file-changelog{margin:6px 0 12px 36px;background:#0a0a0a;border:1px solid #252525;border-radius:8px;padding:14px 18px;display:none}
+  .file-changelog{margin:4px 0 8px 28px;background:#0a0a0a;border:1px solid #252525;border-radius:8px;padding:12px 16px;display:none}
   .tree-node.changelog-open > .file-changelog{display:block}
-  .changelog-title{font-size:12px;font-weight:600;color:#c4b5fd;margin-bottom:10px}
+  .changelog-purpose{font-size:12px;color:#c4b5fd;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid #1f1f23;font-style:italic}
+  .changelog-title{font-size:11px;font-weight:600;color:#9ca3af;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px}
   .timeline{position:relative;padding-left:18px}
   .timeline::before{content:'';position:absolute;left:5px;top:4px;bottom:4px;width:2px;background:#333}
   .tl-entry{position:relative;padding:4px 0 10px 10px;font-size:11.5px;color:#9ca3af}
@@ -67,7 +67,9 @@
   .tl-date{color:#6b7280;margin-right:8px;font-variant-numeric:tabular-nums}
   .tl-action{margin:0 4px}
   .tl-source{color:#4b5563}
-  .tl-message{display:block;margin-top:2px;color:#9ca3af}
+  .tl-message{display:block;margin-top:2px;color:#d1d5db}
+  .tl-message a{color:#7dd3fc;text-decoration:none;border-bottom:1px dotted #4b5563}
+  .tl-message a:hover{color:#bae6fd;border-bottom-color:#7dd3fc}
 
   .empty{text-align:center;padding:48px 24px;color:#6b7280}
   .empty-icon{font-size:32px;margin-bottom:12px}
@@ -191,6 +193,20 @@ function sourceBadgeClass(source) {
   if (s.indexOf('claude') !== -1) return 'claude';
   if (s.indexOf('user') !== -1) return 'user';
   return 'unknown';
+}
+
+/* Linkify commit messages by detecting #NN references and pointing
+ * them at the repo's PR. The repo URL comes from the API response
+ * (server.js detects it via `git remote get-url origin` once at
+ * startup). When repo_url is missing the message is just escaped.
+ */
+function linkifyCommit(msg, repoUrl) {
+  if (!msg) return '';
+  var safe = esc(msg);
+  if (!repoUrl) return safe;
+  return safe.replace(/#(\d+)/g, function(match, num) {
+    return '<a href="' + repoUrl + '/pull/' + num + '" target="_blank" rel="noopener">' + match + '</a>';
+  });
 }
 
 /* ── Tree builder ─────────────────────────────────────────────────
@@ -326,9 +342,8 @@ function renderTree(node, depth) {
       html += '<div class="tree-row file ' + (search && child._matches ? 'match' : '') + '" data-file="' + escAttr(child.path) + '">';
       html += '<span class="twisty empty"></span>';
       html += '<span class="icon">&#x1F4C4;</span>';
-      html += '<span class="label">' + esc(child.name) + '</span>';
+      html += '<span class="label" title="' + escAttr(e.purpose || child.path) + '">' + esc(child.name) + '</span>';
       html += '<span class="meta">';
-      if (e.purpose) html += '<span class="purpose" title="' + escAttr(e.purpose) + '">' + esc(e.purpose) + '</span>';
       html += '<span class="badge badge-' + esc(e.status || 'active') + '">' + esc(e.status || 'active') + '</span>';
       html += '<span class="badge badge-' + sourceBadgeClass(e.source) + '">' + esc(e.source || 'unknown') + '</span>';
       html += '<span class="count">' + esc(e.change_count || 0) + '&times;</span>';
@@ -336,21 +351,29 @@ function renderTree(node, depth) {
       html += '</span>';
       html += '</div>';
 
-      // changelog drawer
-      if (e.change_log && e.change_log.length > 0) {
+      // changelog drawer — purpose lives here now (less prominent than
+      // a row column, more visible than a tooltip)
+      var hasDrawerContent = e.purpose || (e.change_log && e.change_log.length > 0);
+      if (hasDrawerContent) {
         html += '<div class="file-changelog">';
-        html += '<div class="changelog-title">Change Log (' + e.change_log.length + ' entries)</div>';
-        html += '<div class="timeline">';
-        for (var c = 0; c < e.change_log.length; c++) {
-          var cl = e.change_log[c];
-          html += '<div class="tl-entry">';
-          html += '<span class="tl-date">' + esc(formatDate(cl.date)) + '</span>';
-          html += '<span class="tl-action badge badge-' + (cl.action === 'edit' ? 'active' : 'claude') + '">' + esc(cl.action || 'write') + '</span>';
-          html += '<span class="tl-source">' + esc(cl.source) + '</span>';
-          if (cl.message) html += '<span class="tl-message">' + esc(cl.message) + '</span>';
+        if (e.purpose) {
+          html += '<div class="changelog-purpose">' + esc(e.purpose) + '</div>';
+        }
+        if (e.change_log && e.change_log.length > 0) {
+          html += '<div class="changelog-title">Change Log &middot; ' + e.change_log.length + ' entries</div>';
+          html += '<div class="timeline">';
+          for (var c = 0; c < e.change_log.length; c++) {
+            var cl = e.change_log[c];
+            html += '<div class="tl-entry">';
+            html += '<span class="tl-date">' + esc(formatDate(cl.date)) + '</span>';
+            html += '<span class="tl-action badge badge-' + (cl.action === 'edit' ? 'active' : 'claude') + '">' + esc(cl.action || 'write') + '</span>';
+            html += '<span class="tl-source">' + esc(cl.source) + '</span>';
+            if (cl.message) html += '<span class="tl-message">' + linkifyCommit(cl.message, data && data.repo_url) + '</span>';
+            html += '</div>';
+          }
           html += '</div>';
         }
-        html += '</div></div>';
+        html += '</div>';
       }
       html += '</div>';
     }

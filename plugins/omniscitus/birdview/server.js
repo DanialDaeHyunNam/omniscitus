@@ -11,6 +11,26 @@ var PROJECT_ROOT = process.argv[2] || process.cwd();
 var OMNISCITUS_DIR = path.join(PROJECT_ROOT, '.omniscitus');
 var BIRDVIEW_DIR = __dirname;
 
+// Detect the GitHub repo URL once at startup so birdview can render
+// commit messages as links to PRs / commits. SSH and HTTPS remotes are
+// both normalized to https://host/owner/repo. Returns null if there's
+// no `origin` remote or it doesn't match a known pattern.
+var REPO_URL = (function detectRepoUrl() {
+  try {
+    var out = require('child_process').execSync('git remote get-url origin', {
+      cwd: PROJECT_ROOT,
+      encoding: 'utf-8',
+      stdio: ['ignore', 'pipe', 'ignore']
+    }).trim();
+    if (!out) return null;
+    var ssh = out.match(/^git@([^:]+):(.+?)(\.git)?$/);
+    if (ssh) return 'https://' + ssh[1] + '/' + ssh[2].replace(/\.git$/, '');
+    return out.replace(/\.git$/, '');
+  } catch (e) {
+    return null;
+  }
+})();
+
 // --- Helpers ---
 
 function readBody(req) {
@@ -773,7 +793,7 @@ function collectBlueprintYamls(dir) {
 
 function handleApiBlueprints(req, res) {
   var blueprintsDir = path.join(OMNISCITUS_DIR, 'blueprints');
-  var merged = { version: 1, updated: '', files: {} };
+  var merged = { version: 1, updated: '', files: {}, repo_url: REPO_URL };
 
   // Recursively read every blueprint yaml under blueprints/, including
   // nested splits like blueprints/_claude/{_root,skills,wrap-up}.yaml
