@@ -130,3 +130,49 @@ test('DEMO_BANNER_HTML: includes the demo text + back link', () => {
   assert.match(DEMO_BANNER_HTML, /omniscitus/);
   assert.match(DEMO_BANNER_HTML, /href="\//);
 });
+
+// ── Link rewriting ───────────────────────────────────────
+
+test('patchHtml: rewrites absolute page links to relative', () => {
+  const input = [
+    '<html><head></head><body>',
+    '<a href="/blueprint">Blueprint</a>',
+    '<a href="/history">History</a>',
+    '<a href="/tests">Tests</a>',
+    '<a href="/constellation">Constellation</a>',
+    '</body></html>'
+  ].join('\n');
+  const out = patchHtml(input);
+  assert.match(out, /href="\.\/blueprint\.html"/);
+  assert.match(out, /href="\.\/history\.html"/);
+  assert.match(out, /href="\.\/tests\.html"/);
+  assert.match(out, /href="\.\/constellation\.html"/);
+  // Absolute forms should be gone
+  assert.ok(!out.includes('href="/blueprint"'), 'absolute /blueprint should be rewritten');
+});
+
+test('patchHtml: rewrites /favicon-*.png to relative', () => {
+  const input = '<html><head><link rel="icon" href="/favicon-32.png"><link rel="icon" href="/favicon-16.png"></head><body>x</body></html>';
+  const out = patchHtml(input);
+  assert.match(out, /href="\.\/favicon-32\.png"/);
+  assert.match(out, /href="\.\/favicon-16\.png"/);
+});
+
+test('patchHtml: rewrites back-link href="/" to index.html', () => {
+  const input = '<html><head></head><body><a href="/" class="back">&larr; Birdview</a></body></html>';
+  const out = patchHtml(input);
+  // The birdview back-link should point at the demo index
+  assert.match(out, /href="\.\/index\.html" class="back"/);
+});
+
+test('patchHtml: demo banner\'s own href="/" is preserved (not rewritten)', () => {
+  // The banner links back to the docs landing page root — must stay absolute.
+  const input = '<html><head></head><body><div>content</div></body></html>';
+  const out = patchHtml(input);
+  // Locate the actual banner div (not the CSS selector in the <style> block)
+  const bannerDivIdx = out.indexOf('<div class="omni-demo-banner">');
+  assert.ok(bannerDivIdx !== -1, 'banner div should be injected');
+  const afterBanner = out.slice(bannerDivIdx, bannerDivIdx + 500);
+  // The back-link inside the banner should still be href="/"
+  assert.match(afterBanner, /href="\/"/);
+});

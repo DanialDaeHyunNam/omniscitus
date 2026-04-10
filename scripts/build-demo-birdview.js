@@ -117,13 +117,26 @@ const DEMO_BANNER_HTML = `
 `;
 
 function patchHtml(html) {
-  // Inject the interceptor right after <head> (or at start of head)
   let out = html;
+
+  // Step 1: rewrite absolute paths in the source HTML to relative ones
+  // BEFORE injecting the demo banner (whose own href="/" must stay intact).
+  // The source birdview pages hardcode `/blueprint`, `/history`, etc.
+  // because they're served from the plugin's Node server. On Vercel the
+  // demo lives under /birdview-demo/, so those absolute paths would 404.
+  out = out.replace(/href="\/(blueprint|history|tests|constellation|index)(\.html)?"/g, 'href="./$1.html"');
+  out = out.replace(/href="\/"(\s|>)/g, 'href="./index.html"$1');
+  out = out.replace(/href="\/favicon-(\d+)\.png"/g, 'href="./favicon-$1.png"');
+  out = out.replace(/href="\/favicon\.ico"/g, 'href="./favicon-32.png"');
+
+  // Step 2: inject the fetch interceptor (redirects /api/* to ./data/*)
   const headMatch = out.match(/<head[^>]*>/);
   if (!headMatch) return out;
   out = out.replace(headMatch[0], headMatch[0] + '\n' + FETCH_INTERCEPTOR);
 
-  // Inject the demo banner at the start of <body>
+  // Step 3: inject the demo banner at the start of <body>.
+  // Its own href="/" points back to the docs landing and must NOT be
+  // rewritten — that's why we did Step 1 first.
   const bodyMatch = out.match(/<body[^>]*>/);
   if (bodyMatch) {
     out = out.replace(bodyMatch[0], bodyMatch[0] + '\n' + DEMO_BANNER_HTML);
