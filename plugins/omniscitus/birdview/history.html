@@ -88,6 +88,34 @@
   .empty{text-align:center;padding:48px 24px;color:#6b7280}
   .empty-icon{font-size:32px;margin-bottom:12px}
 
+  /* ── Calendar widget ─────────────────────────────────── */
+  .calendar-card{background:#1a1a1a;border:1px solid #252525;border-radius:12px;padding:18px 20px;margin-bottom:16px}
+  .calendar-header{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+  .cal-month-nav{display:flex;align-items:center;gap:6px;flex:1}
+  .cal-month-nav button{background:none;border:1px solid #2a2a2e;color:#9ca3af;width:28px;height:28px;border-radius:6px;cursor:pointer;font-size:16px;line-height:1;padding:0;display:flex;align-items:center;justify-content:center;transition:all 0.15s}
+  .cal-month-nav button:hover{background:#222;color:#e0e0e0;border-color:#3a3a3e}
+  .cal-month-title{font-size:14px;font-weight:600;color:#e0e0e0;min-width:120px;text-align:center;font-variant-numeric:tabular-nums}
+  .cal-mode-tabs{display:flex;gap:2px;background:#0d0d0d;border:1px solid #252525;border-radius:8px;padding:3px}
+  .cal-mode-tab{padding:5px 14px;border:none;background:transparent;color:#9ca3af;font-size:12px;font-weight:500;border-radius:5px;cursor:pointer;transition:all 0.12s}
+  .cal-mode-tab:hover{color:#e0e0e0}
+  .cal-mode-tab.active{background:#2e1065;color:#c4b5fd}
+  .cal-clear{background:none;border:none;color:#6b7280;font-size:11px;cursor:pointer;padding:0 6px;text-decoration:underline}
+  .cal-clear:hover{color:#e0e0e0}
+  .calendar-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+  .cal-weekday{text-align:center;font-size:10px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;padding:6px 0;font-variant-numeric:tabular-nums}
+  .cal-day{position:relative;aspect-ratio:1.2/1;display:flex;align-items:center;justify-content:center;font-size:13px;color:#d1d5db;cursor:pointer;border-radius:6px;transition:background 0.1s;font-variant-numeric:tabular-nums}
+  .cal-day:hover{background:#222}
+  .cal-day.other-month{color:#3a3a3e;cursor:default}
+  .cal-day.other-month:hover{background:transparent}
+  .cal-day.today{font-weight:700;color:#fbbf24}
+  .cal-day.has-units::after{content:'';position:absolute;bottom:5px;left:50%;transform:translateX(-50%);width:4px;height:4px;border-radius:50%;background:#7c3aed}
+  .cal-day.in-range{background:rgba(124,58,237,0.18);color:#fff}
+  .cal-day.in-range.has-units::after{background:#c4b5fd}
+  .cal-day.range-start{background:rgba(124,58,237,0.32)}
+  .cal-day.range-end{background:rgba(124,58,237,0.32)}
+  .cal-summary{margin-top:12px;padding-top:12px;border-top:1px solid #252525;font-size:12px;color:#9ca3af;display:flex;justify-content:space-between;align-items:center}
+  .cal-summary strong{color:#c4b5fd;font-weight:600}
+
   .toast-container{position:fixed;top:16px;right:16px;z-index:1000;display:flex;flex-direction:column;gap:8px}
   .toast{padding:10px 16px;border-radius:8px;font-size:13px;animation:toastIn 0.3s ease;background:#1a1a1a;border:1px solid #333}
   .toast-error{border-color:#7f1d1d;color:#f87171}
@@ -143,10 +171,27 @@
       </div>
     </div>
     <div class="main">
+      <div class="calendar-card">
+        <div class="calendar-header">
+          <div class="cal-month-nav">
+            <button id="cal-prev" aria-label="Previous month">&lsaquo;</button>
+            <span class="cal-month-title" id="cal-month-title"></span>
+            <button id="cal-next" aria-label="Next month">&rsaquo;</button>
+          </div>
+          <div class="cal-mode-tabs" id="cal-mode-tabs">
+            <button class="cal-mode-tab" data-mode="D">Daily</button>
+            <button class="cal-mode-tab active" data-mode="W">Weekly</button>
+            <button class="cal-mode-tab" data-mode="M">Monthly</button>
+          </div>
+          <button class="cal-clear" id="cal-clear">Clear</button>
+        </div>
+        <div class="calendar-grid" id="cal-grid"></div>
+        <div class="cal-summary" id="cal-summary"></div>
+      </div>
       <div class="unit-grid" id="units"></div>
       <div class="empty" id="empty" style="display:none">
         <div class="empty-icon">&#x1F4ED;</div>
-        <p>No history units found. Run <code>/wrap-up</code> to record a session.</p>
+        <p>No history units found in the selected range.</p>
       </div>
     </div>
   </div>
@@ -197,6 +242,59 @@ var allUnits = [];
 var allDomains = [];
 var activeDomain = 'all';
 
+/* ── Calendar state ────────────────────────────────────
+ * The calendar is a second filter layered on top of the
+ * domain sidebar. selectedRange is null when the user has
+ * cleared selection (= show everything).
+ */
+var calMode = 'W';                  // 'D' | 'W' | 'M'
+var calCursor = new Date();         // month being displayed
+calCursor.setDate(1);
+var selectedRange = null;           // { start: Date, end: Date }  inclusive
+
+function ymd(date) {
+  var y = date.getFullYear();
+  var m = String(date.getMonth() + 1).padStart(2, '0');
+  var d = String(date.getDate()).padStart(2, '0');
+  return y + '-' + m + '-' + d;
+}
+function parseYMD(s) {
+  if (!s) return null;
+  var parts = String(s).slice(0, 10).split('-');
+  if (parts.length !== 3) return null;
+  var d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+  return isNaN(d.getTime()) ? null : d;
+}
+function startOfWeek(date) {
+  // ISO week, Monday as first day
+  var d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  var dow = d.getDay(); // 0 Sun .. 6 Sat
+  var diff = (dow + 6) % 7; // days since Monday
+  d.setDate(d.getDate() - diff);
+  return d;
+}
+function endOfWeek(date) {
+  var s = startOfWeek(date);
+  s.setDate(s.getDate() + 6);
+  return s;
+}
+function startOfMonth(date) {
+  return new Date(date.getFullYear(), date.getMonth(), 1);
+}
+function endOfMonth(date) {
+  return new Date(date.getFullYear(), date.getMonth() + 1, 0);
+}
+function inRange(dateStr, range) {
+  if (!range) return true;
+  var d = parseYMD(dateStr);
+  if (!d) return false;
+  return d >= range.start && d <= range.end;
+}
+function unitDate(u) {
+  // Migrated/closed units have only `created`. Live units may have `last_updated`.
+  return u.last_updated || u.created || '';
+}
+
 function renderDomains() {
   var container = document.getElementById('domains');
   var domainCounts = {};
@@ -221,7 +319,17 @@ function renderUnits() {
   var empty = document.getElementById('empty');
 
   var filtered = allUnits.filter(function(u) {
-    return activeDomain === 'all' || u.domain === activeDomain;
+    if (activeDomain !== 'all' && u.domain !== activeDomain) return false;
+    if (!inRange(unitDate(u), selectedRange)) return false;
+    return true;
+  });
+
+  // Newest first when a range is active so the most recent work surfaces
+  filtered.sort(function(a, b) {
+    var da = unitDate(a), db = unitDate(b);
+    if (da < db) return 1;
+    if (da > db) return -1;
+    return 0;
   });
 
   if (filtered.length === 0) {
@@ -435,6 +543,7 @@ document.getElementById('domains').addEventListener('click', function(ev) {
   if (!item) return;
   activeDomain = item.getAttribute('data-domain');
   renderDomains();
+  renderCalendar();
   renderUnits();
 });
 
@@ -446,12 +555,144 @@ document.getElementById('units').addEventListener('click', function(ev) {
   if (unit) showDetail(unit);
 });
 
+/* ── Calendar render + interaction ───────────────────── */
+function renderCalendar() {
+  var grid = document.getElementById('cal-grid');
+  var title = document.getElementById('cal-month-title');
+  var summary = document.getElementById('cal-summary');
+
+  // Build a date → unit count map for dot markers
+  var dateUnits = {};
+  for (var i = 0; i < allUnits.length; i++) {
+    var ds = (unitDate(allUnits[i]) || '').slice(0, 10);
+    if (!ds) continue;
+    if (activeDomain !== 'all' && allUnits[i].domain !== activeDomain) continue;
+    dateUnits[ds] = (dateUnits[ds] || 0) + 1;
+  }
+
+  var year = calCursor.getFullYear();
+  var month = calCursor.getMonth();
+  var monthName = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][month];
+  title.textContent = monthName + ' ' + year;
+
+  // Compute the grid: start from the Monday of the week containing day 1
+  var first = new Date(year, month, 1);
+  var gridStart = startOfWeek(first);
+
+  var weekdays = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  var html = '';
+  for (var w = 0; w < 7; w++) html += '<div class="cal-weekday">' + weekdays[w] + '</div>';
+
+  var todayStr = ymd(new Date());
+  for (var k = 0; k < 42; k++) {
+    var cell = new Date(gridStart.getFullYear(), gridStart.getMonth(), gridStart.getDate() + k);
+    var cellStr = ymd(cell);
+    var classes = ['cal-day'];
+    if (cell.getMonth() !== month) classes.push('other-month');
+    if (cellStr === todayStr) classes.push('today');
+    if (dateUnits[cellStr]) classes.push('has-units');
+    if (selectedRange && cell >= selectedRange.start && cell <= selectedRange.end) {
+      classes.push('in-range');
+      if (ymd(cell) === ymd(selectedRange.start)) classes.push('range-start');
+      if (ymd(cell) === ymd(selectedRange.end)) classes.push('range-end');
+    }
+    html += '<div class="' + classes.join(' ') + '" data-date="' + cellStr + '">' + cell.getDate() + '</div>';
+    // Stop after we've covered the last week containing days of this month
+    if (k >= 27 && cell.getMonth() !== month && cell.getDay() === 0) break;
+  }
+  grid.innerHTML = html;
+
+  // Summary line
+  if (selectedRange) {
+    var inRangeCount = allUnits.filter(function(u) {
+      if (activeDomain !== 'all' && u.domain !== activeDomain) return false;
+      return inRange(unitDate(u), selectedRange);
+    }).length;
+    var label;
+    if (calMode === 'D') {
+      label = ymd(selectedRange.start);
+    } else if (calMode === 'W') {
+      label = ymd(selectedRange.start) + ' → ' + ymd(selectedRange.end);
+    } else {
+      label = ['January','February','March','April','May','June','July','August','September','October','November','December'][selectedRange.start.getMonth()] + ' ' + selectedRange.start.getFullYear();
+    }
+    summary.innerHTML = '<span>' + esc(label) + '</span><span><strong>' + inRangeCount + '</strong> unit' + (inRangeCount !== 1 ? 's' : '') + ' in range</span>';
+  } else {
+    summary.innerHTML = '<span>No date filter — showing all units</span><span><strong>' + allUnits.length + '</strong> total</span>';
+  }
+}
+
+function selectDate(dateStr) {
+  var d = parseYMD(dateStr);
+  if (!d) return;
+  if (calMode === 'D') {
+    selectedRange = { start: d, end: d };
+  } else if (calMode === 'W') {
+    selectedRange = { start: startOfWeek(d), end: endOfWeek(d) };
+  } else {
+    selectedRange = { start: startOfMonth(d), end: endOfMonth(d) };
+  }
+  renderCalendar();
+  renderUnits();
+}
+
+function setCalMode(mode) {
+  calMode = mode;
+  document.querySelectorAll('.cal-mode-tab').forEach(function(t) {
+    t.classList.toggle('active', t.getAttribute('data-mode') === mode);
+  });
+  // Re-anchor selection on the same date if one was already chosen
+  if (selectedRange) {
+    selectDate(ymd(selectedRange.start));
+  } else {
+    renderCalendar();
+  }
+}
+
+document.getElementById('cal-prev').addEventListener('click', function() {
+  calCursor = new Date(calCursor.getFullYear(), calCursor.getMonth() - 1, 1);
+  renderCalendar();
+});
+document.getElementById('cal-next').addEventListener('click', function() {
+  calCursor = new Date(calCursor.getFullYear(), calCursor.getMonth() + 1, 1);
+  renderCalendar();
+});
+document.getElementById('cal-mode-tabs').addEventListener('click', function(ev) {
+  var btn = ev.target.closest('.cal-mode-tab');
+  if (!btn) return;
+  setCalMode(btn.getAttribute('data-mode'));
+});
+document.getElementById('cal-grid').addEventListener('click', function(ev) {
+  var cell = ev.target.closest('.cal-day');
+  if (!cell || cell.classList.contains('other-month')) return;
+  selectDate(cell.getAttribute('data-date'));
+});
+document.getElementById('cal-clear').addEventListener('click', function() {
+  selectedRange = null;
+  renderCalendar();
+  renderUnits();
+});
+
 fetch('/api/units')
   .then(function(r) { return r.json(); })
   .then(function(d) {
     allUnits = d.units || [];
     allDomains = d.domains || [];
+
+    // Default selection: the latest week with units (or current week if empty)
+    var anchor = new Date();
+    if (allUnits.length > 0) {
+      var dates = allUnits
+        .map(function(u) { return parseYMD(unitDate(u)); })
+        .filter(function(d) { return d; })
+        .sort(function(a, b) { return b - a; });
+      if (dates.length > 0) anchor = dates[0];
+    }
+    calCursor = new Date(anchor.getFullYear(), anchor.getMonth(), 1);
+    selectedRange = { start: startOfWeek(anchor), end: endOfWeek(anchor) };
+
     renderDomains();
+    renderCalendar();
     renderUnits();
   })
   .catch(function(err) { toast('Failed to load history: ' + err.message, 'error'); });

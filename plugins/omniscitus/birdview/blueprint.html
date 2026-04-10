@@ -28,37 +28,46 @@
   .tab:hover{color:#e0e0e0}
   .tab.active{background:#2e1065;color:#c4b5fd}
 
-  .card{background:#1a1a1a;border-radius:12px;padding:0;border:1px solid #252525}
+  .card{background:#1a1a1a;border-radius:12px;padding:8px;border:1px solid #252525}
 
-  table{width:100%;border-collapse:collapse;font-size:13px}
-  th{text-align:left;padding:12px 16px;color:#9ca3af;font-weight:500;font-size:12px;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid #252525}
-  td{padding:10px 16px;border-bottom:1px solid #1f1f1f;vertical-align:top}
-  tr.row{cursor:pointer;transition:background 0.1s}
-  tr.row:hover{background:#222}
-  tr:last-child td{border-bottom:none}
-
-  .badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:12px;font-weight:500}
+  .badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:500}
   .badge-active{background:#064e3b;color:#6ee7b7}
   .badge-deleted{background:#450a0a;color:#f87171}
   .badge-claude{background:#2e1065;color:#c4b5fd}
   .badge-user{background:#1e3a5f;color:#93c5fd}
+  .badge-unknown{background:#1f1f23;color:#6b7280}
 
-  .file-path{font-family:'SF Mono',SFMono-Regular,Menlo,monospace;font-size:12px;color:#d1d5db;word-break:break-all}
-  .purpose{color:#9ca3af;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .changes{text-align:center;font-variant-numeric:tabular-nums}
-  .date{color:#6b7280;font-size:12px;font-variant-numeric:tabular-nums;white-space:nowrap}
+  /* ── Tree view ──────────────────────────────────────── */
+  .tree-node{user-select:none}
+  .tree-row{display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:6px;cursor:pointer;transition:background 0.1s;font-size:13px}
+  .tree-row:hover{background:#222}
+  .tree-row.match{background:rgba(124,58,237,0.10)}
+  .tree-row .twisty{width:14px;height:14px;display:inline-flex;align-items:center;justify-content:center;color:#6b7280;font-size:10px;flex-shrink:0;transition:transform 0.15s}
+  .tree-row .twisty.empty{visibility:hidden}
+  .tree-row.expanded > .twisty{transform:rotate(90deg)}
+  .tree-row .icon{width:16px;text-align:center;flex-shrink:0;font-size:13px;color:#6b7280}
+  .tree-row.folder .icon{color:#fbbf24}
+  .tree-row .label{font-family:'SF Mono',SFMono-Regular,Menlo,monospace;font-size:12.5px;color:#d1d5db;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .tree-row.folder .label{color:#fde68a;font-weight:500}
+  .tree-row .meta{display:flex;align-items:center;gap:10px;font-size:11px;color:#6b7280;flex-shrink:0;font-variant-numeric:tabular-nums}
+  .tree-row .meta .purpose{color:#9ca3af;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:-apple-system,sans-serif}
+  .tree-row .meta .count{font-weight:600;color:#9ca3af}
+  .tree-row .meta .date{white-space:nowrap}
+  .tree-children{display:none;margin-left:18px;border-left:1px dashed #2a2a2e;padding-left:6px}
+  .tree-node.expanded > .tree-children{display:block}
+  .tree-node.empty .tree-row{opacity:0.5}
 
-  .changelog{background:#111;border-top:1px solid #252525}
-  .changelog td{padding:0}
-  .changelog-inner{padding:16px 20px}
-  .changelog-title{font-size:13px;font-weight:600;color:#c4b5fd;margin-bottom:12px}
-  .timeline{position:relative;padding-left:20px}
+  .file-changelog{margin:6px 0 12px 36px;background:#0a0a0a;border:1px solid #252525;border-radius:8px;padding:14px 18px;display:none}
+  .tree-node.changelog-open > .file-changelog{display:block}
+  .changelog-title{font-size:12px;font-weight:600;color:#c4b5fd;margin-bottom:10px}
+  .timeline{position:relative;padding-left:18px}
   .timeline::before{content:'';position:absolute;left:5px;top:4px;bottom:4px;width:2px;background:#333}
-  .tl-entry{position:relative;padding:4px 0 12px 12px;font-size:12px;color:#9ca3af}
-  .tl-entry::before{content:'';position:absolute;left:-3px;top:8px;width:8px;height:8px;border-radius:50%;background:#7c3aed;border:2px solid #0d0d0d;z-index:1}
+  .tl-entry{position:relative;padding:4px 0 10px 10px;font-size:11.5px;color:#9ca3af}
+  .tl-entry::before{content:'';position:absolute;left:-3px;top:7px;width:8px;height:8px;border-radius:50%;background:#7c3aed;border:2px solid #0d0d0d;z-index:1}
   .tl-date{color:#6b7280;margin-right:8px;font-variant-numeric:tabular-nums}
   .tl-action{margin:0 4px}
   .tl-source{color:#4b5563}
+  .tl-message{display:block;margin-top:2px;color:#9ca3af}
 
   .empty{text-align:center;padding:48px 24px;color:#6b7280}
   .empty-icon{font-size:32px;margin-bottom:12px}
@@ -121,19 +130,7 @@
   </div>
 
   <div class="card">
-    <table>
-      <thead>
-        <tr>
-          <th>File Path</th>
-          <th>Status</th>
-          <th>Source</th>
-          <th>Purpose</th>
-          <th>Changes</th>
-          <th>Last Modified</th>
-        </tr>
-      </thead>
-      <tbody id="tbody"></tbody>
-    </table>
+    <div id="tree"></div>
     <div class="empty" id="empty" style="display:none">
       <div class="empty-icon">&#x1F4ED;</div>
       <p>No blueprint entries found.</p>
@@ -178,7 +175,8 @@ function toast(msg, type) {
 var data = null;
 var filter = 'all';
 var search = '';
-var expanded = {};
+var changelogOpen = {};       // file path → bool, per-file changelog expansion
+var folderCollapsed = {};     // folder path → bool, true means collapsed
 
 function formatDate(d) {
   if (!d) return '-';
@@ -187,69 +185,218 @@ function formatDate(d) {
   return s;
 }
 
+function sourceBadgeClass(source) {
+  if (!source) return 'unknown';
+  var s = String(source).toLowerCase();
+  if (s.indexOf('claude') !== -1) return 'claude';
+  if (s.indexOf('user') !== -1) return 'user';
+  return 'unknown';
+}
+
+/* ── Tree builder ─────────────────────────────────────────────────
+ * Take a flat { path: entry } map and build a hierarchical tree.
+ * Each folder node carries aggregate stats (file count, latest date)
+ * computed bottom-up so the UI can show "37 files · 2026-04-08"
+ * without rescanning children on every render.
+ */
+function buildTree(filesMap, statusFilter, searchQuery) {
+  var root = { type: 'folder', name: '', path: '', children: {}, _fileCount: 0, _latest: '', _hasMatch: !searchQuery };
+
+  var paths = Object.keys(filesMap);
+  for (var i = 0; i < paths.length; i++) {
+    var p = paths[i];
+    var entry = filesMap[p];
+
+    // Apply status filter at the file level — folders are pruned later
+    if (statusFilter !== 'all' && entry.status !== statusFilter) continue;
+
+    var matchesSearch = !searchQuery || p.toLowerCase().indexOf(searchQuery.toLowerCase()) !== -1;
+
+    var parts = p.split('/');
+    var node = root;
+    var accPath = '';
+
+    for (var j = 0; j < parts.length - 1; j++) {
+      var name = parts[j];
+      accPath = accPath ? accPath + '/' + name : name;
+      if (!node.children[name]) {
+        node.children[name] = {
+          type: 'folder',
+          name: name,
+          path: accPath,
+          children: {},
+          _fileCount: 0,
+          _latest: '',
+          _hasMatch: false
+        };
+      }
+      node = node.children[name];
+    }
+
+    var fname = parts[parts.length - 1];
+    node.children[fname] = {
+      type: 'file',
+      name: fname,
+      path: p,
+      entry: entry,
+      _matches: matchesSearch
+    };
+  }
+
+  // Bottom-up: compute folder stats and propagate match flags
+  function walk(folder) {
+    var keys = Object.keys(folder.children);
+    var fileCount = 0;
+    var latest = '';
+    var anyMatch = false;
+    for (var k = 0; k < keys.length; k++) {
+      var child = folder.children[keys[k]];
+      if (child.type === 'folder') {
+        walk(child);
+        fileCount += child._fileCount;
+        if (child._latest > latest) latest = child._latest;
+        if (child._hasMatch) anyMatch = true;
+      } else {
+        fileCount += 1;
+        var lm = (child.entry && child.entry.last_modified) || '';
+        if (lm > latest) latest = lm;
+        if (child._matches) anyMatch = true;
+      }
+    }
+    folder._fileCount = fileCount;
+    folder._latest = latest;
+    folder._hasMatch = anyMatch || !searchQuery;
+  }
+  walk(root);
+
+  return root;
+}
+
+/* ── Tree renderer ───────────────────────────────────────────────
+ * Recursive HTML emission. Folders are collapsible via .tree-node
+ * `expanded` class. Files have an inline changelog drawer toggled
+ * by .tree-node `changelog-open` class. Search hits get .match
+ * highlight; their ancestor folders auto-expand.
+ */
+function renderTree(node, depth) {
+  var keys = Object.keys(node.children).sort(function(a, b) {
+    var ca = node.children[a], cb = node.children[b];
+    if (ca.type !== cb.type) return ca.type === 'folder' ? -1 : 1;
+    return a.localeCompare(b);
+  });
+  if (keys.length === 0) return '';
+
+  var html = '';
+  for (var i = 0; i < keys.length; i++) {
+    var child = node.children[keys[i]];
+
+    if (child.type === 'folder') {
+      if (!child._hasMatch || child._fileCount === 0) continue;
+      // Auto-expand: if there's an active search, force open. Otherwise
+      // honor user toggle, with a sensible default per depth.
+      var collapsedState = folderCollapsed[child.path];
+      var defaultCollapsed = depth >= 1;
+      var isExpanded;
+      if (search) {
+        isExpanded = true;
+      } else if (collapsedState === undefined) {
+        isExpanded = !defaultCollapsed;
+      } else {
+        isExpanded = !collapsedState;
+      }
+
+      html += '<div class="tree-node ' + (isExpanded ? 'expanded' : '') + '" data-folder="' + escAttr(child.path) + '">';
+      html += '<div class="tree-row folder ' + (isExpanded ? 'expanded' : '') + '" data-folder="' + escAttr(child.path) + '">';
+      html += '<span class="twisty">&#9656;</span>';
+      html += '<span class="icon">&#x1F4C1;</span>';
+      html += '<span class="label">' + esc(child.name) + '/</span>';
+      html += '<span class="meta">';
+      html += '<span class="count">' + child._fileCount + ' file' + (child._fileCount !== 1 ? 's' : '') + '</span>';
+      if (child._latest) html += '<span class="date">' + esc(child._latest) + '</span>';
+      html += '</span>';
+      html += '</div>';
+      html += '<div class="tree-children">' + renderTree(child, depth + 1) + '</div>';
+      html += '</div>';
+    } else {
+      // file
+      if (search && !child._matches) continue;
+      var e = child.entry;
+      var isOpen = !!changelogOpen[child.path];
+      html += '<div class="tree-node ' + (isOpen ? 'changelog-open' : '') + '" data-file="' + escAttr(child.path) + '">';
+      html += '<div class="tree-row file ' + (search && child._matches ? 'match' : '') + '" data-file="' + escAttr(child.path) + '">';
+      html += '<span class="twisty empty"></span>';
+      html += '<span class="icon">&#x1F4C4;</span>';
+      html += '<span class="label">' + esc(child.name) + '</span>';
+      html += '<span class="meta">';
+      if (e.purpose) html += '<span class="purpose" title="' + escAttr(e.purpose) + '">' + esc(e.purpose) + '</span>';
+      html += '<span class="badge badge-' + esc(e.status || 'active') + '">' + esc(e.status || 'active') + '</span>';
+      html += '<span class="badge badge-' + sourceBadgeClass(e.source) + '">' + esc(e.source || 'unknown') + '</span>';
+      html += '<span class="count">' + esc(e.change_count || 0) + '&times;</span>';
+      html += '<span class="date">' + esc(formatDate(e.last_modified)) + '</span>';
+      html += '</span>';
+      html += '</div>';
+
+      // changelog drawer
+      if (e.change_log && e.change_log.length > 0) {
+        html += '<div class="file-changelog">';
+        html += '<div class="changelog-title">Change Log (' + e.change_log.length + ' entries)</div>';
+        html += '<div class="timeline">';
+        for (var c = 0; c < e.change_log.length; c++) {
+          var cl = e.change_log[c];
+          html += '<div class="tl-entry">';
+          html += '<span class="tl-date">' + esc(formatDate(cl.date)) + '</span>';
+          html += '<span class="tl-action badge badge-' + (cl.action === 'edit' ? 'active' : 'claude') + '">' + esc(cl.action || 'write') + '</span>';
+          html += '<span class="tl-source">' + esc(cl.source) + '</span>';
+          if (cl.message) html += '<span class="tl-message">' + esc(cl.message) + '</span>';
+          html += '</div>';
+        }
+        html += '</div></div>';
+      }
+      html += '</div>';
+    }
+  }
+  return html;
+}
+
 function render() {
-  var tbody = document.getElementById('tbody');
+  var treeEl = document.getElementById('tree');
   var empty = document.getElementById('empty');
   var countEl = document.getElementById('count');
-  if (!data || !data.files) { empty.style.display = ''; tbody.innerHTML = ''; countEl.textContent = ''; return; }
+  if (!data || !data.files) { empty.style.display = ''; treeEl.innerHTML = ''; countEl.textContent = ''; return; }
 
-  var files = Object.keys(data.files);
-  var filtered = files.filter(function(f) {
-    var entry = data.files[f];
-    if (filter !== 'all' && entry.status !== filter) return false;
-    if (search && f.toLowerCase().indexOf(search.toLowerCase()) === -1) return false;
-    return true;
-  });
+  var totalFiles = Object.keys(data.files).length;
+  var root = buildTree(data.files, filter, search);
 
-  countEl.textContent = filtered.length + ' of ' + files.length + ' files';
+  countEl.textContent = root._fileCount + ' of ' + totalFiles + ' files';
 
-  if (filtered.length === 0) {
+  if (root._fileCount === 0) {
     empty.style.display = '';
-    tbody.innerHTML = '';
+    treeEl.innerHTML = '';
     return;
   }
   empty.style.display = 'none';
-
-  var html = '';
-  for (var i = 0; i < filtered.length; i++) {
-    var f = filtered[i];
-    var e = data.files[f];
-    var isExpanded = expanded[f];
-
-    html += '<tr class="row" data-file="' + escAttr(f) + '">';
-    html += '<td class="file-path">' + esc(f) + '</td>';
-    html += '<td><span class="badge badge-' + esc(e.status) + '">' + esc(e.status) + '</span></td>';
-    html += '<td><span class="badge badge-' + esc(e.source) + '">' + esc(e.source) + '</span></td>';
-    html += '<td class="purpose" title="' + escAttr(e.purpose) + '">' + esc(e.purpose || '-') + '</td>';
-    html += '<td class="changes">' + esc(e.change_count) + '</td>';
-    html += '<td class="date">' + esc(formatDate(e.last_modified)) + '</td>';
-    html += '</tr>';
-
-    if (isExpanded && e.change_log && e.change_log.length > 0) {
-      html += '<tr class="changelog"><td colspan="6"><div class="changelog-inner">';
-      html += '<div class="changelog-title">Change Log (' + e.change_log.length + ' entries)</div>';
-      html += '<div class="timeline">';
-      for (var c = 0; c < e.change_log.length; c++) {
-        var cl = e.change_log[c];
-        html += '<div class="tl-entry">';
-        html += '<span class="tl-date">' + esc(formatDate(cl.date)) + '</span>';
-        html += '<span class="tl-action badge badge-' + (cl.action === 'edit' ? 'active' : 'claude') + '">' + esc(cl.action || 'write') + '</span>';
-        html += '<span class="tl-source">' + esc(cl.source) + '</span>';
-        html += '</div>';
-      }
-      html += '</div></div></td></tr>';
-    }
-  }
-
-  tbody.innerHTML = html;
+  treeEl.innerHTML = renderTree(root, 0);
 }
 
-document.getElementById('tbody').addEventListener('click', function(ev) {
-  var row = ev.target.closest('tr.row');
-  if (!row) return;
-  var file = row.getAttribute('data-file');
-  expanded[file] = !expanded[file];
-  render();
+document.getElementById('tree').addEventListener('click', function(ev) {
+  var folderRow = ev.target.closest('.tree-row.folder');
+  if (folderRow) {
+    var path = folderRow.getAttribute('data-folder');
+    // Read the current visual state from the DOM and flip it. Writing
+    // an explicit boolean here overrides the depth-based default in the
+    // renderer, so user intent always wins.
+    var node = folderRow.parentElement;
+    var isCurrentlyExpanded = node.classList.contains('expanded');
+    folderCollapsed[path] = isCurrentlyExpanded;
+    render();
+    return;
+  }
+  var fileRow = ev.target.closest('.tree-row.file');
+  if (fileRow) {
+    var f = fileRow.getAttribute('data-file');
+    changelogOpen[f] = !changelogOpen[f];
+    render();
+  }
 });
 
 document.getElementById('search').addEventListener('input', function(ev) {
