@@ -1,0 +1,30 @@
+version: 1
+updated: "2026-04-10"
+  ".gitignore":
+    status: active
+    source: claude
+    created: "2026-04-04"
+    last_modified: "2026-04-04"
+    change_count: 2
+    purpose: "Git ignore rules."
+  "LICENSE":
+    status: active
+    source: claude
+    created: "2026-04-04"
+    last_modified: "2026-04-04"
+    change_count: 1
+    purpose: "Project license."
+  "README.md":
+    status: active
+    source: claude
+    created: "2026-04-04"
+    last_modified: "2026-04-10"
+    change_count: 9
+    purpose: "omniscitus"
+  "vercel.json":
+    status: active
+    source: claude
+    created: "2026-04-04"
+    last_modified: "2026-04-04"
+    change_count: 1
+    purpose: ""
