@@ -43,10 +43,14 @@ function parseBlueprints(text) {
     var uMatch = line.match(/^updated:\s*(.+)/);
     if (uMatch) { result.updated = uMatch[1].trim(); i++; continue; }
 
-    // file entry (2-space indent, ends with colon)
-    var fMatch = line.match(/^  ([^\s].*):$/);
+    // file entry (2-space indent, ends with colon). Strip surrounding
+    // YAML quotes from the path key — both the migration script and
+    // older serializer write quoted keys for paths containing dots or
+    // special chars, and carrying the literal quotes through breaks
+    // every consumer.
+    var fMatch = line.match(/^  ([^\s].*):\s*$/);
     if (fMatch) {
-      currentFile = fMatch[1];
+      currentFile = fMatch[1].replace(/^["']|["']$/g, '');
       result.files[currentFile] = result.files[currentFile] || {
         status: 'active', source: 'claude', created: '', last_modified: '',
         change_count: 0, purpose: '', change_log: []
@@ -78,14 +82,16 @@ function parseBlueprints(text) {
         var dMatch = line.match(/^      - date:\s*(.+)/);
         if (dMatch) {
           result.files[currentFile].change_log.push({
-            date: dMatch[1].trim(), action: '', source: ''
+            date: dMatch[1].trim(), action: '', source: '', message: ''
           });
           i++; continue;
         }
-        var aMatch = line.match(/^        (action|source):\s*(.+)/);
+        // Preserve `message` alongside action/source so commit messages
+        // written by the migration script survive a hook round-trip.
+        var aMatch = line.match(/^        (action|source|message):\s*(.+)/);
         if (aMatch && result.files[currentFile].change_log.length > 0) {
           var last = result.files[currentFile].change_log[result.files[currentFile].change_log.length - 1];
-          last[aMatch[1]] = aMatch[2].trim();
+          last[aMatch[1]] = aMatch[2].replace(/^["']|["']$/g, '').trim();
           i++; continue;
         }
       }
@@ -95,6 +101,16 @@ function parseBlueprints(text) {
   }
 
   return result;
+}
+
+function quoteKey(key) {
+  // Match the migration script: paths containing dots, slashes, or
+  // brackets get wrapped in double quotes so the YAML parser can't
+  // misinterpret them.
+  if (/[.\/\[\]\s"#:]/.test(key)) {
+    return '"' + key.replace(/"/g, '\\"') + '"';
+  }
+  return key;
 }
 
 function serializeBlueprints(data) {
@@ -108,9 +124,9 @@ function serializeBlueprints(data) {
   for (var p = 0; p < paths.length; p++) {
     var filePath = paths[p];
     var f = data.files[filePath];
-    lines.push('  ' + filePath + ':');
+    lines.push('  ' + quoteKey(filePath) + ':');
     lines.push('    status: ' + (f.status || 'active'));
-    lines.push('    source: ' + (f.source || 'claude'));
+    lines.push('    source: "' + (f.source || 'claude').replace(/"/g, '\\"') + '"');
     lines.push('    created: ' + (f.created || ''));
     lines.push('    last_modified: ' + (f.last_modified || ''));
     if (f.deleted) lines.push('    deleted: ' + f.deleted);
@@ -121,12 +137,112 @@ function serializeBlueprints(data) {
     for (var c = 0; c < log.length; c++) {
       lines.push('      - date: ' + log[c].date);
       lines.push('        action: ' + (log[c].action || 'write'));
-      lines.push('        source: ' + (log[c].source || 'claude'));
+      lines.push('        source: "' + (log[c].source || 'claude').replace(/"/g, '\\"') + '"');
+      // Preserve commit message if present (set by migration script).
+      if (log[c].message) {
+        lines.push('        message: "' + String(log[c].message).replace(/"/g, '\\"').slice(0, 200) + '"');
+      }
     }
     if (log.length === 0) lines.push('      []');
   }
 
   return lines.join('\n') + '\n';
+}
+
+// --- Folder summaries (issue #17) ---
+//
+// blueprints/_summaries.yaml is a flat path-keyed map of folder
+// descriptions. This hook only marks existing entries as `stale: true`
+// when a file inside the folder is written or edited. Generation lives
+// in /omniscitus-migrate; refresh lives in /wrap-up.
+//
+// Schema:
+//   summaries:
+//     src:
+//       description: "..."
+//       generated_at: 2026-04-10
+//       generated_by: migrate
+//       stale: false
+//       file_count: 37
+
+function parseSummaries(text) {
+  var result = { summaries: {} };
+  if (!text) return result;
+  var lines = text.split('\n');
+  var current = null;
+  for (var i = 0; i < lines.length; i++) {
+    var line = lines[i];
+    var keyMatch = line.match(/^  ([^\s].*):\s*$/);
+    if (keyMatch) {
+      current = keyMatch[1].replace(/^["']|["']$/g, '');
+      result.summaries[current] = {
+        description: '', generated_at: '', generated_by: '',
+        stale: false, file_count: 0
+      };
+      continue;
+    }
+    if (current) {
+      var propMatch = line.match(/^    (description|generated_at|generated_by|stale|file_count):\s*(.*)/);
+      if (propMatch) {
+        var k = propMatch[1];
+        var v = propMatch[2].replace(/^["']|["']$/g, '').trim();
+        if (k === 'stale') v = (v === 'true');
+        else if (k === 'file_count') v = parseInt(v, 10) || 0;
+        result.summaries[current][k] = v;
+      }
+    }
+  }
+  return result;
+}
+
+function serializeSummaries(data) {
+  var lines = ['# .omniscitus/blueprints/_summaries.yaml',
+               '# Path-keyed folder descriptions. Generated by /omniscitus-migrate,',
+               '# marked stale by the PostToolUse hook, refreshed by /wrap-up.',
+               'summaries:'];
+  var keys = Object.keys(data.summaries || {}).sort();
+  for (var i = 0; i < keys.length; i++) {
+    var k = keys[i];
+    var s = data.summaries[k];
+    lines.push('  ' + quoteKey(k) + ':');
+    lines.push('    description: "' + (s.description || '').replace(/"/g, '\\"') + '"');
+    lines.push('    generated_at: ' + (s.generated_at || ''));
+    lines.push('    generated_by: ' + (s.generated_by || ''));
+    lines.push('    stale: ' + (s.stale ? 'true' : 'false'));
+    lines.push('    file_count: ' + (s.file_count || 0));
+  }
+  return lines.join('\n') + '\n';
+}
+
+function markAncestorSummariesStale(blueprintsDir, relPath) {
+  var summariesPath = path.join(blueprintsDir, '_summaries.yaml');
+  if (!fs.existsSync(summariesPath)) return; // nothing to mark — migrate hasn't run
+
+  var text;
+  try { text = fs.readFileSync(summariesPath, 'utf-8'); }
+  catch (e) { return; }
+
+  var data = parseSummaries(text);
+
+  // Walk ancestor paths: src/app/api/foo.ts → src, src/app, src/app/api
+  var parts = relPath.split('/');
+  var anyChanged = false;
+  for (var i = 1; i < parts.length; i++) {
+    var ancestor = parts.slice(0, i).join('/');
+    var entry = data.summaries[ancestor];
+    if (entry && !entry.stale) {
+      entry.stale = true;
+      anyChanged = true;
+    }
+  }
+
+  if (!anyChanged) return;
+
+  var tmp = summariesPath + '.tmp';
+  try {
+    fs.writeFileSync(tmp, serializeSummaries(data), 'utf-8');
+    fs.renameSync(tmp, summariesPath);
+  } catch (e) { /* swallow — hook must never fail loud */ }
 }
 
 // --- Project root finder ---
@@ -249,6 +365,10 @@ async function main() {
   var tmpPath = blueprintPath + '.tmp';
   fs.writeFileSync(tmpPath, serializeBlueprints(data), 'utf-8');
   fs.renameSync(tmpPath, blueprintPath);
+
+  // Mark any ancestor folder summaries as stale so /wrap-up knows to
+  // refresh them later. No-op if _summaries.yaml doesn't exist yet.
+  markAncestorSummariesStale(blueprintsDir, relPath);
 }
 
 main().catch(function () {});

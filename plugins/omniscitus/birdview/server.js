@@ -773,7 +773,8 @@ function scanPromptTests(dir) {
 // --- API Handlers ---
 
 // Recursively walk a blueprints directory tree and yield every *.yaml file.
-// Skips _index.yaml files (those describe nested splits, not entries).
+// Skips _index.yaml (nested split metadata) and _summaries.yaml (folder
+// descriptions, parsed separately).
 function collectBlueprintYamls(dir) {
   var out = [];
   var entries = safeReadDir(dir);
@@ -784,8 +785,41 @@ function collectBlueprintYamls(dir) {
     try { stat = fs.statSync(full); } catch (e) { continue; }
     if (stat.isDirectory()) {
       out = out.concat(collectBlueprintYamls(full));
-    } else if (name.endsWith('.yaml') && name !== '_index.yaml') {
+    } else if (name.endsWith('.yaml') && name !== '_index.yaml' && name !== '_summaries.yaml') {
       out.push(full);
+    }
+  }
+  return out;
+}
+
+// Parse blueprints/_summaries.yaml — flat path-keyed map of folder
+// descriptions written by /omniscitus-migrate, stale-marked by the
+// PostToolUse hook, refreshed by /wrap-up. See issue #17.
+function parseSummariesYaml(text) {
+  var out = {};
+  if (!text) return out;
+  var lines = text.split('\n');
+  var current = null;
+  for (var i = 0; i < lines.length; i++) {
+    var line = lines[i];
+    var keyMatch = line.match(/^  ([^\s].*):\s*$/);
+    if (keyMatch) {
+      current = keyMatch[1].replace(/^["']|["']$/g, '');
+      out[current] = {
+        description: '', generated_at: '', generated_by: '',
+        stale: false, file_count: 0
+      };
+      continue;
+    }
+    if (current) {
+      var prop = line.match(/^    (description|generated_at|generated_by|stale|file_count):\s*(.*)/);
+      if (prop) {
+        var k = prop[1];
+        var v = prop[2].replace(/^["']|["']$/g, '').trim();
+        if (k === 'stale') v = (v === 'true');
+        else if (k === 'file_count') v = parseInt(v, 10) || 0;
+        out[current][k] = v;
+      }
     }
   }
   return out;
@@ -793,7 +827,13 @@ function collectBlueprintYamls(dir) {
 
 function handleApiBlueprints(req, res) {
   var blueprintsDir = path.join(OMNISCITUS_DIR, 'blueprints');
-  var merged = { version: 1, updated: '', files: {}, repo_url: REPO_URL };
+  var merged = {
+    version: 1,
+    updated: '',
+    files: {},
+    repo_url: REPO_URL,
+    summaries: parseSummariesYaml(safeReadFile(path.join(blueprintsDir, '_summaries.yaml')))
+  };
 
   // Recursively read every blueprint yaml under blueprints/, including
   // nested splits like blueprints/_claude/{_root,skills,wrap-up}.yaml
