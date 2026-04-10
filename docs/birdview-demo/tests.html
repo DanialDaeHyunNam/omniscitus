@@ -14,13 +14,18 @@
         status: 200, headers: { 'Content-Type': 'application/json' }
       }));
     }
-    // Rewrite /api/<name> → ./data/<name>.json
+    // Rewrite /api/<name> → ./data/<name>.json. If the snapshot file is
+    // missing (or any other non-OK response), silently return an empty
+    // object so the birdview JS keeps working.
     var m = url.match(/^\/api\/([^?#]+)/);
     if (m) {
       var file = m[1].replace(/\//g, '_') + '.json';
-      return ORIG_FETCH(DEMO_BASE + file, init).catch(function() {
+      var emptyOk = function() {
         return new Response('{}', { status: 200, headers: { 'Content-Type': 'application/json' } });
-      });
+      };
+      return ORIG_FETCH(DEMO_BASE + file, init).then(function(res) {
+        return res && res.ok ? res : emptyOk();
+      }).catch(emptyOk);
     }
     return ORIG_FETCH(input, init);
   };
