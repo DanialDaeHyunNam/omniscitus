@@ -1,0 +1,26 @@
+{
+  "name": "omniscitus",
+  "owner": {
+    "name": "Dan",
+    "url": "https://github.com/DanialDaeHyunNam"
+  },
+  "plugins": [
+    {
+      "name": "omniscitus",
+      "source": "./plugins/omniscitus",
+      "description": "Codebase world model — automatic blueprint tracking, topic-based session history, universal test management, and a birdview dashboard.",
+      "version": "0.1.0",
+      "homepage": "https://omniscitus.vercel.app",
+      "license": "MIT",
+      "keywords": [
+        "claude-code",
+        "plugin",
+        "world-model",
+        "blueprint",
+        "history",
+        "testing",
+        "dashboard"
+      ]
+    }
+  ]
+}
