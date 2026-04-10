@@ -37,7 +37,12 @@ Gather what was done in this session:
 
 1. Run `git diff --name-only` and `git diff --cached --name-only` to see changed files
 2. Review the conversation history for work performed
-3. Classify work into domains. Check `.omniscitus/ontology.yaml` first:
+3. Extract follow-up context from the conversation:
+   - **Background**: what triggered or motivated this work
+   - **Requirements**: specs, acceptance criteria, or expectations discussed
+   - **Decisions**: choices made during the session and why
+   - **Constraints**: blockers, technical limits, or deadlines mentioned
+4. Classify work into domains. Check `.omniscitus/ontology.yaml` first:
    - If ontology exists: use its `domains` definitions, `keywords`, and `directories` for classification
    - If ontology does not exist, use these defaults:
      - `server` — backend, API, DB, auth
@@ -75,6 +80,7 @@ Use the Edit tool to add a new timeline entry under `## Timeline`:
 ```
 
 Update `## Summary` if the scope has expanded.
+Update `## Context` — add new decisions, requirements, or constraints discovered during this session. Never remove existing entries; append or refine.
 Update `## Pending` — add new tasks, check off completed ones.
 Increment `session_count` and update `last_updated` in `_index.yaml`.
 
@@ -96,6 +102,12 @@ If closing: set `status: closed` in `_index.yaml`, create a new unit.
 
 ## Summary
 {What this unit covers, 1-3 lines}
+
+## Context
+- **Background**: {Why this work started — motivation, trigger, or problem being solved}
+- **Requirements**: {Key specs, acceptance criteria, or user expectations}
+- **Decisions**: {Important choices made and their rationale}
+- **Constraints**: {Technical limits, deadlines, dependencies, or blockers}
 
 ## Timeline
 
@@ -176,7 +188,7 @@ Next session: /follow-up to check pending tasks.
 
 ## Rules
 
-- **5 sections only** in unit files: Summary, Timeline, Pending, Notes — no extras
+- **5 sections only** in unit files: Summary, Context, Timeline, Pending, Notes — no extras
 - **Timeline entries are date-grouped** — one `### YYYY-MM-DD` per session
 - **Keep summaries concise** — 3 lines max
 - **Domain limit**: max 20 domains (warn if approaching)
