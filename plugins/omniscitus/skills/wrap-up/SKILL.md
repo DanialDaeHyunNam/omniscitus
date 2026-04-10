@@ -130,6 +130,7 @@ If closing: set `status: closed` in `_index.yaml`, create a new unit.
 
 ```yaml
   - id: {topic-name}
+    file: {domain}/{YYYY-MM-DD}-{topic-name}.md
     domain: {domain}
     status: open
     created: {YYYY-MM-DD}
@@ -137,6 +138,11 @@ If closing: set `status: closed` in `_index.yaml`, create a new unit.
     session_count: 1
     title: "{Topic Title}"
 ```
+
+`file:` is the unit's path relative to `.omniscitus/history/`. Birdview's
+content loader uses this field directly when present. Older entries
+without `file:` still work via a basename fallback, but every new entry
+should write it explicitly.
 
 ### Step 5: Blueprint Sync + Fill Purposes
 

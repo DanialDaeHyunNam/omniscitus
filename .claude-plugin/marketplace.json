@@ -9,7 +9,7 @@
       "name": "omniscitus",
       "source": "./plugins/omniscitus",
       "description": "Codebase world model — automatic blueprint tracking, topic-based session history, universal test management, and a birdview dashboard.",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "homepage": "https://omniscitus.vercel.app",
       "license": "MIT",
       "keywords": [
