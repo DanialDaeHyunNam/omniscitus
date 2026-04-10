@@ -84,6 +84,70 @@
   .toast-error{border-color:#7f1d1d;color:#fca5a5}
   @keyframes toastIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
 
+  /* ── Tree panel (left) ───────────────────────────── */
+  .tree-panel{position:fixed;top:72px;left:16px;width:280px;max-height:calc(100vh - 96px);background:rgba(15,15,22,0.9);border:1px solid #242430;border-radius:12px;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);z-index:20;display:flex;flex-direction:column;box-shadow:0 10px 40px rgba(0,0,0,0.5);transition:opacity 0.2s}
+  .tree-panel.dimmed{opacity:0.35;pointer-events:none}
+  .tree-panel.collapsed{max-height:44px;overflow:hidden}
+  .tree-panel-header{padding:10px 14px;border-bottom:1px solid #242430;display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none;flex-shrink:0}
+  .tree-panel.collapsed .tree-panel-header{border-bottom:none}
+  .tree-panel-header h3{font-size:12px;font-weight:600;color:#fff;margin:0;flex:1;text-transform:uppercase;letter-spacing:0.4px}
+  .tree-panel-header .tp-count{font-size:10px;background:#1e3a5f;color:#93c5fd;padding:2px 7px;border-radius:10px;font-variant-numeric:tabular-nums}
+  .tree-panel-header .tp-twisty{color:#6b7280;font-size:10px;transition:transform 0.15s}
+  .tree-panel.collapsed .tree-panel-header .tp-twisty{transform:rotate(-90deg)}
+  .tree-search{padding:8px 10px;border-bottom:1px solid #242430}
+  .tree-search input{width:100%;background:#0d0d14;border:1px solid #242430;border-radius:6px;color:#e0e0e0;font-size:12px;padding:6px 10px;font-family:inherit;outline:none}
+  .tree-search input:focus{border-color:#3b3b4e}
+  .tree-search input::placeholder{color:#6b7280}
+  .tree-list{flex:1;overflow-y:auto;padding:6px 4px 10px;font-family:'SF Mono',SFMono-Regular,Menlo,monospace;font-size:11.5px;line-height:1.4}
+  .tree-list::-webkit-scrollbar{width:8px}
+  .tree-list::-webkit-scrollbar-track{background:transparent}
+  .tree-list::-webkit-scrollbar-thumb{background:#242430;border-radius:4px}
+  .tree-list::-webkit-scrollbar-thumb:hover{background:#2e2e3a}
+  .tree-row{display:flex;align-items:center;gap:6px;padding:3px 8px;border-radius:4px;cursor:pointer;min-height:20px;white-space:nowrap}
+  .tree-row:hover{background:rgba(255,255,255,0.04)}
+  .tree-row .twisty{width:10px;display:inline-flex;align-items:center;justify-content:center;color:#6b7280;font-size:8px;flex-shrink:0;transition:transform 0.15s}
+  .tree-row .twisty.empty{visibility:hidden}
+  .tree-folder.expanded > .tree-row .twisty{transform:rotate(90deg)}
+  .tree-row .icon{font-size:10px;flex-shrink:0;width:12px;text-align:center}
+  .tree-row.folder .icon{color:#fbbf24}
+  .tree-row.file .icon{color:#6b7280}
+  .tree-row .label{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;color:#d1d5db}
+  .tree-row.folder .label{color:#fde68a;font-weight:500}
+  .tree-row.file.selected{background:rgba(124,58,237,0.22)}
+  .tree-row.file.selected .label{color:#fff}
+  .tree-row.file.selected .sel-dot{opacity:1}
+  .tree-row .sel-dot{width:6px;height:6px;border-radius:50%;background:#c4b5fd;box-shadow:0 0 6px #c4b5fd;flex-shrink:0;opacity:0}
+  .tree-row .count-badge{font-size:9.5px;color:#6b7280;font-variant-numeric:tabular-nums;padding-left:4px}
+  .tree-children{display:none;margin-left:8px;border-left:1px dashed #242430;padding-left:6px}
+  .tree-folder.expanded > .tree-children{display:block}
+  .tree-empty{padding:16px;text-align:center;color:#6b7280;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:12px}
+
+  /* ── Nudge preview modal ─────────────────────────── */
+  .nudge-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.7);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;z-index:1000;padding:24px;animation:overlayFade 0.15s ease-out}
+  .nudge-modal-overlay.visible{display:flex}
+  @keyframes overlayFade{from{opacity:0}to{opacity:1}}
+  @keyframes modalRise{from{opacity:0;transform:translateY(12px) scale(0.98)}to{opacity:1;transform:translateY(0) scale(1)}}
+  .nudge-modal{background:#0d0d14;border:1px solid #2a2a3a;border-radius:14px;padding:28px 32px 24px;max-width:640px;width:100%;box-shadow:0 24px 64px rgba(0,0,0,0.6),0 0 80px rgba(124,58,237,0.08);animation:modalRise 0.2s ease-out;position:relative}
+  .nudge-modal-close{position:absolute;top:14px;right:18px;background:none;border:none;color:#6b7280;font-size:22px;line-height:1;cursor:pointer;padding:4px 8px;border-radius:6px;transition:background 0.15s,color 0.15s}
+  .nudge-modal-close:hover{color:#e0e0e0;background:#1f1f28}
+  .nudge-modal .nm-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(110,231,183,0.1);border:1px solid rgba(110,231,183,0.3);color:#6ee7b7;font-size:11px;font-weight:600;padding:4px 10px;border-radius:12px;text-transform:uppercase;letter-spacing:0.4px}
+  .nudge-modal h2{font-size:18px;font-weight:600;color:#fff;margin:14px 0 6px}
+  .nudge-modal p.nm-hint{font-size:13px;color:#9ca3af;margin:0 0 16px;line-height:1.55}
+  .nudge-modal p.nm-hint code{background:#1f1f28;border:1px solid #2a2a3a;padding:1px 6px;border-radius:4px;color:#c4b5fd;font-size:11.5px;font-family:'SF Mono',SFMono-Regular,Menlo,monospace}
+  .nudge-modal pre{background:#05050a;border:1px solid #242430;border-radius:8px;padding:16px 18px;margin:0;font-family:'SF Mono',SFMono-Regular,Menlo,monospace;font-size:12.5px;line-height:1.7;color:#d1d5db;max-height:340px;overflow:auto;white-space:pre-wrap;word-break:break-word}
+  .nudge-modal pre .mention{color:#c4b5fd;font-weight:500}
+  .nudge-modal-actions{display:flex;gap:8px;margin-top:16px;justify-content:flex-end}
+  .nudge-modal-actions button{font-family:inherit;font-size:12.5px;padding:8px 14px;border-radius:7px;cursor:pointer;border:1px solid #2a2a3a;background:transparent;color:#9ca3af;font-weight:500}
+  .nudge-modal-actions button:hover{color:#e0e0e0;border-color:#3a3a4a}
+  .nudge-modal-actions button.primary{background:linear-gradient(135deg,#7c3aed,#6366f1);border:none;color:#fff;font-weight:600}
+  .nudge-modal-actions button.primary:hover{box-shadow:0 6px 20px rgba(124,58,237,0.35)}
+
+  @media(max-width:1080px){
+    .tree-panel{width:240px}
+  }
+  @media(max-width:900px){
+    .tree-panel{display:none}
+  }
   @media(max-width:760px){
     .panel{right:8px;left:8px;width:auto;top:64px}
     .hint{display:none}
@@ -91,6 +155,8 @@
     .topbar{padding:0 12px;gap:8px}
     .filter-group{padding:3px}
     .filter-btn{padding:5px 9px;font-size:11px}
+    .nudge-modal{padding:22px 20px 18px}
+    .nudge-modal pre{font-size:11px;padding:12px 14px}
   }
 </style>
 <script type="importmap">
@@ -121,6 +187,21 @@
 </div>
 
 <div class="tooltip" id="tooltip"></div>
+
+<!-- Blueprint tree panel (left) -->
+<div class="tree-panel" id="tree-panel">
+  <div class="tree-panel-header" id="tree-panel-header">
+    <span class="tp-twisty">&#9662;</span>
+    <h3>Blueprints</h3>
+    <span class="tp-count" id="tp-count">0</span>
+  </div>
+  <div class="tree-search">
+    <input type="text" id="tree-search" placeholder="Filter files..." autocomplete="off">
+  </div>
+  <div class="tree-list" id="tree-list">
+    <div class="tree-empty">Loading&hellip;</div>
+  </div>
+</div>
 
 <div class="panel" id="panel">
   <div class="panel-header">
@@ -164,6 +245,24 @@
 
 <div class="error" id="error"></div>
 <div class="toast-container" id="toasts"></div>
+
+<!-- Nudge prompt preview modal -->
+<div class="nudge-modal-overlay" id="nudge-modal">
+  <div class="nudge-modal">
+    <button class="nudge-modal-close" id="nudge-modal-close" aria-label="Close">&times;</button>
+    <span class="nm-badge">&check; Copied to clipboard</span>
+    <h2>Paste this into your Claude session</h2>
+    <p class="nm-hint">
+      Switch to your Claude Code terminal and press <code>Cmd+V</code> (or <code>Ctrl+V</code>).
+      The session will read the listed files and get oriented before your next task.
+    </p>
+    <pre id="nudge-preview"></pre>
+    <div class="nudge-modal-actions">
+      <button id="nudge-copy-again">Copy again</button>
+      <button class="primary" id="nudge-done">Done</button>
+    </div>
+  </div>
+</div>
 
 <script type="module">
 import * as THREE from 'three';
@@ -412,6 +511,9 @@ function buildScene(data) {
   // Update stats
   document.getElementById('stat-units').textContent = (data.units || []).length;
   document.getElementById('stat-bp').textContent = Object.keys(bpFiles).length;
+
+  // Build blueprint tree panel
+  buildTreePanel();
 }
 
 // ── Interaction: hover + select ───────────────────────
@@ -497,6 +599,7 @@ function toggleSelect(index) {
     n.mesh.scale.set(1.35, 1.35, 1.35);
   }
   renderSelection();
+  updateTreeRowSelection(index);
 }
 
 function clearSelection() {
@@ -506,6 +609,8 @@ function clearSelection() {
   });
   selected.clear();
   renderSelection();
+  // Clear all tree row highlights
+  document.querySelectorAll('#tree-list .tree-row.file.selected').forEach(el => el.classList.remove('selected'));
 }
 
 function renderSelection() {
@@ -557,10 +662,12 @@ document.getElementById('filter-history').addEventListener('click', function() {
 document.getElementById('filter-blueprint').addEventListener('click', function() {
   const on = this.classList.toggle('active');
   blueprintGroup.visible = on;
+  // Dim the tree panel when blueprints are hidden (still usable)
+  document.getElementById('tree-panel').classList.toggle('dimmed', !on);
 });
 
 // ── Nudge copy ────────────────────────────────────────
-document.getElementById('nudge-btn').addEventListener('click', async function() {
+function buildNudgePrompt() {
   const includeRoot = document.getElementById('include-root').checked;
   const paths = [];
   if (includeRoot) paths.push('CLAUDE.md');
@@ -574,33 +681,237 @@ document.getElementById('nudge-btn').addEventListener('click', async function() 
   const seen = new Set();
   paths.forEach(p => { if (!seen.has(p)) { seen.add(p); unique.push(p); } });
 
-  const prompt =
-    "Before my next task, read these files to get oriented:\n\n" +
+  return "Before my next task, read these files to get oriented:\n\n" +
     unique.map(p => '@' + p).join('\n') +
     "\n\nAfter reading, briefly summarize the current context, then wait for my task description.";
+}
 
+async function copyToClipboard(text) {
   try {
-    await navigator.clipboard.writeText(prompt);
-    toast('Copied to clipboard — paste it into your Claude session.', 'success');
+    await navigator.clipboard.writeText(text);
+    return true;
   } catch (err) {
-    // Fallback: temp textarea + execCommand
     const ta = document.createElement('textarea');
-    ta.value = prompt;
+    ta.value = text;
     ta.style.position = 'fixed'; ta.style.opacity = '0';
     document.body.appendChild(ta); ta.select();
-    try {
-      document.execCommand('copy');
-      toast('Copied to clipboard — paste it into your Claude session.', 'success');
-    } catch (e) {
-      toast('Could not copy — clipboard permission denied.', 'error');
-    }
+    let ok = false;
+    try { ok = document.execCommand('copy'); } catch (e) {}
     ta.remove();
+    return ok;
+  }
+}
+
+function renderNudgePreview(prompt) {
+  // Colorize @-mentions in the preview
+  const pre = document.getElementById('nudge-preview');
+  const safe = escapeHtml(prompt);
+  pre.innerHTML = safe.replace(/(@[^\s\n]+)/g, '<span class="mention">$1</span>');
+}
+
+function showNudgeModal(prompt) {
+  renderNudgePreview(prompt);
+  document.getElementById('nudge-modal').classList.add('visible');
+}
+
+function closeNudgeModal() {
+  document.getElementById('nudge-modal').classList.remove('visible');
+}
+
+document.getElementById('nudge-btn').addEventListener('click', async function() {
+  const prompt = buildNudgePrompt();
+  const ok = await copyToClipboard(prompt);
+  if (ok) {
+    showNudgeModal(prompt);
+  } else {
+    toast('Could not copy — clipboard permission denied.', 'error');
   }
 });
+
+document.getElementById('nudge-modal-close').addEventListener('click', closeNudgeModal);
+document.getElementById('nudge-done').addEventListener('click', closeNudgeModal);
+document.getElementById('nudge-modal').addEventListener('click', (ev) => {
+  // Close when clicking the backdrop (not the modal itself)
+  if (ev.target === ev.currentTarget) closeNudgeModal();
+});
+document.getElementById('nudge-copy-again').addEventListener('click', async function() {
+  const prompt = buildNudgePrompt();
+  const ok = await copyToClipboard(prompt);
+  toast(ok ? 'Copied again.' : 'Could not copy — clipboard permission denied.', ok ? 'success' : 'error');
+});
+
 document.getElementById('clear-btn').addEventListener('click', clearSelection);
 
-// Esc clears selection
-window.addEventListener('keydown', (ev) => { if (ev.key === 'Escape') clearSelection(); });
+// Esc: close modal first if open, otherwise clear selection
+window.addEventListener('keydown', (ev) => {
+  if (ev.key !== 'Escape') return;
+  const modal = document.getElementById('nudge-modal');
+  if (modal.classList.contains('visible')) {
+    closeNudgeModal();
+  } else {
+    clearSelection();
+  }
+});
+
+// ── Blueprint tree panel ──────────────────────────────
+const expandedFolders = new Set();   // folder paths that are expanded
+let treeSearchQuery = '';
+
+function buildTreePanel() {
+  // Collect blueprint node indices
+  const bpEntries = [];
+  for (let i = 0; i < nodes.length; i++) {
+    if (nodes[i].type === 'blueprint') bpEntries.push({ idx: i, path: nodes[i].path });
+  }
+  document.getElementById('tp-count').textContent = bpEntries.length;
+
+  const listEl = document.getElementById('tree-list');
+  if (bpEntries.length === 0) {
+    listEl.innerHTML = '<div class="tree-empty">No blueprints tracked yet.<br>Run <code>/blueprint-sync</code> to populate.</div>';
+    return;
+  }
+
+  // Build hierarchical tree
+  const root = { children: {}, _count: 0 };
+  bpEntries.forEach(({ idx, path }) => {
+    const parts = path.split('/');
+    let cursor = root;
+    let acc = '';
+    for (let k = 0; k < parts.length - 1; k++) {
+      acc = acc ? acc + '/' + parts[k] : parts[k];
+      if (!cursor.children[parts[k]]) {
+        cursor.children[parts[k]] = { type: 'folder', name: parts[k], path: acc, children: {}, _count: 0 };
+      }
+      cursor = cursor.children[parts[k]];
+    }
+    const fname = parts[parts.length - 1];
+    cursor.children[fname] = { type: 'file', name: fname, path, nodeIdx: idx };
+  });
+
+  // Count files per folder (recursive)
+  function countFolder(folder) {
+    let c = 0;
+    Object.values(folder.children).forEach(child => {
+      if (child.type === 'folder') { countFolder(child); c += child._count; }
+      else c += 1;
+    });
+    folder._count = c;
+  }
+  countFolder(root);
+
+  // Default-expand top-level folders only on first build
+  if (expandedFolders.size === 0) {
+    Object.values(root.children).forEach(child => {
+      if (child.type === 'folder') expandedFolders.add(child.path);
+    });
+  }
+
+  // Render into DOM
+  renderTreeList(root, listEl);
+}
+
+function matchesSearch(path) {
+  if (!treeSearchQuery) return true;
+  return path.toLowerCase().indexOf(treeSearchQuery.toLowerCase()) !== -1;
+}
+
+function renderTreeList(root, container) {
+  function renderNode(node, depth) {
+    const keys = Object.keys(node.children).sort((a, b) => {
+      const ca = node.children[a], cb = node.children[b];
+      if (ca.type !== cb.type) return ca.type === 'folder' ? -1 : 1;
+      return a.localeCompare(b);
+    });
+    let html = '';
+    for (const k of keys) {
+      const child = node.children[k];
+      if (child.type === 'folder') {
+        // Skip empty folders under search
+        if (treeSearchQuery) {
+          const hasMatch = folderHasMatch(child);
+          if (!hasMatch) continue;
+        }
+        const isExpanded = treeSearchQuery ? true : expandedFolders.has(child.path);
+        html += '<div class="tree-folder ' + (isExpanded ? 'expanded' : '') + '" data-path="' + escapeAttr(child.path) + '">';
+        html += '<div class="tree-row folder" data-folder-path="' + escapeAttr(child.path) + '">';
+        html += '<span class="twisty">&#9656;</span>';
+        html += '<span class="icon">&#x25A0;</span>';
+        html += '<span class="label">' + escapeHtml(child.name) + '/</span>';
+        html += '<span class="count-badge">' + child._count + '</span>';
+        html += '</div>';
+        html += '<div class="tree-children">';
+        html += renderNode(child, depth + 1);
+        html += '</div>';
+        html += '</div>';
+      } else {
+        if (!matchesSearch(child.path)) continue;
+        const isSel = selected.has(child.nodeIdx);
+        html += '<div class="tree-row file' + (isSel ? ' selected' : '') + '" data-node-idx="' + child.nodeIdx + '" title="' + escapeAttr(child.path) + '">';
+        html += '<span class="twisty empty"></span>';
+        html += '<span class="icon">&#9679;</span>';
+        html += '<span class="label">' + escapeHtml(child.name) + '</span>';
+        html += '<span class="sel-dot"></span>';
+        html += '</div>';
+      }
+    }
+    return html;
+  }
+
+  function folderHasMatch(folder) {
+    for (const k of Object.keys(folder.children)) {
+      const child = folder.children[k];
+      if (child.type === 'folder') {
+        if (folderHasMatch(child)) return true;
+      } else if (matchesSearch(child.path)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  container.innerHTML = renderNode(root, 0) || '<div class="tree-empty">No matches.</div>';
+
+  // Wire up click handlers (event delegation would also work; this is fine)
+  container.querySelectorAll('.tree-row.folder').forEach(row => {
+    row.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      const p = row.dataset.folderPath;
+      if (expandedFolders.has(p)) expandedFolders.delete(p);
+      else expandedFolders.add(p);
+      // Re-render (state preserved via expandedFolders + selected sets)
+      buildTreePanel();
+    });
+  });
+  container.querySelectorAll('.tree-row.file').forEach(row => {
+    row.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      const idx = parseInt(row.dataset.nodeIdx, 10);
+      if (!isNaN(idx)) toggleSelect(idx);
+    });
+  });
+}
+
+function updateTreeRowSelection(nodeIdx) {
+  const row = document.querySelector('#tree-list .tree-row.file[data-node-idx="' + nodeIdx + '"]');
+  if (!row) return;
+  if (selected.has(nodeIdx)) row.classList.add('selected');
+  else row.classList.remove('selected');
+}
+
+function escapeAttr(s) {
+  return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+// Tree search
+document.getElementById('tree-search').addEventListener('input', function() {
+  treeSearchQuery = this.value.trim();
+  buildTreePanel();
+});
+
+// Tree panel collapse toggle
+document.getElementById('tree-panel-header').addEventListener('click', function() {
+  document.getElementById('tree-panel').classList.toggle('collapsed');
+});
 
 // ── Resize handling ───────────────────────────────────
 window.addEventListener('resize', () => {
