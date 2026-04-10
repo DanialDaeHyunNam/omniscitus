@@ -1024,7 +1024,6 @@ section {
     <nav>
       <ul class="header-nav" id="header-nav">
         <li><a href="#positioning">Why</a></li>
-        <li><a href="#constellation">Constellation</a></li>
         <li><a href="#features">Features</a></li>
         <li><a href="#commands">Commands</a></li>
         <li><a href="#structure">Data</a></li>
@@ -1134,39 +1133,6 @@ section {
             Blueprints track every file with attribution. History preserves every session as topic units. Tests are scaffolded and indexed. You only judge.
           </div>
         </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- Constellation demo -->
-<section class="constellation" id="constellation">
-  <div class="container">
-    <span class="section-label">Birdview &middot; Constellation</span>
-    <h2 class="section-title">Your docs, as a constellation.</h2>
-    <p class="section-subtitle">
-      Files, skills, history units, and hooks become nodes in a 3D document space.
-      Pick the ones a new Claude session should read &mdash; omniscitus hands them off as an onboarding nudge.
-    </p>
-
-    <div class="demo-wrap reveal">
-      <div id="demo-canvas">
-        <div class="demo-overlay-top" id="demo-overlay">
-          <span class="label-dot" style="color:#c4b5fd">omniscitus</span>
-          <span class="sep">&bull;</span>
-          <span class="label-dot" style="color:#6ee7b7">Skills</span>
-          <span class="label-dot" style="color:#93c5fd">Birdview</span>
-          <span class="label-dot" style="color:#fbbf24">History</span>
-          <span class="label-dot" style="color:#fb7185">Blueprints</span>
-          <span class="label-dot" style="color:#22d3ee">Hooks</span>
-        </div>
-        <div class="demo-tooltip" id="demo-tooltip"></div>
-      </div>
-      <div class="demo-caption">
-        <span><kbd>drag</kbd>rotate</span>
-        <span><kbd>scroll</kbd>zoom</span>
-        <span><kbd>hover</kbd>inspect</span>
-        <span class="demo-note">Run <code>/birdview</code> in your project to see your own.</span>
       </div>
     </div>
   </div>
@@ -1385,6 +1351,39 @@ section {
       <div class="tree-line"><span class="tree-path">&nbsp;&nbsp;&#9474;&nbsp;&nbsp; &#9500;&#9472;&#9472; <span class="dir-name">{path}/</span></span> <span class="tree-comment">meta.yaml + test file</span></div>
       <div class="tree-line"><span class="tree-path">&nbsp;&nbsp;&#9474;&nbsp;&nbsp; &#9492;&#9472;&#9472; <span class="dir-name">prompts/{name}/</span></span> <span class="tree-comment">prompt-meta.yaml + judge + runner</span></div>
       <div class="tree-line"><span class="tree-path">&nbsp;&nbsp;&#9492;&#9472;&#9472; <span class="file-name">cloud.yaml</span></span> <span class="tree-comment">&larr; cloud sync config (optional)</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- Constellation (visual teaser, bottom of page) -->
+<section class="constellation" id="constellation">
+  <div class="container">
+    <span class="section-label">Also</span>
+    <h2 class="section-title">A small fancy moment.</h2>
+    <p class="section-subtitle">
+      Birdview&rsquo;s Constellation tab renders your tracked files as nodes in a 3D document space.
+      It&rsquo;s more visual than practical &mdash; the tree picker is faster for real work &mdash; but it&rsquo;s a fun way to get a feel for the shape of your codebase.
+    </p>
+
+    <div class="demo-wrap reveal">
+      <div id="demo-canvas">
+        <div class="demo-overlay-top" id="demo-overlay">
+          <span class="label-dot" style="color:#c4b5fd">omniscitus</span>
+          <span class="sep">&bull;</span>
+          <span class="label-dot" style="color:#6ee7b7">Skills</span>
+          <span class="label-dot" style="color:#93c5fd">Birdview</span>
+          <span class="label-dot" style="color:#fbbf24">History</span>
+          <span class="label-dot" style="color:#fb7185">Blueprints</span>
+          <span class="label-dot" style="color:#22d3ee">Hooks</span>
+        </div>
+        <div class="demo-tooltip" id="demo-tooltip"></div>
+      </div>
+      <div class="demo-caption">
+        <span><kbd>drag</kbd>rotate</span>
+        <span><kbd>scroll</kbd>zoom</span>
+        <span><kbd>hover</kbd>inspect</span>
+        <span class="demo-note">Run <code>/birdview</code> in your project to see your own.</span>
+      </div>
     </div>
   </div>
 </section>
