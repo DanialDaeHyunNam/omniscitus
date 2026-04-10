@@ -43,21 +43,34 @@
   .unit-meta{display:flex;gap:16px;font-size:12px;color:#6b7280}
   .unit-meta span{display:flex;align-items:center;gap:4px}
 
-  .unit-detail{background:#111;border:1px solid #252525;border-radius:12px;padding:24px;margin-top:12px;display:none}
-  .unit-detail.visible{display:block}
-  .unit-detail-close{float:right;background:none;border:none;color:#6b7280;font-size:20px;cursor:pointer;padding:0 4px}
-  .unit-detail-close:hover{color:#e0e0e0}
-  .unit-detail h2{font-size:18px;color:#fff;margin:0 0 16px}
+  .unit-detail-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.7);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);display:none;align-items:flex-start;justify-content:center;z-index:1000;padding:48px 24px;overflow-y:auto;animation:overlayFade 0.15s ease-out}
+  .unit-detail-overlay.visible{display:flex}
+  @keyframes overlayFade{from{opacity:0}to{opacity:1}}
+  @keyframes modalRise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+  .unit-detail{background:#111;border:1px solid #252525;border-radius:14px;padding:32px 36px;max-width:780px;width:100%;max-height:none;position:relative;box-shadow:0 24px 64px rgba(0,0,0,0.6);animation:modalRise 0.2s ease-out;margin:auto 0}
+  .unit-detail-close{position:absolute;top:16px;right:20px;background:none;border:none;color:#6b7280;font-size:24px;line-height:1;cursor:pointer;padding:4px 8px;border-radius:6px;transition:background 0.15s,color 0.15s}
+  .unit-detail-close:hover{color:#e0e0e0;background:#1f1f1f}
+  .unit-detail h2{font-size:20px;color:#fff;margin:0 0 16px;padding-right:32px}
 
-  .md-content{line-height:1.7;font-size:14px}
+  .md-content{line-height:1.7;font-size:14px;color:#d1d5db}
   .md-content h1{font-size:20px;color:#fff;margin:24px 0 12px;padding-bottom:8px;border-bottom:1px solid #252525}
   .md-content h2{font-size:16px;color:#c4b5fd;margin:20px 0 8px}
   .md-content h3{font-size:14px;color:#6ee7b7;margin:16px 0 6px}
-  .md-content p{margin:6px 0}
-  .md-content ul{padding-left:20px;margin:6px 0}
-  .md-content li{margin:3px 0}
-  .md-content strong{color:#fff}
-  .md-content code{background:#252525;padding:1px 5px;border-radius:3px;font-size:12px;font-family:'SF Mono',SFMono-Regular,Menlo,monospace}
+  .md-content h4{font-size:13px;color:#fbbf24;margin:14px 0 4px}
+  .md-content p{margin:8px 0}
+  .md-content ul,.md-content ol{padding-left:22px;margin:8px 0}
+  .md-content li{margin:4px 0}
+  .md-content strong{color:#fff;font-weight:600}
+  .md-content em{color:#e0e0e0;font-style:italic}
+  .md-content del{color:#6b7280;text-decoration:line-through}
+  .md-content a{color:#7dd3fc;text-decoration:underline;text-underline-offset:2px}
+  .md-content a:hover{color:#bae6fd}
+  .md-content code{background:#1f1f23;color:#fbbf24;padding:1px 6px;border-radius:4px;font-size:12px;font-family:'SF Mono',SFMono-Regular,Menlo,monospace}
+  .md-content pre{background:#0a0a0a;border:1px solid #252525;border-radius:8px;padding:14px 16px;margin:12px 0;overflow-x:auto;font-size:12.5px;line-height:1.55}
+  .md-content pre code{background:transparent;color:#e0e0e0;padding:0;font-size:12.5px}
+  .md-content blockquote{border-left:3px solid #7c3aed;padding:4px 14px;margin:12px 0;color:#9ca3af;background:rgba(124,58,237,0.06);border-radius:0 6px 6px 0}
+  .md-content blockquote p{margin:4px 0}
+  .md-content hr{border:none;border-top:1px solid #252525;margin:20px 0}
 
   .timeline-visual{border-left:2px solid #333;margin-left:8px;padding-left:20px}
   .tl-date-header{position:relative;font-size:13px;font-weight:600;color:#6ee7b7;margin:16px 0 8px}
@@ -138,9 +151,11 @@
     </div>
   </div>
 
-  <div class="unit-detail" id="detail">
-    <button class="unit-detail-close" id="detail-close">&times;</button>
-    <div id="detail-content"></div>
+  <div class="unit-detail-overlay" id="detail-overlay">
+    <div class="unit-detail" id="detail" role="dialog" aria-modal="true">
+      <button class="unit-detail-close" id="detail-close" aria-label="Close">&times;</button>
+      <div id="detail-content"></div>
+    </div>
   </div>
 </div>
 
@@ -238,53 +253,152 @@ function renderMarkdown(md) {
   if (!md) return '<p style="color:#6b7280">No content available.</p>';
   var lines = md.split('\n');
   var html = '';
-  var inList = false;
+  var listStack = []; // stack of 'ul' | 'ol' | 'pending'
+  var inBlockquote = false;
+  var inCodeBlock = false;
+  var codeLang = '';
+  var codeBuffer = [];
+
+  function closeLists() {
+    while (listStack.length) html += '</' + listStack.pop().replace('pending', 'ul') + '>';
+  }
+  function closeBlockquote() {
+    if (inBlockquote) { html += '</blockquote>'; inBlockquote = false; }
+  }
 
   for (var i = 0; i < lines.length; i++) {
     var line = lines[i];
 
-    // headings
-    var h3 = line.match(/^### (.+)/);
-    if (h3) { if (inList) { html += '</ul>'; inList = false; } html += '<h3>' + esc(h3[1]) + '</h3>'; continue; }
-    var h2 = line.match(/^## (.+)/);
-    if (h2) { if (inList) { html += '</ul>'; inList = false; } html += '<h2>' + esc(h2[1]) + '</h2>'; continue; }
-    var h1 = line.match(/^# (.+)/);
-    if (h1) { if (inList) { html += '</ul>'; inList = false; } html += '<h1>' + esc(h1[1]) + '</h1>'; continue; }
-
-    // list items
-    var li = line.match(/^[-*] \[([x ])\] (.+)/);
-    if (li) {
-      if (!inList) { html += '<ul class="pending-list">'; inList = true; }
-      html += '<li class="' + (li[1] === 'x' ? 'done' : '') + '">' + esc(li[2]) + '</li>';
+    // ── fenced code block ────────────────────────────────────
+    var fenceOpen = line.match(/^```(\w*)\s*$/);
+    if (fenceOpen && !inCodeBlock) {
+      closeLists(); closeBlockquote();
+      inCodeBlock = true;
+      codeLang = fenceOpen[1] || '';
+      codeBuffer = [];
       continue;
     }
-    var plain_li = line.match(/^[-*] (.+)/);
-    if (plain_li) {
-      if (!inList) { html += '<ul>'; inList = true; }
-      html += '<li>' + inlineFormat(plain_li[1]) + '</li>';
+    if (line.match(/^```\s*$/) && inCodeBlock) {
+      var langAttr = codeLang ? ' class="lang-' + esc(codeLang) + '"' : '';
+      html += '<pre><code' + langAttr + '>' + esc(codeBuffer.join('\n')) + '</code></pre>';
+      inCodeBlock = false;
+      codeLang = '';
+      codeBuffer = [];
+      continue;
+    }
+    if (inCodeBlock) { codeBuffer.push(line); continue; }
+
+    // ── horizontal rule ──────────────────────────────────────
+    if (line.match(/^(---+|\*\*\*+|___+)\s*$/)) {
+      closeLists(); closeBlockquote();
+      html += '<hr>';
       continue;
     }
 
-    if (inList && line.trim() === '') { html += '</ul>'; inList = false; }
+    // ── headings ─────────────────────────────────────────────
+    var h4 = line.match(/^####\s+(.+)/);
+    if (h4) { closeLists(); closeBlockquote(); html += '<h4>' + inlineFormat(h4[1]) + '</h4>'; continue; }
+    var h3 = line.match(/^###\s+(.+)/);
+    if (h3) { closeLists(); closeBlockquote(); html += '<h3>' + inlineFormat(h3[1]) + '</h3>'; continue; }
+    var h2 = line.match(/^##\s+(.+)/);
+    if (h2) { closeLists(); closeBlockquote(); html += '<h2>' + inlineFormat(h2[1]) + '</h2>'; continue; }
+    var h1 = line.match(/^#\s+(.+)/);
+    if (h1) { closeLists(); closeBlockquote(); html += '<h1>' + inlineFormat(h1[1]) + '</h1>'; continue; }
 
-    // paragraph
-    if (line.trim()) {
-      html += '<p>' + inlineFormat(line) + '</p>';
+    // ── blockquote ───────────────────────────────────────────
+    var bq = line.match(/^>\s?(.*)/);
+    if (bq) {
+      closeLists();
+      if (!inBlockquote) { html += '<blockquote>'; inBlockquote = true; }
+      html += '<p>' + inlineFormat(bq[1]) + '</p>';
+      continue;
     }
+    closeBlockquote();
+
+    // ── checkbox list ────────────────────────────────────────
+    var checkLi = line.match(/^[-*]\s+\[([x ])\]\s+(.+)/);
+    if (checkLi) {
+      if (listStack[listStack.length - 1] !== 'pending') {
+        closeLists();
+        html += '<ul class="pending-list">';
+        listStack.push('pending');
+      }
+      html += '<li class="' + (checkLi[1] === 'x' ? 'done' : '') + '">' + inlineFormat(checkLi[2]) + '</li>';
+      continue;
+    }
+
+    // ── unordered list ───────────────────────────────────────
+    var ulLi = line.match(/^[-*]\s+(.+)/);
+    if (ulLi) {
+      if (listStack[listStack.length - 1] !== 'ul') {
+        closeLists();
+        html += '<ul>';
+        listStack.push('ul');
+      }
+      html += '<li>' + inlineFormat(ulLi[1]) + '</li>';
+      continue;
+    }
+
+    // ── ordered list ─────────────────────────────────────────
+    var olLi = line.match(/^\d+\.\s+(.+)/);
+    if (olLi) {
+      if (listStack[listStack.length - 1] !== 'ol') {
+        closeLists();
+        html += '<ol>';
+        listStack.push('ol');
+      }
+      html += '<li>' + inlineFormat(olLi[1]) + '</li>';
+      continue;
+    }
+
+    // ── blank line — close any open lists ────────────────────
+    if (line.trim() === '') { closeLists(); continue; }
+
+    // ── paragraph ────────────────────────────────────────────
+    closeLists();
+    html += '<p>' + inlineFormat(line) + '</p>';
   }
-  if (inList) html += '</ul>';
+
+  // flush any open block at EOF
+  if (inCodeBlock) {
+    var langAttrEof = codeLang ? ' class="lang-' + esc(codeLang) + '"' : '';
+    html += '<pre><code' + langAttrEof + '>' + esc(codeBuffer.join('\n')) + '</code></pre>';
+  }
+  closeLists();
+  closeBlockquote();
   return html;
 }
 
 function inlineFormat(text) {
-  var s = esc(text);
-  s = s.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-  s = s.replace(/`(.+?)`/g, '<code>$1</code>');
+  // Order matters: protect code spans first so their contents are not
+  // re-formatted by later regexes.
+  var placeholders = [];
+  var s = String(text);
+  s = s.replace(/`([^`]+)`/g, function(_, code) {
+    placeholders.push('<code>' + esc(code) + '</code>');
+    return '\u0000' + (placeholders.length - 1) + '\u0000';
+  });
+
+  s = esc(s);
+
+  // links: [text](url) — open in new tab
+  s = s.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, function(_, label, url) {
+    return '<a href="' + url + '" target="_blank" rel="noopener">' + label + '</a>';
+  });
+
+  s = s.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  s = s.replace(/__([^_]+)__/g, '<strong>$1</strong>');
+  s = s.replace(/(^|[^*])\*([^*\n]+)\*/g, '$1<em>$2</em>');
+  s = s.replace(/(^|[^_])_([^_\n]+)_/g, '$1<em>$2</em>');
+  s = s.replace(/~~([^~]+)~~/g, '<del>$1</del>');
+
+  // restore code spans
+  s = s.replace(/\u0000(\d+)\u0000/g, function(_, idx) { return placeholders[parseInt(idx, 10)]; });
   return s;
 }
 
 function showDetail(unit) {
-  var detail = document.getElementById('detail');
+  var overlay = document.getElementById('detail-overlay');
   var content = document.getElementById('detail-content');
 
   var html = '<h2>' + esc(unit.title || unit.id) + '</h2>';
@@ -296,12 +410,24 @@ function showDetail(unit) {
   html += '<div class="md-content">' + renderMarkdown(unit.content) + '</div>';
 
   content.innerHTML = html;
-  detail.classList.add('visible');
-  detail.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  overlay.classList.add('visible');
+  overlay.scrollTop = 0;
+  document.body.style.overflow = 'hidden';
 }
 
-document.getElementById('detail-close').addEventListener('click', function() {
-  document.getElementById('detail').classList.remove('visible');
+function closeDetail() {
+  document.getElementById('detail-overlay').classList.remove('visible');
+  document.body.style.overflow = '';
+}
+
+document.getElementById('detail-close').addEventListener('click', closeDetail);
+document.getElementById('detail-overlay').addEventListener('click', function(ev) {
+  if (ev.target === this) closeDetail();
+});
+document.addEventListener('keydown', function(ev) {
+  if (ev.key === 'Escape' && document.getElementById('detail-overlay').classList.contains('visible')) {
+    closeDetail();
+  }
 });
 
 document.getElementById('domains').addEventListener('click', function(ev) {

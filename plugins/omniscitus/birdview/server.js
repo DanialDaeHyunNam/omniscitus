@@ -163,13 +163,13 @@ function parseIndexYaml(text) {
       current = {
         id: idMatch[1].trim(),
         domain: '', status: 'open', created: '', last_updated: '',
-        session_count: 0, title: ''
+        session_count: 0, title: '', file: ''
       };
       i++; continue;
     }
 
     if (current) {
-      var propMatch = line.match(/^\s+(domain|status|created|last_updated|session_count|title):\s*(.*)/);
+      var propMatch = line.match(/^\s+(domain|status|created|last_updated|session_count|title|file):\s*(.*)/);
       if (propMatch) {
         var k = propMatch[1];
         var v = propMatch[2].replace(/^["']|["']$/g, '').trim();
@@ -788,20 +788,39 @@ function handleApiUnits(req, res) {
   var text = safeReadFile(indexPath);
   var units = parseIndexYaml(text);
 
-  // Read unit file content for each unit
   var historyDir = path.join(OMNISCITUS_DIR, 'history');
   var domains = safeReadDir(historyDir).filter(function (d) {
     try { return fs.statSync(path.join(historyDir, d)).isDirectory(); } catch (e) { return false; }
   });
 
+  // Resolve unit.content from disk. Prefer the explicit `file:` field
+  // (added to the schema in 0.1.2). Fall back to a basename scan for
+  // _index.yaml entries written by older wrap-up runs that didn't
+  // record `file:`.
   for (var u = 0; u < units.length; u++) {
     var unit = units[u];
-    // find unit file across domains
+
+    if (unit.file) {
+      var direct = path.join(historyDir, unit.file);
+      var content = safeReadFile(direct);
+      if (content) {
+        unit.content = content;
+        continue;
+      }
+      // file field present but path is wrong — fall through to scan
+    }
+
+    // Basename fallback. Strip any leading "{domain}/" so legacy ids and
+    // domain-prefixed ids both reduce to the filename stem we expect on disk.
+    var idBasename = unit.id.indexOf('/') !== -1
+      ? unit.id.split('/').pop()
+      : unit.id;
+
     for (var d = 0; d < domains.length; d++) {
       var domainDir = path.join(historyDir, domains[d]);
       var files = safeReadDir(domainDir);
       for (var f = 0; f < files.length; f++) {
-        if (files[f].indexOf(unit.id) !== -1 && files[f].endsWith('.md')) {
+        if (files[f].indexOf(idBasename) !== -1 && files[f].endsWith('.md')) {
           unit.content = safeReadFile(path.join(domainDir, files[f]));
           unit.file = domains[d] + '/' + files[f];
           break;
