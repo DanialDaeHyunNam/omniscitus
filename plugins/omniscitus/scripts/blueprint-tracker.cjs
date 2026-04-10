@@ -4,6 +4,7 @@ var fs = require('fs');
 var path = require('path');
 var childProcess = require('child_process');
 var readStdin = require('./lib/stdin.cjs').readStdin;
+var resolver = require('./lib/blueprint-resolver.cjs');
 
 // --- Git identity ---
 
@@ -264,17 +265,14 @@ function findProjectRoot(dir) {
 }
 
 // --- Per-directory blueprint helpers ---
-
-function getBlueprintKey(relPath) {
-  var first = relPath.split(path.sep)[0];
-  // Root-level files (no directory) go into _root
-  if (first === relPath) return '_root';
-  return first;
-}
-
-function getBlueprintFilePath(omniscitusDir, key) {
-  return path.join(omniscitusDir, 'blueprints', key + '.yaml');
-}
+//
+// Path → blueprint file is delegated to lib/blueprint-resolver.cjs so
+// hooks, CLI commands, and the SessionStart warning all agree on the
+// layout. The resolver respects blueprint_splits in migrate-config.yaml
+// (RFC #10) for opt-in nested splits.
+//
+// The legacy flat helpers (getBlueprintKey/getBlueprintFilePath) are
+// gone. Callers should use resolver.resolveBlueprintFile() directly.
 
 // --- Main ---
 
@@ -319,9 +317,17 @@ async function main() {
     // Exit code 1 means NOT ignored → continue
   }
 
-  // Determine which per-directory blueprint file to use
-  var bpKey = getBlueprintKey(relPath);
-  var blueprintPath = getBlueprintFilePath(omniscitusDir, bpKey);
+  // Determine which blueprint file holds this entry. With
+  // blueprint_splits config the path may be nested (RFC #10), e.g.
+  // .omniscitus/blueprints/_claude/skills.yaml.
+  var splitConfig = resolver.loadSplitConfig(omniscitusDir);
+  var blueprintPath = resolver.resolveBlueprintFile(relPath, splitConfig, omniscitusDir);
+
+  // Ensure the parent directory exists for nested splits
+  var blueprintParent = path.dirname(blueprintPath);
+  if (!fs.existsSync(blueprintParent)) {
+    fs.mkdirSync(blueprintParent, { recursive: true });
+  }
 
   // Read existing or create new
   var data;

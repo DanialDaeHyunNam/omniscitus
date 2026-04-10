@@ -137,6 +137,15 @@ Get all files to track using `git ls-files` (respects .gitignore automatically):
 git ls-files --cached --others --exclude-standard | grep -v '^\.omniscitus/'
 ```
 
+**Note on nested splits (RFC #10)**: If the project's `migrate-config.yaml`
+declares `blueprint_splits` for any top-level directory (e.g.
+`.claude: 2`), generate the nested file layout from the start instead
+of the flat default. The `/blueprint-split` skill exists for the
+post-hoc case, but doing it during migration avoids a redundant flat→
+nested conversion. Each entry routes via `lib/blueprint-resolver.cjs`'s
+`resolveBlueprintFile()` — same logic the PostToolUse hook uses, so
+the migration output and the live hook output stay byte-compatible.
+
 **Exclude directories marked in Step 1.2**: If `.omniscitus/migrate-config.yaml` lists
 excluded directories, filter them out:
 
