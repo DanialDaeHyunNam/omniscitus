@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<script>
+(function() {
+  var DEMO_BASE = new URL('./data/', document.baseURI).href;
+  var ORIG_FETCH = window.fetch;
+  window.fetch = function(input, init) {
+    var url = (typeof input === 'string') ? input : (input && input.url) || '';
+    // Writes are no-ops in demo mode — keep the UI responsive but do nothing.
+    if (init && init.method && ['POST','PATCH','PUT','DELETE'].indexOf(init.method.toUpperCase()) !== -1) {
+      return Promise.resolve(new Response(JSON.stringify({ ok: true, demo: true }), {
+        status: 200, headers: { 'Content-Type': 'application/json' }
+      }));
+    }
+    // Rewrite /api/<name> → ./data/<name>.json
+    var m = url.match(/^\/api\/([^?#]+)/);
+    if (m) {
+      var file = m[1].replace(/\//g, '_') + '.json';
+      return ORIG_FETCH(DEMO_BASE + file, init).catch(function() {
+        return new Response('{}', { status: 200, headers: { 'Content-Type': 'application/json' } });
+      });
+    }
+    return ORIG_FETCH(input, init);
+  };
+})();
+</script>
+<style>
+/* Demo banner shown on every birdview page in the hosted preview */
+.omni-demo-banner {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 10000;
+  background: linear-gradient(90deg, rgba(124,58,237,0.18), rgba(110,231,183,0.12));
+  border-bottom: 1px solid rgba(124,58,237,0.35);
+  color: #e4e4e7; font-size: 12px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  padding: 8px 16px; display: flex; align-items: center; gap: 12px;
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+}
+.omni-demo-banner strong { color: #c4b5fd; font-weight: 600; }
+.omni-demo-banner .omni-demo-dot { width: 7px; height: 7px; border-radius: 50%; background: #6ee7b7; box-shadow: 0 0 8px #6ee7b7; flex-shrink: 0; }
+.omni-demo-banner a { color: #93c5fd; text-decoration: none; font-weight: 500; }
+.omni-demo-banner a:hover { text-decoration: underline; }
+.omni-demo-banner .omni-demo-sep { color: #3a3a4a; }
+body { padding-top: 36px; }
+</style>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
+<title>Blueprint - Birdview</title>
+<style>
+  *,*::before,*::after{box-sizing:border-box}
+  body{background:#0d0d0d;color:#e0e0e0;margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh}
+  .container{max-width:1100px;margin:0 auto;padding:24px}
+  a{color:#93c5fd;text-decoration:none}
+  a:hover{text-decoration:underline}
+
+  .header{display:flex;align-items:center;gap:16px;margin-bottom:24px;padding-bottom:16px;border-bottom:1px solid #252525}
+  .back{color:#9ca3af;font-size:14px;display:flex;align-items:center;gap:4px;text-decoration:none}
+  .back:hover{color:#e0e0e0}
+  .header h1{font-size:24px;font-weight:700;margin:0;color:#fff}
+  .header .meta{color:#6b7280;font-size:13px;margin-left:auto}
+
+  .toolbar{display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap;align-items:center}
+  .search{background:#1a1a1a;border:1px solid #333;border-radius:8px;padding:8px 14px;color:#e0e0e0;font-size:14px;flex:1;min-width:200px;outline:none}
+  .search:focus{border-color:#7c3aed}
+  .search::placeholder{color:#6b7280}
+  .tab-group{display:flex;gap:2px;background:#1a1a1a;border-radius:8px;padding:3px}
+  .tab{padding:6px 14px;border-radius:6px;font-size:13px;cursor:pointer;color:#9ca3af;border:none;background:transparent;transition:all 0.15s}
+  .tab:hover{color:#e0e0e0}
+  .tab.active{background:#2e1065;color:#c4b5fd}
+
+  .card{background:#1a1a1a;border-radius:12px;padding:8px;border:1px solid #252525}
+
+  .badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:500}
+  .badge-active{background:#064e3b;color:#6ee7b7}
+  .badge-deleted{background:#450a0a;color:#f87171}
+  .badge-claude{background:#2e1065;color:#c4b5fd}
+  .badge-user{background:#1e3a5f;color:#93c5fd}
+  .badge-unknown{background:#1f1f23;color:#6b7280}
+
+  /* ── Tree view ──────────────────────────────────────── */
+  .tree-node{user-select:none;margin:0}
+  /* Fixed-height rows: 22px for both folders and files. badge content
+     is forced to fit inside that box (line-height:1, no vertical padding)
+     so the presence of badges doesn't push the row taller than a folder
+     row that has no badges. */
+  .tree-row{display:flex;align-items:center;gap:6px;padding:0 8px;height:22px;border-radius:5px;cursor:pointer;transition:background 0.1s;font-size:12.5px;line-height:1.2;min-height:0}
+  .tree-row:hover{background:#222}
+  .tree-row.match{background:rgba(124,58,237,0.10)}
+  .tree-row .twisty{width:10px;height:12px;display:inline-flex;align-items:center;justify-content:center;color:#6b7280;font-size:9px;flex-shrink:0;transition:transform 0.15s;line-height:1}
+  .tree-row .twisty.empty{visibility:hidden}
+  .tree-row.expanded > .twisty{transform:rotate(90deg)}
+  .tree-row .icon{width:14px;height:14px;text-align:center;flex-shrink:0;font-size:11px;color:#6b7280;line-height:14px;display:inline-block;vertical-align:middle}
+  .tree-row.folder .icon{color:#fbbf24}
+  .tree-row .label{font-family:'SF Mono',SFMono-Regular,Menlo,monospace;font-size:12px;color:#d1d5db;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:1.3}
+  .tree-row.folder .label{color:#fde68a;font-weight:500}
+  .folder-summary{margin:0 0 2px 28px;padding:1px 8px;font-size:11px;color:#9ca3af;font-style:italic;line-height:1.4;border-left:2px solid #2e1065}
+  .folder-summary.stale{color:#6b7280;border-left-color:#3b1d6e}
+  .folder-summary .stale-tag{display:inline-block;margin-left:6px;font-size:9px;color:#fbbf24;font-style:normal;text-transform:uppercase;letter-spacing:0.5px;font-weight:600;opacity:0.7}
+  .folder-summary.empty{color:#4b5563;font-style:normal;opacity:0.6}
+  .tree-row .meta{display:flex;align-items:center;gap:8px;font-size:11px;color:#6b7280;flex-shrink:0;font-variant-numeric:tabular-nums;line-height:1}
+  .tree-row .meta .badge{line-height:1;padding:2px 6px;font-size:10px;display:inline-flex;align-items:center;height:14px}
+  .tree-row .meta .count{font-weight:600;color:#9ca3af}
+  .tree-row .meta .date{white-space:nowrap}
+  .tree-children{display:none;margin-left:14px;border-left:1px dashed #2a2a2e;padding-left:6px;padding-top:0;padding-bottom:0}
+  .tree-node.expanded > .tree-children{display:block}
+  .tree-node.empty .tree-row{opacity:0.5}
+
+  .file-changelog{margin:4px 0 8px 28px;background:#0a0a0a;border:1px solid #252525;border-radius:8px;padding:12px 16px;display:none}
+  .tree-node.changelog-open > .file-changelog{display:block}
+  .changelog-purpose{font-size:12px;color:#c4b5fd;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid #1f1f23;font-style:italic}
+  .changelog-title{font-size:11px;font-weight:600;color:#9ca3af;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px}
+  .timeline{position:relative;padding-left:18px}
+  .timeline::before{content:'';position:absolute;left:5px;top:4px;bottom:4px;width:2px;background:#333}
+  .tl-entry{position:relative;padding:4px 0 10px 10px;font-size:11.5px;color:#9ca3af}
+  .tl-entry::before{content:'';position:absolute;left:-3px;top:7px;width:8px;height:8px;border-radius:50%;background:#7c3aed;border:2px solid #0d0d0d;z-index:1}
+  .tl-date{color:#6b7280;margin-right:8px;font-variant-numeric:tabular-nums}
+  .tl-action{margin:0 4px}
+  .tl-source{color:#4b5563}
+  .tl-message{display:block;margin-top:2px;color:#d1d5db}
+  .tl-message a{color:#7dd3fc;text-decoration:none;border-bottom:1px dotted #4b5563}
+  .tl-message a:hover{color:#bae6fd;border-bottom-color:#7dd3fc}
+
+  .empty{text-align:center;padding:48px 24px;color:#6b7280}
+  .empty-icon{font-size:32px;margin-bottom:12px}
+
+  .toast-container{position:fixed;top:16px;right:16px;z-index:1000;display:flex;flex-direction:column;gap:8px}
+  .toast{padding:10px 16px;border-radius:8px;font-size:13px;animation:toastIn 0.3s ease;background:#1a1a1a;border:1px solid #333}
+  .toast-error{border-color:#7f1d1d;color:#f87171}
+  .toast-info{border-color:#1e3a5f;color:#93c5fd}
+  @keyframes toastIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+
+  .count{font-size:13px;color:#6b7280;margin-left:auto;white-space:nowrap}
+
+  /* ── Review System ── */
+  .review-fab{position:fixed;bottom:24px;right:24px;width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,#7c3aed,#6366f1);border:none;color:white;font-size:20px;cursor:pointer;box-shadow:0 4px 20px rgba(124,58,237,0.4);z-index:900;display:flex;align-items:center;justify-content:center;transition:transform 0.15s}
+  .review-fab:hover{transform:scale(1.1)}
+  .review-fab .badge-count{position:absolute;top:-4px;right:-4px;background:#f87171;color:white;font-size:11px;min-width:18px;height:18px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-weight:600}
+  .review-panel{position:fixed;top:0;right:-400px;width:400px;height:100vh;background:#111;border-left:1px solid #252525;z-index:1000;transition:right 0.25s ease;display:flex;flex-direction:column}
+  .review-panel.open{right:0}
+  .review-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:999;display:none}
+  .review-overlay.open{display:block}
+  .review-panel-header{padding:16px 20px;border-bottom:1px solid #252525;display:flex;align-items:center;gap:10px}
+  .review-panel-header h3{font-size:16px;font-weight:600;color:#fff;margin:0;flex:1}
+  .review-panel-close{background:none;border:none;color:#6b7280;font-size:20px;cursor:pointer;padding:0}
+  .review-panel-close:hover{color:#e0e0e0}
+  .review-list{flex:1;overflow-y:auto;padding:12px 16px}
+  .review-item{background:#1a1a1a;border:1px solid #252525;border-radius:8px;padding:12px;margin-bottom:8px;cursor:pointer;transition:opacity 0.15s}
+  .review-item.resolved{opacity:0.5}
+  .review-item.resolved .review-comment{text-decoration:line-through}
+  .review-author{font-size:12px;font-weight:600;color:#c4b5fd}
+  .review-time{font-size:11px;color:#6b7280;margin-left:8px}
+  .review-context{font-size:11px;color:#9ca3af;margin:4px 0;font-family:'SF Mono',SFMono-Regular,Menlo,monospace}
+  .review-comment{font-size:13px;color:#d1d5db;line-height:1.5;margin-top:4px}
+  .review-resolved-tag{font-size:10px;color:#6ee7b7;margin-left:6px}
+  .review-form{border-top:1px solid #252525;padding:16px;display:flex;flex-direction:column;gap:10px}
+  .review-form input,.review-form textarea{width:100%;padding:8px 10px;background:#1a1a1a;border:1px solid #333;border-radius:6px;color:#e0e0e0;font-size:13px;font-family:inherit;outline:none}
+  .review-form input:focus,.review-form textarea:focus{border-color:#7c3aed}
+  .review-form textarea{resize:vertical;min-height:60px}
+  .review-form button{padding:8px 16px;background:#7c3aed;color:#fff;border:none;border-radius:6px;font-size:13px;cursor:pointer;font-weight:500}
+  .review-form button:hover{background:#6d28d9}
+  .review-form button:disabled{background:#3b1d6e;color:#6b7280;cursor:not-allowed}
+  .review-empty{text-align:center;padding:24px;color:#6b7280;font-size:13px}
+</style>
+</head>
+<body>
+
+<div class="omni-demo-banner">
+  <span class="omni-demo-dot"></span>
+  <span>You're exploring a <strong>live demo</strong> of birdview, running against the omniscitus repo.</span>
+  <span class="omni-demo-sep">&bull;</span>
+  <a href="/" title="Back to landing page">&larr; Back to omniscitus.vercel.app</a>
+</div>
+
+<div class="container">
+  <div class="header">
+    <a href="/" class="back">&larr; Birdview</a>
+    <h1>&#x1F4D8; Blueprint</h1>
+    <span class="meta" id="updated"></span>
+  </div>
+
+  <div class="toolbar">
+    <input type="text" class="search" id="search" placeholder="Search by file path...">
+    <div class="tab-group">
+      <button class="tab active" data-filter="all">All</button>
+      <button class="tab" data-filter="active">Active</button>
+      <button class="tab" data-filter="deleted">Deleted</button>
+    </div>
+    <span class="count" id="count"></span>
+  </div>
+
+  <div class="card">
+    <div id="tree"></div>
+    <div class="empty" id="empty" style="display:none">
+      <div class="empty-icon">&#x1F4ED;</div>
+      <p>No blueprint entries found.</p>
+    </div>
+  </div>
+</div>
+
+<div class="toast-container" id="toasts"></div>
+
+<!-- Review FAB + Panel -->
+<button class="review-fab" id="review-fab">&#x1F4AC;<span class="badge-count" id="review-count" style="display:none">0</span></button>
+<div class="review-overlay" id="review-overlay"></div>
+<div class="review-panel" id="review-panel">
+  <div class="review-panel-header"><h3>Reviews for this page</h3><button class="review-panel-close" id="review-panel-close">&times;</button></div>
+  <div class="review-list" id="review-list"></div>
+  <div class="review-form" id="review-form">
+    <input type="text" id="review-context" placeholder="Context (file path, etc.)" />
+    <input type="text" id="review-author" placeholder="Your name" />
+    <textarea id="review-comment" placeholder="Leave a review or comment..."></textarea>
+    <button id="review-submit">Submit Review</button>
+  </div>
+</div>
+
+<script>
+function esc(s) {
+  if (s == null) return '';
+  var div = document.createElement('div');
+  div.appendChild(document.createTextNode(String(s)));
+  return div.innerHTML;
+}
+function escAttr(s) {
+  return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function toast(msg, type) {
+  var el = document.createElement('div');
+  el.className = 'toast toast-' + (type || 'info');
+  el.textContent = msg;
+  document.getElementById('toasts').appendChild(el);
+  setTimeout(function() { el.remove(); }, 4000);
+}
+
+var data = null;
+var filter = 'all';
+var search = '';
+var changelogOpen = {};       // file path → bool, per-file changelog expansion
+var folderCollapsed = {};     // folder path → bool, true means collapsed
+
+function formatDate(d) {
+  if (!d) return '-';
+  var s = String(d);
+  if (s.length > 10) return s.slice(0, 10) + ' ' + s.slice(11, 16);
+  return s;
+}
+
+function sourceBadgeClass(source) {
+  if (!source) return 'unknown';
+  var s = String(source).toLowerCase();
+  if (s.indexOf('claude') !== -1) return 'claude';
+  if (s.indexOf('user') !== -1) return 'user';
+  return 'unknown';
+}
+
+/* Linkify commit messages by detecting #NN references and pointing
+ * them at the repo's PR. The repo URL comes from the API response
+ * (server.js detects it via `git remote get-url origin` once at
+ * startup). When repo_url is missing the message is just escaped.
+ */
+function linkifyCommit(msg, repoUrl) {
+  if (!msg) return '';
+  var safe = esc(msg);
+  if (!repoUrl) return safe;
+  return safe.replace(/#(\d+)/g, function(match, num) {
+    return '<a href="' + repoUrl + '/pull/' + num + '" target="_blank" rel="noopener">' + match + '</a>';
+  });
+}
+
+/* ── Tree builder ─────────────────────────────────────────────────
+ * Take a flat { path: entry } map and build a hierarchical tree.
+ * Each folder node carries aggregate stats (file count, latest date)
+ * computed bottom-up so the UI can show "37 files · 2026-04-08"
+ * without rescanning children on every render.
+ */
+function buildTree(filesMap, statusFilter, searchQuery) {
+  var root = { type: 'folder', name: '', path: '', children: {}, _fileCount: 0, _latest: '', _hasMatch: !searchQuery };
+
+  var paths = Object.keys(filesMap);
+  for (var i = 0; i < paths.length; i++) {
+    var p = paths[i];
+    var entry = filesMap[p];
+
+    // Apply status filter at the file level — folders are pruned later
+    if (statusFilter !== 'all' && entry.status !== statusFilter) continue;
+
+    var matchesSearch = !searchQuery || p.toLowerCase().indexOf(searchQuery.toLowerCase()) !== -1;
+
+    var parts = p.split('/');
+    var node = root;
+    var accPath = '';
+
+    for (var j = 0; j < parts.length - 1; j++) {
+      var name = parts[j];
+      accPath = accPath ? accPath + '/' + name : name;
+      if (!node.children[name]) {
+        node.children[name] = {
+          type: 'folder',
+          name: name,
+          path: accPath,
+          children: {},
+          _fileCount: 0,
+          _latest: '',
+          _hasMatch: false
+        };
+      }
+      node = node.children[name];
+    }
+
+    var fname = parts[parts.length - 1];
+    node.children[fname] = {
+      type: 'file',
+      name: fname,
+      path: p,
+      entry: entry,
+      _matches: matchesSearch
+    };
+  }
+
+  // Bottom-up: compute folder stats and propagate match flags
+  function walk(folder) {
+    var keys = Object.keys(folder.children);
+    var fileCount = 0;
+    var latest = '';
+    var anyMatch = false;
+    for (var k = 0; k < keys.length; k++) {
+      var child = folder.children[keys[k]];
+      if (child.type === 'folder') {
+        walk(child);
+        fileCount += child._fileCount;
+        if (child._latest > latest) latest = child._latest;
+        if (child._hasMatch) anyMatch = true;
+      } else {
+        fileCount += 1;
+        var lm = (child.entry && child.entry.last_modified) || '';
+        if (lm > latest) latest = lm;
+        if (child._matches) anyMatch = true;
+      }
+    }
+    folder._fileCount = fileCount;
+    folder._latest = latest;
+    folder._hasMatch = anyMatch || !searchQuery;
+  }
+  walk(root);
+
+  return root;
+}
+
+/* ── Tree renderer ───────────────────────────────────────────────
+ * Recursive HTML emission. Folders are collapsible via .tree-node
+ * `expanded` class. Files have an inline changelog drawer toggled
+ * by .tree-node `changelog-open` class. Search hits get .match
+ * highlight; their ancestor folders auto-expand.
+ */
+function renderTree(node, depth) {
+  var keys = Object.keys(node.children).sort(function(a, b) {
+    var ca = node.children[a], cb = node.children[b];
+    if (ca.type !== cb.type) return ca.type === 'folder' ? -1 : 1;
+    return a.localeCompare(b);
+  });
+  if (keys.length === 0) return '';
+
+  var html = '';
+  for (var i = 0; i < keys.length; i++) {
+    var child = node.children[keys[i]];
+
+    if (child.type === 'folder') {
+      if (!child._hasMatch || child._fileCount === 0) continue;
+      // Auto-expand: if there's an active search, force open. Otherwise
+      // honor user toggle, with a sensible default per depth.
+      var collapsedState = folderCollapsed[child.path];
+      var defaultCollapsed = depth >= 1;
+      var isExpanded;
+      if (search) {
+        isExpanded = true;
+      } else if (collapsedState === undefined) {
+        isExpanded = !defaultCollapsed;
+      } else {
+        isExpanded = !collapsedState;
+      }
+
+      html += '<div class="tree-node ' + (isExpanded ? 'expanded' : '') + '" data-folder="' + escAttr(child.path) + '">';
+      html += '<div class="tree-row folder ' + (isExpanded ? 'expanded' : '') + '" data-folder="' + escAttr(child.path) + '">';
+      html += '<span class="twisty">&#9656;</span>';
+      html += '<span class="icon">&#x1F4C1;</span>';
+      html += '<span class="label">' + esc(child.name) + '/</span>';
+      html += '<span class="meta">';
+      html += '<span class="count">' + child._fileCount + ' file' + (child._fileCount !== 1 ? 's' : '') + '</span>';
+      if (child._latest) html += '<span class="date">' + esc(child._latest) + '</span>';
+      html += '</span>';
+      html += '</div>';
+      // Folder summary line — pulled from blueprints/_summaries.yaml.
+      // Renders only when the folder has 2+ files (matching the migrate
+      // skill's "skip noise folders" rule). Stale entries are dimmed
+      // with a small badge so the user knows the description may not
+      // reflect the current contents.
+      var summary = data && data.summaries && data.summaries[child.path];
+      if (summary && summary.description && child._fileCount >= 2) {
+        var summaryClass = 'folder-summary' + (summary.stale ? ' stale' : '');
+        html += '<div class="' + summaryClass + '">' + esc(summary.description);
+        if (summary.stale) {
+          html += '<span class="stale-tag" title="Files in this folder were edited after this summary was written. /wrap-up will refresh it on the next session.">&#9881; needs refresh</span>';
+        }
+        html += '</div>';
+      }
+      html += '<div class="tree-children">' + renderTree(child, depth + 1) + '</div>';
+      html += '</div>';
+    } else {
+      // file
+      if (search && !child._matches) continue;
+      var e = child.entry;
+      var isOpen = !!changelogOpen[child.path];
+      html += '<div class="tree-node ' + (isOpen ? 'changelog-open' : '') + '" data-file="' + escAttr(child.path) + '">';
+      html += '<div class="tree-row file ' + (search && child._matches ? 'match' : '') + '" data-file="' + escAttr(child.path) + '">';
+      html += '<span class="twisty empty"></span>';
+      html += '<span class="icon">&#x1F4C4;</span>';
+      html += '<span class="label" title="' + escAttr(e.purpose || child.path) + '">' + esc(child.name) + '</span>';
+      html += '<span class="meta">';
+      html += '<span class="badge badge-' + esc(e.status || 'active') + '">' + esc(e.status || 'active') + '</span>';
+      html += '<span class="badge badge-' + sourceBadgeClass(e.source) + '">' + esc(e.source || 'unknown') + '</span>';
+      html += '<span class="count">' + esc(e.change_count || 0) + '&times;</span>';
+      html += '<span class="date">' + esc(formatDate(e.last_modified)) + '</span>';
+      html += '</span>';
+      html += '</div>';
+
+      // changelog drawer — purpose lives here now (less prominent than
+      // a row column, more visible than a tooltip)
+      var hasDrawerContent = e.purpose || (e.change_log && e.change_log.length > 0);
+      if (hasDrawerContent) {
+        html += '<div class="file-changelog">';
+        if (e.purpose) {
+          html += '<div class="changelog-purpose">' + esc(e.purpose) + '</div>';
+        }
+        if (e.change_log && e.change_log.length > 0) {
+          html += '<div class="changelog-title">Change Log &middot; ' + e.change_log.length + ' entries</div>';
+          html += '<div class="timeline">';
+          for (var c = 0; c < e.change_log.length; c++) {
+            var cl = e.change_log[c];
+            html += '<div class="tl-entry">';
+            html += '<span class="tl-date">' + esc(formatDate(cl.date)) + '</span>';
+            html += '<span class="tl-action badge badge-' + (cl.action === 'edit' ? 'active' : 'claude') + '">' + esc(cl.action || 'write') + '</span>';
+            html += '<span class="tl-source">' + esc(cl.source) + '</span>';
+            if (cl.message) html += '<span class="tl-message">' + linkifyCommit(cl.message, data && data.repo_url) + '</span>';
+            html += '</div>';
+          }
+          html += '</div>';
+        }
+        html += '</div>';
+      }
+      html += '</div>';
+    }
+  }
+  return html;
+}
+
+function render() {
+  var treeEl = document.getElementById('tree');
+  var empty = document.getElementById('empty');
+  var countEl = document.getElementById('count');
+  if (!data || !data.files) { empty.style.display = ''; treeEl.innerHTML = ''; countEl.textContent = ''; return; }
+
+  var totalFiles = Object.keys(data.files).length;
+  var root = buildTree(data.files, filter, search);
+
+  countEl.textContent = root._fileCount + ' of ' + totalFiles + ' files';
+
+  if (root._fileCount === 0) {
+    empty.style.display = '';
+    treeEl.innerHTML = '';
+    return;
+  }
+  empty.style.display = 'none';
+  treeEl.innerHTML = renderTree(root, 0);
+}
+
+document.getElementById('tree').addEventListener('click', function(ev) {
+  var folderRow = ev.target.closest('.tree-row.folder');
+  if (folderRow) {
+    var path = folderRow.getAttribute('data-folder');
+    // Read the current visual state from the DOM and flip it. Writing
+    // an explicit boolean here overrides the depth-based default in the
+    // renderer, so user intent always wins.
+    var node = folderRow.parentElement;
+    var isCurrentlyExpanded = node.classList.contains('expanded');
+    folderCollapsed[path] = isCurrentlyExpanded;
+    render();
+    return;
+  }
+  var fileRow = ev.target.closest('.tree-row.file');
+  if (fileRow) {
+    var f = fileRow.getAttribute('data-file');
+    changelogOpen[f] = !changelogOpen[f];
+    render();
+  }
+});
+
+document.getElementById('search').addEventListener('input', function(ev) {
+  search = ev.target.value;
+  render();
+});
+
+document.querySelector('.tab-group').addEventListener('click', function(ev) {
+  var tab = ev.target.closest('.tab');
+  if (!tab) return;
+  document.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('active'); });
+  tab.classList.add('active');
+  filter = tab.getAttribute('data-filter');
+  render();
+});
+
+fetch('/api/blueprints')
+  .then(function(r) { return r.json(); })
+  .then(function(d) {
+    data = d;
+    var updatedEl = document.getElementById('updated');
+    if (d.updated) updatedEl.textContent = 'Updated: ' + formatDate(d.updated);
+    render();
+  })
+  .catch(function(err) { toast('Failed to load blueprints: ' + err.message, 'error'); });
+
+/* ════════════════════════════════════════════
+   Review System
+   ════════════════════════════════════════════ */
+var REVIEW_PAGE = 'blueprint';
+var _reviews = [];
+
+function relativeTime(ts) {
+  if (!ts) return '';
+  var diff = Date.now() - new Date(ts).getTime();
+  var mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return mins + 'm ago';
+  var hrs = Math.floor(mins / 60);
+  if (hrs < 24) return hrs + 'h ago';
+  var days = Math.floor(hrs / 24);
+  return days + 'd ago';
+}
+
+function renderReviews() {
+  var list = document.getElementById('review-list');
+  var filtered = _reviews.filter(function(r) { return r.page === REVIEW_PAGE; });
+  var countEl = document.getElementById('review-count');
+  if (filtered.length > 0) { countEl.textContent = filtered.length; countEl.style.display = 'flex'; }
+  else { countEl.style.display = 'none'; }
+  if (filtered.length === 0) { list.innerHTML = '<div class="review-empty">No reviews yet for this page.</div>'; return; }
+  var html = '';
+  for (var i = 0; i < filtered.length; i++) {
+    var r = filtered[i];
+    html += '<div class="review-item' + (r.resolved ? ' resolved' : '') + '" data-review-id="' + escAttr(r._id) + '" data-resolved="' + (r.resolved ? 'true' : 'false') + '">';
+    html += '<span class="review-author">' + esc(r.author) + '</span>';
+    html += '<span class="review-time">' + esc(relativeTime(r.timestamp)) + '</span>';
+    if (r.resolved) html += '<span class="review-resolved-tag">[resolved]</span>';
+    if (r.context) html += '<div class="review-context">' + esc(r.context) + '</div>';
+    html += '<div class="review-comment">' + esc(r.comment) + '</div>';
+    html += '</div>';
+  }
+  list.innerHTML = html;
+}
+
+function loadReviews() {
+  fetch('/api/reviews').then(function(r) { return r.json(); }).then(function(d) { _reviews = d.reviews || []; renderReviews(); }).catch(function() {});
+}
+
+document.getElementById('review-list').addEventListener('click', function(ev) {
+  var item = ev.target.closest('.review-item');
+  if (!item) return;
+  var id = item.getAttribute('data-review-id');
+  var isResolved = item.getAttribute('data-resolved') === 'true';
+  fetch('/api/reviews/' + encodeURIComponent(id), { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ resolved: !isResolved }) }).then(function() { loadReviews(); }).catch(function() {});
+});
+
+document.getElementById('review-submit').addEventListener('click', function() {
+  var context = document.getElementById('review-context').value.trim();
+  var author = document.getElementById('review-author').value.trim() || 'anonymous';
+  var comment = document.getElementById('review-comment').value.trim();
+  if (!comment) { toast('Please enter a comment', 'error'); return; }
+  localStorage.setItem('birdview-review-author', author);
+  var btn = document.getElementById('review-submit');
+  btn.disabled = true; btn.textContent = 'Submitting...';
+  fetch('/api/reviews', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ page: REVIEW_PAGE, context: context, author: author, comment: comment }) })
+  .then(function(r) { return r.json(); }).then(function() { document.getElementById('review-context').value = ''; document.getElementById('review-comment').value = ''; btn.disabled = false; btn.textContent = 'Submit Review'; toast('Review submitted', 'success'); loadReviews(); })
+  .catch(function(err) { btn.disabled = false; btn.textContent = 'Submit Review'; toast('Failed: ' + err.message, 'error'); });
+});
+
+document.getElementById('review-fab').addEventListener('click', function() { document.getElementById('review-panel').classList.add('open'); document.getElementById('review-overlay').classList.add('open'); renderReviews(); });
+document.getElementById('review-panel-close').addEventListener('click', function() { document.getElementById('review-panel').classList.remove('open'); document.getElementById('review-overlay').classList.remove('open'); });
+document.getElementById('review-overlay').addEventListener('click', function() { document.getElementById('review-panel').classList.remove('open'); document.getElementById('review-overlay').classList.remove('open'); });
+
+var savedAuthor = localStorage.getItem('birdview-review-author');
+if (savedAuthor) document.getElementById('review-author').value = savedAuthor;
+loadReviews();
+</script>
+</body>
+</html>
