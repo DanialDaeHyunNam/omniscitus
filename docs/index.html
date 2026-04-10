@@ -1059,9 +1059,9 @@ section {
         <span class="terminal-title">Terminal</span>
       </div>
       <div class="terminal-body">
-        <div><span class="terminal-prompt"><span class="symbol">$</span></span> <span class="terminal-cmd">claude plugin install omniscitus</span></div>
+        <div><span class="terminal-prompt"><span class="symbol">&gt;</span></span> <span class="terminal-cmd">/plugin install omniscitus@omniscitus</span></div>
         <div class="terminal-output"><span class="check">&#10003;</span> hooks registered &mdash; world model active</div>
-        <div style="margin-top:8px;"><span class="terminal-prompt"><span class="symbol">$</span></span> <span class="terminal-cmd">/wrap-up</span></div>
+        <div style="margin-top:8px;"><span class="terminal-prompt"><span class="symbol">&gt;</span></span> <span class="terminal-cmd">/wrap-up</span></div>
         <div class="terminal-output"><span class="check">&#10003;</span> 2 units updated &mdash; 3 purposes filled</div>
       </div>
     </div>
@@ -1397,21 +1397,22 @@ section {
 <section class="install" id="install">
   <div class="container">
     <span class="section-label">Get Started</span>
-    <h2 class="section-title">One command. That's it.</h2>
-    <p class="section-subtitle">Start working &mdash; omniscitus activates automatically. Restart Claude Code after install.</p>
+    <h2 class="section-title">Two commands. Inside Claude Code.</h2>
+    <p class="section-subtitle">Restart Claude Code after install &mdash; omniscitus activates automatically.</p>
 
     <div class="install-terminal">
       <div class="terminal-bar">
         <span class="terminal-dot red"></span>
         <span class="terminal-dot yellow"></span>
         <span class="terminal-dot green"></span>
-        <span class="terminal-title">Terminal</span>
+        <span class="terminal-title">Claude Code</span>
+        <button class="install-copy" id="copy-btn" onclick="copyInstall()" style="margin-left:auto">Copy</button>
       </div>
       <div class="terminal-body">
-        <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
-          <span><span class="terminal-prompt"><span class="symbol">$</span></span> <span class="terminal-cmd">claude plugins:marketplace add omniscitus https://github.com/DanialDaeHyunNam/omniscitus && claude plugin install omniscitus@omniscitus</span></span>
-          <button class="install-copy" id="copy-btn" onclick="copyInstall()">Copy</button>
-        </div>
+        <div style="color:#6b7280;font-size:12px;margin-bottom:6px"># 1. Add the marketplace (one-time)</div>
+        <div><span class="terminal-prompt"><span class="symbol">&gt;</span></span> <span class="terminal-cmd">/plugin marketplace add DanialDaeHyunNam/omniscitus</span></div>
+        <div style="color:#6b7280;font-size:12px;margin:12px 0 6px"># 2. Install the plugin</div>
+        <div><span class="terminal-prompt"><span class="symbol">&gt;</span></span> <span class="terminal-cmd">/plugin install omniscitus@omniscitus</span></div>
       </div>
     </div>
 
@@ -1503,9 +1504,11 @@ const observer = new IntersectionObserver((entries) => {
 
 reveals.forEach(el => observer.observe(el));
 
-// Copy install command
+// Copy install commands — both in one clipboard payload so the user
+// can paste into Claude Code and run them in sequence.
 function copyInstall() {
-  navigator.clipboard.writeText('claude plugins:marketplace add omniscitus https://github.com/DanialDaeHyunNam/omniscitus && claude plugin install omniscitus@omniscitus').then(() => {
+  const commands = '/plugin marketplace add DanialDaeHyunNam/omniscitus\n/plugin install omniscitus@omniscitus';
+  navigator.clipboard.writeText(commands).then(() => {
     const btn = document.getElementById('copy-btn');
     btn.textContent = 'Copied!';
     setTimeout(() => { btn.textContent = 'Copy'; }, 2000);

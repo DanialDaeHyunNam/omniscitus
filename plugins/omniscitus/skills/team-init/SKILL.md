@@ -66,9 +66,9 @@ If the omniscitus plugin is not installed:
 ```
 📦 This project uses omniscitus for codebase tracking.
 
-Install it:
-  claude plugins:marketplace add omniscitus https://github.com/DanialDaeHyunNam/omniscitus
-  claude plugin install omniscitus@omniscitus
+Install it (run these inside Claude Code):
+  /plugin marketplace add DanialDaeHyunNam/omniscitus
+  /plugin install omniscitus@omniscitus
 
 After installing, restart Claude Code for hooks to activate.
 ```
@@ -93,8 +93,8 @@ Check that PostToolUse hooks are active by examining the plugin state.
 If hooks aren't firing, suggest:
 
 ```
-Try restarting Claude Code, or run:
-  claude plugin install omniscitus@omniscitus --force
+Try restarting Claude Code, or run inside a Claude session:
+  /plugin install omniscitus@omniscitus --force
 ```
 
 ### Step 5: Migrate Legacy Format (if needed)
@@ -121,9 +121,9 @@ This project uses [omniscitus](https://github.com/DanialDaeHyunNam/omniscitus) t
 
 **First time?** Run `/team-init` to set up omniscitus on your machine.
 
-**Quick setup:**
-1. `claude plugins:marketplace add omniscitus https://github.com/DanialDaeHyunNam/omniscitus`
-2. `claude plugin install omniscitus@omniscitus`
+**Quick setup** (run inside Claude Code):
+1. `/plugin marketplace add DanialDaeHyunNam/omniscitus`
+2. `/plugin install omniscitus@omniscitus`
 3. Ensure `git config user.name` is set (used for change attribution)
 4. Restart Claude Code
 

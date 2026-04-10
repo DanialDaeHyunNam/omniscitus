@@ -19,7 +19,7 @@ updated: "2026-04-10"
     source: claude
     created: "2026-04-04"
     last_modified: "2026-04-10"
-    change_count: 4
+    change_count: 5
     purpose: ",*::before,*::after{box-sizing:border-box}"
   "plugins/omniscitus/birdview/favicon-16.png":
     status: active
@@ -54,7 +54,7 @@ updated: "2026-04-10"
     source: claude
     created: "2026-04-04"
     last_modified: "2026-04-10"
-    change_count: 9
+    change_count: 10
     purpose: "Default 3777, overridable via BIRDVIEW_PORT so the skill can fall back"
   "plugins/omniscitus/birdview/tests.html":
     status: active
@@ -76,7 +76,7 @@ updated: "2026-04-10"
     created: "2026-04-04"
     last_modified: "2026-04-10"
     change_count: 5
-    purpose: ""
+    purpose: "-- Git identity ---"
   "plugins/omniscitus/scripts/blueprint-warn.cjs":
     status: active
     source: claude
@@ -104,88 +104,88 @@ updated: "2026-04-10"
     created: "2026-04-04"
     last_modified: "2026-04-08"
     change_count: 1
-    purpose: "!/usr/bin/env bash"
+    purpose: "Omniscitus status line helper."
   "plugins/omniscitus/skills/birdview/SKILL.md":
     status: active
     source: claude
     created: "2026-04-04"
     last_modified: "2026-04-10"
     change_count: 3
-    purpose: "-"
+    purpose: "Start the Birdview admin dashboard at localhost:3777. Visual browser for"
   "plugins/omniscitus/skills/blueprint-merge/SKILL.md":
     status: active
     source: claude
     created: "2026-04-04"
     last_modified: "2026-04-10"
     change_count: 1
-    purpose: "-"
+    purpose: "Inverse of /blueprint-split: collapse a nested blueprint directory"
   "plugins/omniscitus/skills/blueprint-split/SKILL.md":
     status: active
     source: claude
     created: "2026-04-04"
     last_modified: "2026-04-10"
     change_count: 1
-    purpose: "-"
+    purpose: "Convert a flat top-level blueprint file into a nested directory of"
   "plugins/omniscitus/skills/blueprint-sync/SKILL.md":
     status: active
     source: claude
     created: "2026-04-04"
     last_modified: "2026-04-08"
     change_count: 3
-    purpose: "-"
+    purpose: "Sync blueprints/ with actual filesystem. Detects user-created files"
   "plugins/omniscitus/skills/cloud-setup/SKILL.md":
     status: active
     source: claude
     created: "2026-04-04"
     last_modified: "2026-04-08"
     change_count: 2
-    purpose: "-"
+    purpose: "Generate configuration and architecture guide for transitioning omniscitus"
   "plugins/omniscitus/skills/follow-up/SKILL.md":
     status: active
     source: claude
     created: "2026-04-04"
     last_modified: "2026-04-04"
     change_count: 1
-    purpose: "-"
+    purpose: "Review pending tasks across all open units. Checks code state to detect"
   "plugins/omniscitus/skills/migrate/SKILL.md":
     status: active
     source: claude
     created: "2026-04-04"
     last_modified: "2026-04-10"
     change_count: 8
-    purpose: "-"
+    purpose: "Migrate an existing project into omniscitus. Scans docs, git history, and"
   "plugins/omniscitus/skills/ontology-init/SKILL.md":
     status: active
     source: claude
     created: "2026-04-04"
     last_modified: "2026-04-08"
     change_count: 2
-    purpose: "-"
+    purpose: "Initialize or update the project ontology file (.omniscitus/ontology.yaml)."
   "plugins/omniscitus/skills/team-init/SKILL.md":
     status: active
     source: claude
     created: "2026-04-04"
     last_modified: "2026-04-08"
     change_count: 3
-    purpose: "-"
+    purpose: "Set up omniscitus for a new team member who cloned a repo that already uses"
   "plugins/omniscitus/skills/test-add-prompt/SKILL.md":
     status: active
     source: claude
     created: "2026-04-04"
     last_modified: "2026-04-08"
     change_count: 2
-    purpose: "-"
+    purpose: "Create LLM prompt test scaffolds with judge-based evaluation."
   "plugins/omniscitus/skills/test-add/SKILL.md":
     status: active
     source: claude
     created: "2026-04-04"
     last_modified: "2026-04-04"
     change_count: 1
-    purpose: "-"
+    purpose: "Create language-agnostic test scaffolds for any source file."
   "plugins/omniscitus/skills/wrap-up/SKILL.md":
     status: active
     source: claude
     created: "2026-04-04"
     last_modified: "2026-04-10"
     change_count: 9
-    purpose: "-"
+    purpose: "Session wrap-up with topic-based knowledge units. Records work into cohesive"
