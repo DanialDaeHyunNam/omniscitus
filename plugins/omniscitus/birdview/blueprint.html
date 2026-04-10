@@ -38,25 +38,30 @@
   .badge-unknown{background:#1f1f23;color:#6b7280}
 
   /* ── Tree view ──────────────────────────────────────── */
-  .tree-node{user-select:none}
-  .tree-row{display:flex;align-items:center;gap:8px;padding:3px 8px;border-radius:5px;cursor:pointer;transition:background 0.1s;font-size:12.5px;line-height:1.4;min-height:0}
+  .tree-node{user-select:none;margin:0}
+  /* Fixed-height rows: 22px for both folders and files. badge content
+     is forced to fit inside that box (line-height:1, no vertical padding)
+     so the presence of badges doesn't push the row taller than a folder
+     row that has no badges. */
+  .tree-row{display:flex;align-items:center;gap:6px;padding:0 8px;height:22px;border-radius:5px;cursor:pointer;transition:background 0.1s;font-size:12.5px;line-height:1.2;min-height:0}
   .tree-row:hover{background:#222}
   .tree-row.match{background:rgba(124,58,237,0.10)}
-  .tree-row .twisty{width:12px;height:14px;display:inline-flex;align-items:center;justify-content:center;color:#6b7280;font-size:10px;flex-shrink:0;transition:transform 0.15s}
+  .tree-row .twisty{width:10px;height:12px;display:inline-flex;align-items:center;justify-content:center;color:#6b7280;font-size:9px;flex-shrink:0;transition:transform 0.15s;line-height:1}
   .tree-row .twisty.empty{visibility:hidden}
   .tree-row.expanded > .twisty{transform:rotate(90deg)}
-  .tree-row .icon{width:14px;text-align:center;flex-shrink:0;font-size:12px;color:#6b7280;line-height:1}
+  .tree-row .icon{width:14px;height:14px;text-align:center;flex-shrink:0;font-size:11px;color:#6b7280;line-height:14px;display:inline-block;vertical-align:middle}
   .tree-row.folder .icon{color:#fbbf24}
-  .tree-row .label{font-family:'SF Mono',SFMono-Regular,Menlo,monospace;font-size:12px;color:#d1d5db;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .tree-row .label{font-family:'SF Mono',SFMono-Regular,Menlo,monospace;font-size:12px;color:#d1d5db;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:1.3}
   .tree-row.folder .label{color:#fde68a;font-weight:500}
-  .folder-summary{margin:0 0 4px 28px;padding:2px 6px;font-size:11.5px;color:#9ca3af;font-style:italic;line-height:1.45;border-left:2px solid #2e1065;padding-left:8px}
+  .folder-summary{margin:0 0 2px 28px;padding:1px 8px;font-size:11px;color:#9ca3af;font-style:italic;line-height:1.4;border-left:2px solid #2e1065}
   .folder-summary.stale{color:#6b7280;border-left-color:#3b1d6e}
-  .folder-summary .stale-tag{display:inline-block;margin-left:6px;font-size:9.5px;color:#fbbf24;font-style:normal;text-transform:uppercase;letter-spacing:0.5px;font-weight:600;opacity:0.7}
+  .folder-summary .stale-tag{display:inline-block;margin-left:6px;font-size:9px;color:#fbbf24;font-style:normal;text-transform:uppercase;letter-spacing:0.5px;font-weight:600;opacity:0.7}
   .folder-summary.empty{color:#4b5563;font-style:normal;opacity:0.6}
-  .tree-row .meta{display:flex;align-items:center;gap:10px;font-size:11px;color:#6b7280;flex-shrink:0;font-variant-numeric:tabular-nums;line-height:1}
+  .tree-row .meta{display:flex;align-items:center;gap:8px;font-size:11px;color:#6b7280;flex-shrink:0;font-variant-numeric:tabular-nums;line-height:1}
+  .tree-row .meta .badge{line-height:1;padding:2px 6px;font-size:10px;display:inline-flex;align-items:center;height:14px}
   .tree-row .meta .count{font-weight:600;color:#9ca3af}
   .tree-row .meta .date{white-space:nowrap}
-  .tree-children{display:none;margin-left:14px;border-left:1px dashed #2a2a2e;padding-left:6px}
+  .tree-children{display:none;margin-left:14px;border-left:1px dashed #2a2a2e;padding-left:6px;padding-top:0;padding-bottom:0}
   .tree-node.expanded > .tree-children{display:block}
   .tree-node.empty .tree-row{opacity:0.5}
 
@@ -344,7 +349,9 @@ function renderTree(node, depth) {
       if (summary && summary.description && child._fileCount >= 2) {
         var summaryClass = 'folder-summary' + (summary.stale ? ' stale' : '');
         html += '<div class="' + summaryClass + '">' + esc(summary.description);
-        if (summary.stale) html += '<span class="stale-tag">&#9881; stale</span>';
+        if (summary.stale) {
+          html += '<span class="stale-tag" title="Files in this folder were edited after this summary was written. /wrap-up will refresh it on the next session.">&#9881; needs refresh</span>';
+        }
         html += '</div>';
       }
       html += '<div class="tree-children">' + renderTree(child, depth + 1) + '</div>';
