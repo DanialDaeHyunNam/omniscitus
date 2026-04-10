@@ -4,7 +4,9 @@ var http = require('http');
 var fs = require('fs');
 var path = require('path');
 
-var PORT = 3777;
+// Default 3777, overridable via BIRDVIEW_PORT so the skill can fall back
+// to an unused port when 3777 is already taken.
+var PORT = parseInt(process.env.BIRDVIEW_PORT, 10) || 3777;
 var PROJECT_ROOT = process.argv[2] || process.cwd();
 var OMNISCITUS_DIR = path.join(PROJECT_ROOT, '.omniscitus');
 var BIRDVIEW_DIR = __dirname;
