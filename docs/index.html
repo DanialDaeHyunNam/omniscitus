@@ -664,7 +664,7 @@ section {
 }
 
 .install-terminal {
-  max-width: 480px;
+  max-width: 560px;
   margin: 0 auto 32px;
   border-radius: 12px;
   overflow: hidden;
@@ -673,12 +673,17 @@ section {
   box-shadow: 0 16px 48px rgba(0, 0, 0, 0.3);
   text-align: left;
 }
-
-.install-terminal .terminal-body {
+.install-terminal .terminal-bar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+  gap: 8px;
+}
+.install-terminal .terminal-body {
+  display: block;
+  padding: 18px 22px;
+}
+.install-terminal .terminal-body .terminal-cmd {
+  word-break: break-all;
 }
 
 .install-copy {
