@@ -77,6 +77,11 @@
   .error{position:fixed;top:72px;left:50%;transform:translateX(-50%);background:rgba(40,15,15,0.95);border:1px solid #7f1d1d;color:#fca5a5;padding:12px 18px;border-radius:8px;font-size:13px;z-index:50;max-width:480px;text-align:center;display:none}
   .error.visible{display:block}
 
+  /* ── Truncation banner (large projects) ──────────── */
+  .trunc-banner{position:fixed;top:72px;left:50%;transform:translateX(-50%);background:rgba(40,30,10,0.92);border:1px solid rgba(251,191,36,0.4);color:#fde68a;padding:10px 18px;border-radius:8px;font-size:12px;z-index:45;max-width:560px;text-align:center;display:none;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);line-height:1.5}
+  .trunc-banner.visible{display:block}
+  .trunc-banner strong{color:#fbbf24}
+
   /* ── Toast ───────────────────────────────────────── */
   .toast-container{position:fixed;top:72px;left:50%;transform:translateX(-50%);z-index:60;display:flex;flex-direction:column;gap:8px;align-items:center}
   .toast{padding:12px 20px;border-radius:8px;font-size:13px;background:rgba(15,15,22,0.95);border:1px solid #2a2a3a;color:#e0e0e0;box-shadow:0 8px 24px rgba(0,0,0,0.5);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);animation:toastIn 0.25s ease;max-width:420px;text-align:center;line-height:1.5}
@@ -244,6 +249,7 @@
 </div>
 
 <div class="error" id="error"></div>
+<div class="trunc-banner" id="trunc-banner"></div>
 <div class="toast-container" id="toasts"></div>
 
 <!-- Nudge prompt preview modal -->
@@ -267,6 +273,13 @@
 <script type="module">
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+// ── Performance tuning constants ──────────────────────
+// Hard cap on total blueprint nodes rendered in the 3D scene. Excess files
+// are dropped (sorted by last_modified desc) and a banner tells the user.
+// The tree panel still lists them all — the 3D view is the secondary UI
+// for large projects.
+const BLUEPRINT_HARD_CAP = 2000;
 
 // ── Utilities ─────────────────────────────────────────
 const PALETTE = [
@@ -458,8 +471,24 @@ function buildScene(data) {
 
   // 3. Blueprint files — grouped by top-level directory, outer shell
   const bpFiles = data.blueprints || {};
+  const totalBpCount = Object.keys(bpFiles).length;
+
+  // Apply hard cap: if too many, keep only the N most recently modified.
+  // Sorting is cheap (< 10ms even for 10k entries).
+  let bpPaths = Object.keys(bpFiles);
+  let truncated = 0;
+  if (bpPaths.length > BLUEPRINT_HARD_CAP) {
+    bpPaths.sort((a, b) => {
+      const la = (bpFiles[a] && bpFiles[a].last_modified) || '';
+      const lb = (bpFiles[b] && bpFiles[b].last_modified) || '';
+      return lb.localeCompare(la); // desc
+    });
+    truncated = bpPaths.length - BLUEPRINT_HARD_CAP;
+    bpPaths = bpPaths.slice(0, BLUEPRINT_HARD_CAP);
+  }
+
   const bpByDir = {};
-  Object.keys(bpFiles).forEach(p => {
+  bpPaths.forEach(p => {
     if (!p) return;
     const topDir = p.split('/')[0] || '_root';
     if (!bpByDir[topDir]) bpByDir[topDir] = [];
@@ -479,7 +508,8 @@ function buildScene(data) {
     dir.normalize();
     const clusterCenter = dir.multiplyScalar(30);
 
-    // Cap blueprint nodes per directory to keep scene manageable
+    // Per-cluster cap keeps the scene visually balanced even when one
+    // directory dominates file count. The tree panel shows everything.
     const files = bpByDir[d].slice(0, 40);
     files.forEach((p, j) => {
       const seed = p.split('').reduce((a, c) => a + c.charCodeAt(0), 0) + j;
@@ -510,10 +540,23 @@ function buildScene(data) {
 
   // Update stats
   document.getElementById('stat-units').textContent = (data.units || []).length;
-  document.getElementById('stat-bp').textContent = Object.keys(bpFiles).length;
+  document.getElementById('stat-bp').textContent = totalBpCount;
+
+  // Show truncation banner if we dropped files
+  if (truncated > 0) {
+    showTruncationBanner(BLUEPRINT_HARD_CAP, totalBpCount);
+  }
 
   // Build blueprint tree panel
   buildTreePanel();
+}
+
+function showTruncationBanner(shown, total) {
+  const el = document.getElementById('trunc-banner');
+  if (!el) return;
+  el.innerHTML = '&#9888; Showing <strong>' + shown.toLocaleString() + '</strong> / ' + total.toLocaleString() +
+                 ' blueprints (most recently modified). Use the tree filter to find older files.';
+  el.classList.add('visible');
 }
 
 // ── Interaction: hover + select ───────────────────────
