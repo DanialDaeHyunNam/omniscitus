@@ -1,0 +1,23 @@
+version: 1
+updated: "2026-04-10"
+  "tests/birdview-parser.test.js":
+    status: active
+    source: claude
+    created: "2026-04-04"
+    last_modified: "2026-04-10"
+    change_count: 1
+    purpose: "Unit tests for the hand-rolled yaml parsers in birdview/server.js."
+  "tests/demo-build.test.js":
+    status: active
+    source: claude
+    created: "2026-04-04"
+    last_modified: "2026-04-10"
+    change_count: 1
+    purpose: "Unit tests for the demo birdview build helpers. The fetch interceptor"
+  "tests/seed.test.js":
+    status: active
+    source: claude
+    created: "2026-04-04"
+    last_modified: "2026-04-10"
+    change_count: 1
+    purpose: "Unit tests for the seed script helpers. extractPurpose is the most"

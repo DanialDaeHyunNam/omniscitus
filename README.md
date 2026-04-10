@@ -32,12 +32,14 @@ Instead of you tracking files, sessions, and tests, the system maintains a livin
 
 ## Install
 
-```bash
-# 1. Add omniscitus as a plugin source (one-time)
-claude plugins:marketplace add omniscitus https://github.com/DanialDaeHyunNam/omniscitus
+Run these inside a Claude Code session:
 
-# 2. Install
-claude plugin install omniscitus@omniscitus
+```
+# 1. Add the marketplace (one-time)
+/plugin marketplace add DanialDaeHyunNam/omniscitus
+
+# 2. Install the plugin
+/plugin install omniscitus@omniscitus
 ```
 
 Restart Claude Code after install. Zero configuration. Respects `.gitignore`. Non-destructive overlay. Remove anytime.

@@ -1,0 +1,9 @@
+version: 1
+updated: "2026-04-10"
+  ".github/workflows/test.yml":
+    status: active
+    source: claude
+    created: "2026-04-04"
+    last_modified: "2026-04-10"
+    change_count: 1
+    purpose: "YAML configuration."
