@@ -1202,6 +1202,111 @@ function handleApiTests(req, res) {
   jsonRes(res, 200, { tests: tests });
 }
 
+/**
+ * Strip block + line comments from TypeScript/JavaScript source so the
+ * id/name regex doesn't false-match inside `/* … *\/` or `// …` regions.
+ * Naive but good enough for our prompt-test-case files (no string
+ * literals containing `//` adjacent to `id:`/`name:` patterns observed).
+ */
+function stripJsComments(src) {
+  // Remove /* ... */ first (greedy across lines disabled by [\s\S])
+  var noBlock = src.replace(/\/\*[\s\S]*?\*\//g, '');
+  // Then // to end-of-line
+  return noBlock.replace(/(^|[^:])\/\/[^\n]*/g, '$1');
+}
+
+/**
+ * Pull `{ id, name }` pairs from a TypeScript test-case file.
+ *
+ * Heuristic regex extractor — assumes prompt-optimization conventions:
+ *
+ *     const fooTestCases: SomeType[] = [
+ *       {
+ *         id: "foo",
+ *         name: "Foo bar",
+ *         ...
+ *       },
+ *     ];
+ *
+ * Ignores comments. Pairs each `id:` with the *next* `name:` that
+ * appears within 6 lines (to handle minor field reordering). Both fields
+ * must be quoted string literals — anything dynamic is silently skipped.
+ *
+ * Birdview shows these for browse/index, not execution. Inputs and
+ * expected_behavior aren't extracted — read the .ts file directly for
+ * those.
+ */
+function extractTsTestCaseTitles(filePath) {
+  if (!filePath) return [];
+  try {
+    var text = fs.readFileSync(filePath, 'utf-8');
+    var stripped = stripJsComments(text);
+
+    // Position-based scan so both inline `{ id: "x", name: "y" }` and
+    // multi-line object forms work. A field is recognized when its
+    // name is preceded by whitespace, `{`, or `,` (avoids false matches
+    // inside identifier-like positions).
+    //
+    // Field aliases: id | elementId | testId  (different test schemas)
+    //                name | title              (different test schemas)
+    // Quote forms:   "..." | '...' | `...`    (including template literals;
+    //                                          ${...} interpolation
+    //                                          appears as literal text)
+    var fields = [];
+    var idRe = /(?:^|[\s{,])(?:id|elementId|testId)\s*:\s*["'`]([^"'`\n]+)["'`]/g;
+    var nameRe = /(?:^|[\s{,])(?:name|title)\s*:\s*["'`]([^"'`\n]+)["'`]/g;
+    var m;
+    while ((m = idRe.exec(stripped)) !== null) {
+      fields.push({ kind: 'id', value: m[1], pos: m.index });
+    }
+    while ((m = nameRe.exec(stripped)) !== null) {
+      fields.push({ kind: 'name', value: m[1], pos: m.index });
+    }
+    fields.sort(function (a, b) { return a.pos - b.pos; });
+
+    var titles = [];
+    var pending = null;
+    for (var k = 0; k < fields.length; k++) {
+      var f = fields[k];
+      if (f.kind === 'id') {
+        // If we never paired the previous id with a name, drop it
+        // (prevents id/id/name from picking the wrong pairing).
+        pending = f;
+      } else if (f.kind === 'name' && pending && (f.pos - pending.pos) < 500) {
+        titles.push({ id: pending.value, name: f.value });
+        pending = null;
+      }
+    }
+    return titles;
+  } catch (e) {
+    return [];
+  }
+}
+
+/**
+ * Walk a directory (recursively) collecting test-case titles from every
+ * .ts file. Returns an array of { id, name, file } where file is the
+ * basename for display. Returns [] if the path doesn't exist or isn't
+ * a file/dir we can read.
+ */
+function extractTitlesFromCasesPath(absPath) {
+  try {
+    var stat = fs.statSync(absPath);
+    if (stat.isFile() && /\.tsx?$/.test(absPath)) {
+      return extractTsTestCaseTitles(absPath).map(function (t) {
+        return { id: t.id, name: t.name, file: path.basename(absPath) };
+      });
+    }
+    if (!stat.isDirectory()) return [];
+    var out = [];
+    var entries = safeReadDir(absPath);
+    for (var i = 0; i < entries.length; i++) {
+      out = out.concat(extractTitlesFromCasesPath(path.join(absPath, entries[i])));
+    }
+    return out;
+  } catch (e) { return []; }
+}
+
 function handleApiPromptTests(req, res) {
   var promptsDir = path.join(OMNISCITUS_DIR, 'tests', 'prompts');
   var tests = scanPromptTests(promptsDir);
@@ -1219,6 +1324,12 @@ function handleApiPromptTests(req, res) {
         var subp = meta.prompts[sp];
         if (subp.cases) {
           subp._dirCount = countFilesByPattern(subp.cases, PROJECT_ROOT);
+          // Pull case titles via heuristic TS extraction so birdview
+          // can render a per-sub-prompt title list (browse/index UX).
+          var absCases = path.isAbsolute(subp.cases)
+            ? subp.cases
+            : path.join(PROJECT_ROOT, subp.cases);
+          subp._titles = extractTitlesFromCasesPath(absCases);
         }
       }
     }
@@ -1629,5 +1740,8 @@ module.exports = {
   parseWeeklySummariesYaml: parseWeeklySummariesYaml,
   parseNestedYaml: parseNestedYaml,
   parsePromptMetaYaml: parsePromptMetaYaml,
-  countFilesByPattern: countFilesByPattern
+  countFilesByPattern: countFilesByPattern,
+  stripJsComments: stripJsComments,
+  extractTsTestCaseTitles: extractTsTestCaseTitles,
+  extractTitlesFromCasesPath: extractTitlesFromCasesPath
 };

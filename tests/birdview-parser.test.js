@@ -479,3 +479,163 @@ test('countFilesByPattern: ** recursive glob', () => {
     fs.rmSync(tmp, { recursive: true, force: true });
   }
 });
+
+// ── TS test case title extractor ───────────────────────
+
+const { stripJsComments, extractTsTestCaseTitles, extractTitlesFromCasesPath } =
+  require('../plugins/omniscitus/birdview/server.js');
+
+test('stripJsComments: removes block + line comments', () => {
+  const src = [
+    '// leading line comment',
+    'const x = 1; // trailing',
+    '/* block comment',
+    '   spans lines */',
+    'const y = "kept";'
+  ].join('\n');
+  const out = stripJsComments(src);
+  assert.doesNotMatch(out, /leading line comment/);
+  assert.doesNotMatch(out, /trailing/);
+  assert.doesNotMatch(out, /block comment/);
+  assert.doesNotMatch(out, /spans lines/);
+  assert.match(out, /const y = "kept"/);
+});
+
+test('extractTsTestCaseTitles: pairs id with the next nearby name', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const os = require('node:os');
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'omni-ts-'));
+  const file = path.join(tmp, 'cases.ts');
+  fs.writeFileSync(file, [
+    'import { Foo } from "./types";',
+    '',
+    'const cases: Foo[] = [',
+    '  {',
+    '    id: "alpha",',
+    '    name: "Alpha case",',
+    '    other: 1,',
+    '  },',
+    '  {',
+    '    id: "beta",',
+    '    name: "Beta case",',
+    '    nested: { a: 1, id: "ignore-me" },',
+    '  },',
+    '];',
+    ''
+  ].join('\n'));
+  try {
+    const titles = extractTsTestCaseTitles(file);
+    assert.equal(titles.length, 2);
+    assert.deepEqual(titles[0], { id: 'alpha', name: 'Alpha case' });
+    assert.deepEqual(titles[1], { id: 'beta', name: 'Beta case' });
+  } finally {
+    fs.rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test('extractTsTestCaseTitles: ignores ids inside comments', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const os = require('node:os');
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'omni-ts-'));
+  const file = path.join(tmp, 'cases.ts');
+  fs.writeFileSync(file, [
+    '// id: "fake", name: "should not match"',
+    '/*',
+    '  id: "also-fake",',
+    '  name: "comment block",',
+    '*/',
+    'const cases = [',
+    '  { id: "real", name: "Real case" },',
+    '];',
+    ''
+  ].join('\n'));
+  try {
+    const titles = extractTsTestCaseTitles(file);
+    assert.equal(titles.length, 1);
+    assert.deepEqual(titles[0], { id: 'real', name: 'Real case' });
+  } finally {
+    fs.rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test('extractTsTestCaseTitles: drops orphan id (id followed by id without name)', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const os = require('node:os');
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'omni-ts-'));
+  const file = path.join(tmp, 'cases.ts');
+  // First object has id only (no name within 6 lines), second is well-formed
+  fs.writeFileSync(file, [
+    'const cases = [',
+    '  {',
+    '    id: "orphan",',
+    '    description: "no name field",',
+    '    foo: 1,',
+    '    bar: 2,',
+    '    baz: 3,',
+    '    qux: 4,',
+    '    quux: 5,',
+    '  },',
+    '  {',
+    '    id: "good",',
+    '    name: "Has a name",',
+    '  },',
+    '];',
+    ''
+  ].join('\n'));
+  try {
+    const titles = extractTsTestCaseTitles(file);
+    assert.equal(titles.length, 1);
+    assert.equal(titles[0].id, 'good');
+  } finally {
+    fs.rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test('extractTsTestCaseTitles: missing file returns []', () => {
+  assert.deepEqual(extractTsTestCaseTitles('/no/such/file-' + Date.now() + '.ts'), []);
+});
+
+test('extractTitlesFromCasesPath: walks a directory of .ts files', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const os = require('node:os');
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'omni-tsdir-'));
+  fs.writeFileSync(path.join(tmp, 'a.ts'),
+    'const x = [{ id: "a1", name: "A One" }];\n');
+  fs.writeFileSync(path.join(tmp, 'b.ts'),
+    'const y = [{ id: "b1", name: "B One" }, { id: "b2", name: "B Two" }];\n');
+  fs.writeFileSync(path.join(tmp, 'README.md'),
+    '# not a test case file\n');
+  try {
+    const titles = extractTitlesFromCasesPath(tmp);
+    assert.equal(titles.length, 3);
+    const ids = titles.map(t => t.id).sort();
+    assert.deepEqual(ids, ['a1', 'b1', 'b2']);
+    // file basenames are attached
+    titles.forEach(t => {
+      assert.ok(/\.ts$/.test(t.file));
+    });
+  } finally {
+    fs.rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test('extractTitlesFromCasesPath: single file path also works', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const os = require('node:os');
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'omni-tsfile-'));
+  const file = path.join(tmp, 'one.ts');
+  fs.writeFileSync(file, 'const z = [{ id: "z1", name: "Just one" }];\n');
+  try {
+    const titles = extractTitlesFromCasesPath(file);
+    assert.equal(titles.length, 1);
+    assert.equal(titles[0].id, 'z1');
+    assert.equal(titles[0].file, 'one.ts');
+  } finally {
+    fs.rmSync(tmp, { recursive: true, force: true });
+  }
+});
