@@ -9,6 +9,11 @@
             "type": "command",
             "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/blueprint-warn.cjs\"",
             "timeout": 2
+          },
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/version-check.cjs\"",
+            "timeout": 2
           }
         ]
       }
