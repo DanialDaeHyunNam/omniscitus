@@ -323,3 +323,159 @@ test('parseIndexYaml: skips weekly_summaries entries (does not treat - week: as 
   assert.equal(units.length, 1);
   assert.equal(units[0].id, 'unit-a');
 });
+
+// ── parsePromptMetaYaml (umbrella pattern) ─────────────
+
+const { parsePromptMetaYaml, countFilesByPattern } = require('../plugins/omniscitus/birdview/server.js');
+
+test('parsePromptMetaYaml: parses top-level scalars', () => {
+  const yaml = [
+    'target: web/src/libs/ai/',
+    'type: prompt',
+    'prompt_name: prompt-optimization',
+    'last_updated: 2026-04-13',
+    ''
+  ].join('\n');
+  const meta = parsePromptMetaYaml(yaml);
+  assert.equal(meta.target, 'web/src/libs/ai/');
+  assert.equal(meta.type, 'prompt');
+  assert.equal(meta.prompt_name, 'prompt-optimization');
+  assert.equal(meta.last_updated, '2026-04-13');
+});
+
+test('parsePromptMetaYaml: parses external cases form', () => {
+  const yaml = [
+    'target: web/src/libs/ai/',
+    'cases:',
+    '  source: external',
+    '  pattern: "web/scripts/prompt-optimization/test-cases/**/*.ts"',
+    ''
+  ].join('\n');
+  const meta = parsePromptMetaYaml(yaml);
+  assert.ok(meta.external_cases, 'expected external_cases populated');
+  assert.equal(meta.external_cases.source, 'external');
+  assert.equal(meta.external_cases.pattern, 'web/scripts/prompt-optimization/test-cases/**/*.ts');
+  assert.deepEqual(meta.cases, []);
+});
+
+test('parsePromptMetaYaml: backwards-compat — inline cases still parse', () => {
+  const yaml = [
+    'target: src/lib/foo.ts',
+    'cases:',
+    '  - title: "first case"',
+    '    category: element',
+    '    expected_behavior: "returns 42"',
+    '  - title: "second case"',
+    '    category: edge',
+    ''
+  ].join('\n');
+  const meta = parsePromptMetaYaml(yaml);
+  assert.equal(meta.cases.length, 2);
+  assert.equal(meta.cases[0].title, 'first case');
+  assert.equal(meta.cases[1].category, 'edge');
+  assert.equal(meta.external_cases, null);
+});
+
+test('parsePromptMetaYaml: parses umbrella prompts[] array', () => {
+  const yaml = [
+    'target: web/src/libs/ai/',
+    'prompts:',
+    '  - name: evaluation',
+    '    description: "Score accuracy tests"',
+    '    cases: web/scripts/prompt-optimization/test-cases/evaluation/',
+    '    runner: web/scripts/prompt-optimization/tests/evaluation.ts',
+    '  - name: suggestion',
+    '    description: "Naturalness checks"',
+    '    cases: web/scripts/prompt-optimization/test-cases/suggestion/',
+    '    runner: web/scripts/prompt-optimization/tests/suggestion.ts',
+    '    language_pairs: [english-korean, korean-english]',
+    '  - name: contextual-breakdown',
+    '    runner: web/scripts/prompt-optimization/tests/contextual-breakdown.ts',
+    '    status: in_development',
+    ''
+  ].join('\n');
+  const meta = parsePromptMetaYaml(yaml);
+  assert.equal(meta.prompts.length, 3);
+  assert.equal(meta.prompts[0].name, 'evaluation');
+  assert.equal(meta.prompts[0].description, 'Score accuracy tests');
+  assert.equal(meta.prompts[0].cases, 'web/scripts/prompt-optimization/test-cases/evaluation/');
+  assert.deepEqual(meta.prompts[1].language_pairs, ['english-korean', 'korean-english']);
+  assert.equal(meta.prompts[2].status, 'in_development');
+});
+
+test('parsePromptMetaYaml: prompts + external_cases can coexist', () => {
+  const yaml = [
+    'target: web/src/libs/ai/',
+    'cases:',
+    '  source: external',
+    '  pattern: "scripts/tests/**/*.ts"',
+    'prompts:',
+    '  - name: sub-a',
+    '    cases: path/a/',
+    '',
+  ].join('\n');
+  const meta = parsePromptMetaYaml(yaml);
+  assert.equal(meta.external_cases.pattern, 'scripts/tests/**/*.ts');
+  assert.equal(meta.prompts.length, 1);
+  assert.equal(meta.prompts[0].name, 'sub-a');
+});
+
+// ── countFilesByPattern ────────────────────────────────
+
+test('countFilesByPattern: empty pattern returns 0', () => {
+  assert.equal(countFilesByPattern('', '/tmp'), 0);
+});
+
+test('countFilesByPattern: missing directory returns 0', () => {
+  assert.equal(countFilesByPattern('nonexistent-' + Date.now() + '/file.ts', '/tmp'), 0);
+});
+
+test('countFilesByPattern: counts files in an existing directory', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const os = require('node:os');
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'omniscitus-test-'));
+  fs.writeFileSync(path.join(tmp, 'a.ts'), '');
+  fs.writeFileSync(path.join(tmp, 'b.ts'), '');
+  fs.mkdirSync(path.join(tmp, 'sub'));
+  fs.writeFileSync(path.join(tmp, 'sub', 'c.ts'), '');
+  try {
+    // Literal directory — counts recursively
+    assert.equal(countFilesByPattern(path.basename(tmp), path.dirname(tmp)), 3);
+  } finally {
+    fs.rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test('countFilesByPattern: glob *.ts only matches .ts files', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const os = require('node:os');
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'omniscitus-glob-'));
+  fs.writeFileSync(path.join(tmp, 'a.ts'), '');
+  fs.writeFileSync(path.join(tmp, 'b.ts'), '');
+  fs.writeFileSync(path.join(tmp, 'c.md'), ''); // should be excluded
+  try {
+    // Pattern is relative to projectRoot (second arg).
+    assert.equal(countFilesByPattern(path.basename(tmp) + '/*.ts', path.dirname(tmp)), 2);
+  } finally {
+    fs.rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test('countFilesByPattern: ** recursive glob', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const os = require('node:os');
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'omniscitus-recursive-'));
+  fs.writeFileSync(path.join(tmp, 'a.ts'), '');
+  fs.mkdirSync(path.join(tmp, 'nested'));
+  fs.writeFileSync(path.join(tmp, 'nested', 'b.ts'), '');
+  fs.mkdirSync(path.join(tmp, 'nested', 'deep'));
+  fs.writeFileSync(path.join(tmp, 'nested', 'deep', 'c.ts'), '');
+  try {
+    assert.equal(countFilesByPattern(path.basename(tmp) + '/**/*.ts', path.dirname(tmp)), 3);
+  } finally {
+    fs.rmSync(tmp, { recursive: true, force: true });
+  }
+});

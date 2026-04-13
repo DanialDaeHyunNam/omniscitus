@@ -590,7 +590,12 @@ function parsePromptMetaYaml(text) {
     target: '', type: '', prompt_name: '', last_updated: '',
     judge: { model: '', temperature: 0, max_retries: 0 },
     criteria: [], checks: [], thresholds: { pass: 0, warn: 0, per_criterion: {} },
-    cases: []
+    cases: [],
+    // Umbrella-pattern fields. Populated only when a prompt-meta.yaml
+    // delegates to an external test infrastructure (see /test-add:prompt
+    // when pointing at pre-existing test code instead of scaffolding).
+    prompts: [],                    // sub-prompt registry: [{name, description, cases, runner, status, notes, _dirCount}]
+    external_cases: null            // { source, pattern, _globCount } when top-level cases are external
   };
   if (!text) return result;
 
@@ -729,9 +734,35 @@ function parsePromptMetaYaml(text) {
       continue;
     }
 
-    // cases block
+    // cases block — two forms supported:
+    //   1. Inline list:   cases:\n  - title: ...           (legacy / self-contained)
+    //   2. External ref:  cases:\n    source: external\n    pattern: "..."
+    //                                                       (umbrella over existing infra)
     if (line.match(/^cases:\s*$/)) {
       section = 'cases';
+      // Peek ahead: is the next non-blank line `source:` (external) or `- title:` (inline)?
+      var peek = i + 1;
+      while (peek < lines.length && lines[peek].trim() === '') peek++;
+      if (peek < lines.length && /^\s+(source|pattern):/.test(lines[peek])) {
+        // External-cases form
+        result.external_cases = { source: '', pattern: '' };
+        i++;
+        while (i < lines.length) {
+          var xl = lines[i];
+          if (xl.trim() === '') { i++; continue; }
+          // Break on any non-indented line (end of block)
+          if (/^\S/.test(xl)) break;
+          var xm = xl.match(/^\s+(source|pattern):\s*(.+)/);
+          if (xm) {
+            result.external_cases[xm[1]] = xm[2].trim().replace(/^["']|["']$/g, '');
+            i++; continue;
+          }
+          // Unknown key under cases — skip
+          i++;
+        }
+        continue;
+      }
+      // Inline-cases form (original behavior)
       i++;
       var currentCase = null;
       var inCaseInput = false;
@@ -813,10 +844,145 @@ function parsePromptMetaYaml(text) {
       continue;
     }
 
+    // prompts block — umbrella sub-prompt registry. Each entry:
+    //   - name: evaluation
+    //     description: "..."
+    //     cases: path/to/test-cases/  OR nested { source, pattern }
+    //     runner: path/to/runner.ts
+    //     status: in_development    (optional)
+    //     notes: "..."              (optional)
+    //     language_pairs: [a, b]    (optional, inline array)
+    if (line.match(/^prompts:\s*$/)) {
+      section = 'prompts';
+      i++;
+      var currentPrompt = null;
+      while (i < lines.length) {
+        var pl = lines[i];
+        if (pl.trim() === '') { i++; continue; }
+        if (/^\S/.test(pl)) {
+          if (currentPrompt) result.prompts.push(currentPrompt);
+          currentPrompt = null;
+          break;
+        }
+        var pStart = pl.match(/^\s*-\s+name:\s*(.+)/);
+        if (pStart) {
+          if (currentPrompt) result.prompts.push(currentPrompt);
+          currentPrompt = {
+            name: pStart[1].replace(/^["']|["']$/g, '').trim(),
+            description: '', cases: '', runner: '', status: '',
+            notes: '', language_pairs: []
+          };
+          i++; continue;
+        }
+        if (currentPrompt) {
+          var pProp = pl.match(/^\s+(description|cases|runner|status|notes):\s*(.+)/);
+          if (pProp) {
+            var pv = pProp[2].trim().replace(/^["']|["']$/g, '');
+            currentPrompt[pProp[1]] = pv;
+            i++; continue;
+          }
+          var langProp = pl.match(/^\s+language_pairs:\s*\[(.*)\]\s*$/);
+          if (langProp) {
+            currentPrompt.language_pairs = langProp[1].split(',')
+              .map(function (s) { return s.trim().replace(/^["']|["']$/g, ''); })
+              .filter(function (s) { return s.length > 0; });
+            i++; continue;
+          }
+        }
+        i++;
+      }
+      if (currentPrompt) result.prompts.push(currentPrompt);
+      continue;
+    }
+
     i++;
   }
 
   return result;
+}
+
+/**
+ * Count files matching a glob pattern relative to the project root.
+ * Supports `*` (single segment) and `**` (recursive). Returns 0 on any
+ * error so callers don't need try/catch — the UI gracefully shows 0
+ * for missing/invalid patterns.
+ */
+function countFilesByPattern(pattern, projectRoot) {
+  if (!pattern) return 0;
+  try {
+    var fs = require('fs');
+    var path = require('path');
+
+    // Trim leading ./ and anchor to projectRoot
+    var rel = pattern.replace(/^\.\//, '');
+
+    // Split into literal prefix + glob tail for efficient walking
+    var parts = rel.split('/');
+    var litEnd = 0;
+    for (var p = 0; p < parts.length; p++) {
+      if (/[*?\[\]]/.test(parts[p])) break;
+      litEnd = p + 1;
+    }
+    var startDir = path.join.apply(null, [projectRoot].concat(parts.slice(0, litEnd)));
+    if (!fs.existsSync(startDir)) return 0;
+
+    // Build a regex from the glob tail
+    var tail = parts.slice(litEnd).join('/');
+    if (!tail) {
+      // No glob — is the literal path a file? If so, 1; else if dir, count .ts/.md/.yaml files inside
+      var stat = fs.statSync(startDir);
+      if (stat.isFile()) return 1;
+      if (stat.isDirectory()) {
+        var n = 0;
+        var walk = function (dir) {
+          var items;
+          try { items = fs.readdirSync(dir); } catch (e) { return; }
+          for (var k = 0; k < items.length; k++) {
+            var ip = path.join(dir, items[k]);
+            var s;
+            try { s = fs.statSync(ip); } catch (e) { continue; }
+            if (s.isDirectory()) walk(ip);
+            else n++;
+          }
+        };
+        walk(startDir);
+        return n;
+      }
+      return 0;
+    }
+
+    // Escape regex metacharacters except * / ?
+    var regexSrc = tail
+      .replace(/[.+^${}()|[\]\\]/g, '\\$&')
+      .replace(/\*\*\//g, '__STAR_STAR_SLASH__')
+      .replace(/\*\*/g, '__STAR_STAR__')
+      .replace(/\*/g, '[^/]*')
+      .replace(/\?/g, '.')
+      .replace(/__STAR_STAR_SLASH__/g, '(?:.*/)?')
+      .replace(/__STAR_STAR__/g, '.*');
+    var re = new RegExp('^' + regexSrc + '$');
+
+    var count = 0;
+    var walker = function (dir, prefix) {
+      var items;
+      try { items = fs.readdirSync(dir); } catch (e) { return; }
+      for (var k = 0; k < items.length; k++) {
+        var ip = path.join(dir, items[k]);
+        var relPath = prefix ? prefix + '/' + items[k] : items[k];
+        var s;
+        try { s = fs.statSync(ip); } catch (e) { continue; }
+        if (s.isDirectory()) {
+          walker(ip, relPath);
+        } else if (re.test(relPath)) {
+          count++;
+        }
+      }
+    };
+    walker(startDir, '');
+    return count;
+  } catch (e) {
+    return 0;
+  }
 }
 
 function scanPromptTests(dir) {
@@ -1039,6 +1205,25 @@ function handleApiTests(req, res) {
 function handleApiPromptTests(req, res) {
   var promptsDir = path.join(OMNISCITUS_DIR, 'tests', 'prompts');
   var tests = scanPromptTests(promptsDir);
+
+  // Enrich umbrella-pattern metas with external case counts so the UI
+  // can show real numbers instead of "0 Cases" when the actual test
+  // infra lives outside .omniscitus/tests/prompts/.
+  for (var t = 0; t < tests.length; t++) {
+    var meta = tests[t];
+    if (meta.external_cases && meta.external_cases.pattern) {
+      meta.external_cases._globCount = countFilesByPattern(meta.external_cases.pattern, PROJECT_ROOT);
+    }
+    if (meta.prompts && meta.prompts.length > 0) {
+      for (var sp = 0; sp < meta.prompts.length; sp++) {
+        var subp = meta.prompts[sp];
+        if (subp.cases) {
+          subp._dirCount = countFilesByPattern(subp.cases, PROJECT_ROOT);
+        }
+      }
+    }
+  }
+
   jsonRes(res, 200, { tests: tests });
 }
 
@@ -1442,5 +1627,7 @@ module.exports = {
   parseBlueprints: parseBlueprints,
   parseIndexYaml: parseIndexYaml,
   parseWeeklySummariesYaml: parseWeeklySummariesYaml,
-  parseNestedYaml: parseNestedYaml
+  parseNestedYaml: parseNestedYaml,
+  parsePromptMetaYaml: parsePromptMetaYaml,
+  countFilesByPattern: countFilesByPattern
 };
