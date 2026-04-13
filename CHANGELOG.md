@@ -2,6 +2,25 @@
 
 All notable changes to omniscitus. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.4.0] — 2026-04-13
+
+The "weekly summaries that are actually summaries" release.
+
+### Added
+
+- **`/weekly-backfill` skill** — generates rich narrative summaries for every past completed week. Reads each unit's `Source:` field, follows it to the original `.claude/member/{member}/done/...` document, then synthesizes a per-domain story: what was built, what decisions were debated, who handed off to whom, what got blocked. Output is per-week markdown at `.omniscitus/history/_weekly/{YYYY}-W{NN}.md`. Idempotent — smart-skips weeks that already have a rich-mode summary or are user-authored. Birdview's history view renders these as purple cards above the unit list when the selected range overlaps.
+- **Smart-skip detection** via watermark: rich-mode files are recognized and never overwritten. The legacy fast-mode files (briefly shipped earlier in the same dev cycle and immediately replaced) are auto-detected as upgrade candidates. Hand-edited files have neither watermark and are left alone.
+- **First-run dogfood validation**: backfilled the LangTwo mono repo's full 19-week history (266 units) via 5 parallel synthesis runs. Average per-week file is 96 lines of Korean narrative; deepest is 186 lines. Sparse 1-unit weeks compress to a 30-line read; busy 71-unit weeks expand to a multi-domain story with 28 decisions and 13 blockers documented.
+
+### Implementation arc (worth recording)
+
+The first cut of `/weekly-backfill` (also tagged 0.4.0-track in the dev branch but never released as a separate version) shipped with deterministic aggregation only — counts, domain breakdowns, title lists. Real-world feedback was immediate: that's a table of contents, not a summary. The skill was rewritten the same day to drop deterministic mode entirely and move synthesis into the SKILL.md (Claude reads each Source-pointed doc, then writes flowing prose). The script kept only the deterministic plumbing it's actually good at: ISO week math, smart-skip classification, candidate enumeration, `_index.yaml` registration. This is what shipped as 0.4.0.
+
+### Tests
+
+- 24 new tests for the weekly-backfill helpers (ISO week math, classifyExistingFile across rich/fast/manual/missing, listCandidates with all 5 skip paths, registerSummary idempotency, source-path extraction with both `**Source**:` and `Source:` forms).
+- **106/106 passing total**.
+
 ## [0.3.0] — 2026-04-13
 
 The "first real migration" release. Shaped by dogfooding a 3,400-file, 10-member team codebase (LangTwo mono) through `/omniscitus-migrate` end-to-end. Every item below came from a real friction point hit during that session.
