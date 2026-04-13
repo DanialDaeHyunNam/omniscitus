@@ -1,49 +1,47 @@
 'use strict';
 
 /**
- * /weekly-backfill — generate `_weekly/{YYYY}-W{NN}.md` for every past
- * week that has history units but no summary yet. Smart-skips weeks that
- * already have a summary (idempotent — safe to run repeatedly).
+ * /weekly-backfill helper script. Produces a candidate list of weeks
+ * needing a rich summary, and registers a summary in _index.yaml after
+ * the skill writes the file.
  *
- * Fast mode (default): deterministic aggregation only. No LLM calls.
- *   Produces: Headline (counts), by-domain breakdown, unit titles,
- *   pending items. Good enough for migration-era backfill.
+ * The actual narrative synthesis happens in the SKILL.md instructions
+ * — this script is just the deterministic plumbing (week math, smart-skip
+ * detection, _index.yaml manipulation).
  *
- * The current (in-progress) week is always skipped — a week is only
- * summarized once its ISO Sunday is in the past.
+ * CLI subcommands:
+ *   node weekly-backfill.cjs candidates [project-root]
+ *     → prints JSON listing weeks that need rich summaries.
  *
- * Usage:
- *   node scripts/weekly-backfill.cjs [project-root]
+ *   node weekly-backfill.cjs register <week> <file> <start> <end>
+ *                             <unit_count> <domains_csv> [project-root]
+ *     → appends an entry to _index.yaml weekly_summaries.
  *
- * Called by the /weekly-backfill skill. Can also be run directly.
+ *   node weekly-backfill.cjs status [project-root]   (default)
+ *     → human-readable summary of what's pending.
+ *
+ * Smart-skip rules:
+ *   - In-progress (current ISO) week is always skipped.
+ *   - Existing _weekly/{key}.md with the rich-mode watermark is skipped.
+ *   - Existing _weekly/{key}.md with the legacy fast-mode watermark is
+ *     marked as `upgrade` (it was generated before rich mode existed).
+ *   - Any other existing _weekly/{key}.md is treated as user-authored
+ *     and skipped.
+ *   - Files present on disk but missing from _index.yaml weekly_summaries
+ *     get a `register` action so the index stays in sync.
  */
 
 var fs = require('fs');
 var path = require('path');
 
-// ── CLI + paths ────────────────────────────────────────
-
-var PROJECT_ROOT = process.argv[2] || process.cwd();
-var HISTORY_DIR = path.join(PROJECT_ROOT, '.omniscitus', 'history');
-var INDEX_PATH = path.join(HISTORY_DIR, '_index.yaml');
-var WEEKLY_DIR = path.join(HISTORY_DIR, '_weekly');
-
-function die(msg, code) {
-  process.stderr.write(msg + '\n');
-  process.exit(code || 1);
-}
-
-if (!fs.existsSync(INDEX_PATH)) {
-  die('[weekly-backfill] No _index.yaml found at ' + INDEX_PATH + '. Run /omniscitus-migrate first.');
-}
+// Watermarks that mark a file as machine-generated and therefore safe
+// to overwrite. Any other content (or no content) is treated as
+// user-authored and left alone.
+var RICH_MODE_WATERMARK = '/weekly-backfill (rich mode';
+var FAST_MODE_WATERMARK = '/weekly-backfill (fast mode';
 
 // ── ISO week helpers ───────────────────────────────────
 
-/**
- * ISO 8601 week-numbering: returns { year, week }.
- * Note: ISO year may differ from calendar year at year boundaries
- * (e.g., Jan 1 2023 → {year: 2022, week: 52}).
- */
 function isoWeek(date) {
   var d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
   var dayNum = d.getUTCDay() || 7;
@@ -57,11 +55,7 @@ function weekLabel(year, week) {
   return year + '-W' + (week < 10 ? '0' + week : String(week));
 }
 
-/**
- * ISO week Monday + Sunday (UTC-safe). Returns YYYY-MM-DD strings.
- */
 function weekBounds(year, week) {
-  // Monday of week 1 is the Monday of the week containing Jan 4.
   var jan4 = new Date(Date.UTC(year, 0, 4));
   var jan4Dow = jan4.getUTCDay() || 7;
   var mondayOfW1 = new Date(jan4);
@@ -80,7 +74,13 @@ function formatYmd(d) {
   return y + '-' + m + '-' + dd;
 }
 
-// ── Minimal _index.yaml parser (just enough for this job) ──
+function isCompletedWeek(year, week, now) {
+  var bounds = weekBounds(year, week);
+  var sunday = new Date(bounds.end + 'T23:59:59Z');
+  return sunday < now;
+}
+
+// ── _index.yaml parser (minimal — only the fields we need) ──
 
 function parseUnits(text) {
   var units = [];
@@ -91,7 +91,11 @@ function parseUnits(text) {
 
   for (var i = 0; i < lines.length; i++) {
     var line = lines[i];
-    if (/^weekly_summaries\s*:/.test(line)) { if (current) { units.push(current); current = null; } inWeekly = true; continue; }
+    if (/^weekly_summaries\s*:/.test(line)) {
+      if (current) { units.push(current); current = null; }
+      inWeekly = true;
+      continue;
+    }
     if (inWeekly && /^\S/.test(line)) inWeekly = false;
     if (inWeekly) continue;
 
@@ -101,7 +105,7 @@ function parseUnits(text) {
       current = {
         id: idMatch[1].trim(),
         domain: '', status: 'open', created: '', last_updated: '',
-        session_count: 0, title: '', file: ''
+        session_count: 0, title: '', file: '', author: ''
       };
       continue;
     }
@@ -119,7 +123,6 @@ function parseUnits(text) {
 }
 
 function parseExistingWeeklyKeys(text) {
-  // Return a Set of "YYYY-Www" strings already present in weekly_summaries.
   var seen = new Set();
   if (!text) return seen;
   var lines = text.split('\n');
@@ -135,17 +138,62 @@ function parseExistingWeeklyKeys(text) {
   return seen;
 }
 
-// ── Grouping + summary generation ──────────────────────
+function appendWeeklySummaryEntry(indexText, entry) {
+  var lines = indexText.split('\n');
+  var sectionIdx = -1;
+  for (var i = 0; i < lines.length; i++) {
+    if (/^weekly_summaries\s*:/.test(lines[i])) { sectionIdx = i; break; }
+  }
+  var newBlock = [
+    '  - week: "' + entry.week + '"',
+    '    file: "' + entry.file + '"',
+    '    start: "' + entry.start + '"',
+    '    end: "' + entry.end + '"',
+    '    unit_count: ' + entry.unit_count,
+    '    domains: [' + entry.domains.join(', ') + ']',
+    '    generated_at: "' + entry.generated_at + '"'
+  ];
+  if (sectionIdx === -1) {
+    if (!indexText.endsWith('\n')) indexText += '\n';
+    return indexText + '\nweekly_summaries:\n' + newBlock.join('\n') + '\n';
+  }
+  var insertAt = lines.length;
+  for (var j = sectionIdx + 1; j < lines.length; j++) {
+    if (/^\S/.test(lines[j]) && lines[j].trim().length > 0) { insertAt = j; break; }
+  }
+  lines.splice.apply(lines, [insertAt, 0].concat(newBlock));
+  return lines.join('\n');
+}
+
+// ── Source extraction (per-unit) ───────────────────────
+
+/**
+ * Read a unit markdown file, return its `Source:` field — the path
+ * (relative to project root) of the original done/session/etc. doc this
+ * unit was migrated from. Return null if the unit has no Source field
+ * (e.g., a wrap-up-created unit that was authored in place).
+ */
+function extractSourceFromUnit(absUnitPath) {
+  try {
+    var text = fs.readFileSync(absUnitPath, 'utf-8');
+    // Match: **Source**: `path` OR Source: path
+    var m = text.match(/\*\*Source\*\*:\s*`?([^`\n]+)`?/);
+    if (m) return m[1].trim();
+    var m2 = text.match(/^Source:\s*(.+)$/m);
+    if (m2) return m2[1].trim();
+    return null;
+  } catch (e) { return null; }
+}
+
+// ── Date extraction (unit → ISO week) ──────────────────
 
 function extractDateIso(unit) {
-  // Prefer last_updated, fall back to created. Accept "YYYY-MM-DD..." strings.
   var raw = unit.last_updated || unit.created || '';
   var m = raw.match(/^(\d{4}-\d{2}-\d{2})/);
   return m ? m[1] : null;
 }
 
 function groupByWeek(units) {
-  // Map "YYYY-Www" → { weekKey, year, week, units: [...] }
   var map = new Map();
   for (var i = 0; i < units.length; i++) {
     var u = units[i];
@@ -163,212 +211,250 @@ function groupByWeek(units) {
   return map;
 }
 
-function isCompletedWeek(year, week, now) {
-  var bounds = weekBounds(year, week);
-  var sunday = new Date(bounds.end + 'T23:59:59Z');
-  return sunday < now;
-}
+// ── Existing-file classification ───────────────────────
 
 /**
- * Deterministic summary — no LLM. Good-enough Headline + by-domain
- * breakdown + title list. Rich narrative synthesis is a separate flag.
+ * Read the existing _weekly/{key}.md if any and classify it:
+ *   'missing'  — file does not exist
+ *   'rich'     — already has rich-mode watermark, skip
+ *   'fast'     — has legacy fast-mode watermark, eligible for upgrade
+ *   'manual'   — exists but no recognized watermark, treat as user-authored
  */
-function renderSummary(group) {
-  var bounds = weekBounds(group.year, group.week);
-  var units = group.units;
-
-  // By-domain breakdown
-  var byDomain = {};
-  for (var i = 0; i < units.length; i++) {
-    var d = units[i].domain || 'uncategorized';
-    if (!byDomain[d]) byDomain[d] = [];
-    byDomain[d].push(units[i]);
-  }
-  var domainNames = Object.keys(byDomain).sort(function (a, b) {
-    return byDomain[b].length - byDomain[a].length;
-  });
-
-  // Status counts
-  var open = 0, closed = 0;
-  for (var j = 0; j < units.length; j++) {
-    if (units[j].status === 'open') open++;
-    else if (units[j].status === 'closed') closed++;
-  }
-
-  var lines = [];
-  lines.push('# Week ' + group.weekKey + ' (' + bounds.start + ' – ' + bounds.end + ')');
-  lines.push('');
-  lines.push('## Headline');
-  lines.push(units.length + ' unit' + (units.length !== 1 ? 's' : '') + ' touched across ' +
-             domainNames.length + ' domain' + (domainNames.length !== 1 ? 's' : '') + '.');
-  lines.push('');
-  lines.push('## By Domain');
-  for (var k = 0; k < domainNames.length; k++) {
-    var dn = domainNames[k];
-    var du = byDomain[dn];
-    lines.push('');
-    lines.push('### ' + dn + ' (' + du.length + ')');
-    // Show up to first 10 titles; overflow is noted.
-    var max = Math.min(du.length, 10);
-    for (var m = 0; m < max; m++) {
-      var title = du[m].title || du[m].id;
-      var badge = du[m].status === 'open' ? ' _(open)_' : '';
-      lines.push('- ' + title + badge);
-    }
-    if (du.length > max) {
-      lines.push('- _… and ' + (du.length - max) + ' more_');
-    }
-  }
-  lines.push('');
-  lines.push('## Numbers');
-  lines.push('- Units: ' + units.length);
-  lines.push('- Closed: ' + closed);
-  lines.push('- Open: ' + open);
-  lines.push('- Domains: ' + domainNames.join(', '));
-  lines.push('');
-  lines.push('## Pending at Week End');
-  var pendingShown = 0;
-  for (var p = 0; p < units.length && pendingShown < 10; p++) {
-    if (units[p].status === 'open') {
-      lines.push('- [ ] ' + (units[p].title || units[p].id));
-      pendingShown++;
-    }
-  }
-  if (open === 0) lines.push('(none — all closed)');
-  else if (pendingShown < open) lines.push('- _… and ' + (open - pendingShown) + ' more_');
-  lines.push('');
-  lines.push('---');
-  lines.push('');
-  lines.push('_Generated by /weekly-backfill (fast mode — deterministic aggregation, no LLM)._');
-  lines.push('');
-  return lines.join('\n');
+function classifyExistingFile(filePath) {
+  if (!fs.existsSync(filePath)) return 'missing';
+  try {
+    var text = fs.readFileSync(filePath, 'utf-8');
+    if (text.indexOf(RICH_MODE_WATERMARK) !== -1) return 'rich';
+    if (text.indexOf(FAST_MODE_WATERMARK) !== -1) return 'fast';
+    return 'manual';
+  } catch (e) { return 'manual'; }
 }
 
-function appendWeeklySummaryEntry(indexText, entry) {
-  // Append to weekly_summaries: block. If block doesn't exist, add it at end.
-  var lines = indexText.split('\n');
-  var sectionIdx = -1;
-  for (var i = 0; i < lines.length; i++) {
-    if (/^weekly_summaries\s*:/.test(lines[i])) { sectionIdx = i; break; }
-  }
-  var newBlock = [
-    '  - week: "' + entry.week + '"',
-    '    file: "' + entry.file + '"',
-    '    start: "' + entry.start + '"',
-    '    end: "' + entry.end + '"',
-    '    unit_count: ' + entry.unit_count,
-    '    domains: [' + entry.domains.join(', ') + ']',
-    '    generated_at: "' + entry.generated_at + '"'
-  ];
+// ── Candidate listing ──────────────────────────────────
 
-  if (sectionIdx === -1) {
-    // Ensure trailing newline, then append section.
-    if (!indexText.endsWith('\n')) indexText += '\n';
-    indexText += '\nweekly_summaries:\n' + newBlock.join('\n') + '\n';
-    return indexText;
+function listCandidates(projectRoot, opts) {
+  opts = opts || {};
+  var includeUpgrade = opts.includeUpgrade !== false; // default: include fast-mode upgrades
+
+  var historyDir = path.join(projectRoot, '.omniscitus', 'history');
+  var indexPath = path.join(historyDir, '_index.yaml');
+  var weeklyDir = path.join(historyDir, '_weekly');
+
+  if (!fs.existsSync(indexPath)) {
+    return { error: 'no-index', indexPath: indexPath };
   }
 
-  // Insert after existing entries but before a non-indented line.
-  var insertAt = lines.length;
-  for (var j = sectionIdx + 1; j < lines.length; j++) {
-    if (/^\S/.test(lines[j]) && lines[j].trim().length > 0) { insertAt = j; break; }
-  }
-  // Trim trailing blank lines from the slice we insert before
-  lines.splice.apply(lines, [insertAt, 0].concat(newBlock));
-  return lines.join('\n');
-}
-
-// ── Main ───────────────────────────────────────────────
-
-function main() {
-  var indexText = fs.readFileSync(INDEX_PATH, 'utf-8');
+  var indexText = fs.readFileSync(indexPath, 'utf-8');
   var units = parseUnits(indexText);
-  var existing = parseExistingWeeklyKeys(indexText);
-
-  if (units.length === 0) {
-    console.log('[weekly-backfill] No units in _index.yaml. Nothing to do.');
-    return;
-  }
-
-  if (!fs.existsSync(WEEKLY_DIR)) fs.mkdirSync(WEEKLY_DIR, { recursive: true });
-
+  var indexedKeys = parseExistingWeeklyKeys(indexText);
   var groups = groupByWeek(units);
   var sortedKeys = Array.from(groups.keys()).sort();
   var now = new Date();
-  var today = formatYmd(now);
 
-  var counts = { created: 0, skippedExisting: 0, skippedCurrent: 0, skippedFileOnDisk: 0 };
-  var workingText = indexText;
+  var weeks = [];
+  var skipped = { in_progress: 0, rich: 0, manual: 0 };
 
   for (var i = 0; i < sortedKeys.length; i++) {
     var key = sortedKeys[i];
     var group = groups.get(key);
 
-    // Smart-skip 1: already in weekly_summaries block
-    if (existing.has(key)) {
-      counts.skippedExisting++;
-      continue;
-    }
-
-    // Smart-skip 2: incomplete week
     if (!isCompletedWeek(group.year, group.week, now)) {
-      counts.skippedCurrent++;
+      skipped.in_progress++;
       continue;
     }
 
-    // Smart-skip 3: md already on disk (partial state — user deleted
-    // _index.yaml entry but file survived). Keep file, just add index entry.
+    var bounds = weekBounds(group.year, group.week);
     var filename = key + '.md';
-    var mdPath = path.join(WEEKLY_DIR, filename);
-    var wroteFile = false;
-    if (fs.existsSync(mdPath)) {
-      counts.skippedFileOnDisk++;
-    } else {
-      fs.writeFileSync(mdPath, renderSummary(group), 'utf-8');
-      wroteFile = true;
+    var absFile = path.join(weeklyDir, filename);
+    var classification = classifyExistingFile(absFile);
+
+    if (classification === 'rich') { skipped.rich++; continue; }
+    if (classification === 'manual') { skipped.manual++; continue; }
+    if (classification === 'fast' && !includeUpgrade) {
+      skipped.manual++; // treat as off-limits when caller declined upgrades
+      continue;
     }
 
-    // Append index entry
-    var bounds = weekBounds(group.year, group.week);
-    var domainNames = Array.from(new Set(group.units.map(function (u) { return u.domain || 'uncategorized'; }))).sort();
-    workingText = appendWeeklySummaryEntry(workingText, {
+    // Enrich each unit with absolute source path so the skill can read it.
+    var enrichedUnits = group.units.map(function (u) {
+      var unitFileAbs = u.file
+        ? path.join(historyDir, u.file)
+        : null;
+      var sourceRel = unitFileAbs ? extractSourceFromUnit(unitFileAbs) : null;
+      return {
+        id: u.id,
+        title: u.title,
+        domain: u.domain,
+        status: u.status,
+        author: u.author || '',
+        unit_file: u.file ? u.file : null,
+        unit_file_abs: unitFileAbs,
+        source: sourceRel,
+        source_abs: sourceRel ? path.join(projectRoot, sourceRel) : null
+      };
+    });
+
+    var domains = Array.from(new Set(enrichedUnits.map(function (u) {
+      return u.domain || 'uncategorized';
+    }))).sort();
+
+    weeks.push({
       week: key,
-      file: '_weekly/' + filename,
+      year: group.year,
+      week_num: group.week,
       start: bounds.start,
       end: bounds.end,
-      unit_count: group.units.length,
-      domains: domainNames,
-      generated_at: today
+      action: classification === 'fast' ? 'upgrade' : 'create',
+      already_in_index: indexedKeys.has(key),
+      file_path: '_weekly/' + filename,
+      file_path_abs: absFile,
+      unit_count: enrichedUnits.length,
+      domains: domains,
+      units: enrichedUnits
     });
-    if (wroteFile) counts.created++;
   }
 
-  if (workingText !== indexText) {
-    fs.writeFileSync(INDEX_PATH, workingText, 'utf-8');
-  }
-
-  console.log('[weekly-backfill] Done.');
-  console.log('  Created:        ' + counts.created + ' weekly summary file(s)');
-  console.log('  Skipped (existing index entry): ' + counts.skippedExisting);
-  console.log('  Skipped (md on disk, added to index): ' + counts.skippedFileOnDisk);
-  console.log('  Skipped (in-progress week): ' + counts.skippedCurrent);
-  console.log('  Weekly summaries dir: ' + path.relative(PROJECT_ROOT, WEEKLY_DIR));
+  return {
+    project_root: projectRoot,
+    weekly_dir: '_weekly',
+    weekly_dir_abs: weeklyDir,
+    candidates: weeks,
+    summary: {
+      total_candidates: weeks.length,
+      to_create: weeks.filter(function (w) { return w.action === 'create'; }).length,
+      to_upgrade: weeks.filter(function (w) { return w.action === 'upgrade'; }).length,
+      skipped_in_progress: skipped.in_progress,
+      skipped_already_rich: skipped.rich,
+      skipped_user_authored: skipped.manual
+    }
+  };
 }
 
-// Run when invoked as CLI; export helpers for tests.
+// ── Index registration ─────────────────────────────────
+
+function registerSummary(projectRoot, entry) {
+  var indexPath = path.join(projectRoot, '.omniscitus', 'history', '_index.yaml');
+  if (!fs.existsSync(indexPath)) {
+    throw new Error('No _index.yaml at ' + indexPath);
+  }
+  var weeklyDir = path.join(projectRoot, '.omniscitus', 'history', '_weekly');
+  if (!fs.existsSync(weeklyDir)) fs.mkdirSync(weeklyDir, { recursive: true });
+
+  var text = fs.readFileSync(indexPath, 'utf-8');
+
+  // Idempotent: if this week is already in the index, skip the append
+  // (the file may have been overwritten with new content but the index
+  // entry already exists from a prior run).
+  if (parseExistingWeeklyKeys(text).has(entry.week)) {
+    return { registered: false, reason: 'already-indexed' };
+  }
+
+  var updated = appendWeeklySummaryEntry(text, entry);
+  fs.writeFileSync(indexPath, updated, 'utf-8');
+  return { registered: true };
+}
+
+// ── CLI ────────────────────────────────────────────────
+
+function die(msg, code) {
+  process.stderr.write(msg + '\n');
+  process.exit(code || 1);
+}
+
+function cliCandidates(projectRoot) {
+  var result = listCandidates(projectRoot);
+  if (result.error === 'no-index') {
+    die('[weekly-backfill] No _index.yaml at ' + result.indexPath +
+        '. Run /omniscitus-migrate or /wrap-up first.');
+  }
+  process.stdout.write(JSON.stringify(result, null, 2) + '\n');
+}
+
+function cliRegister(args, projectRoot) {
+  if (args.length < 6) {
+    die('Usage: register <week> <file> <start> <end> <unit_count> <domains_csv> [project-root]');
+  }
+  var entry = {
+    week: args[0],
+    file: args[1],
+    start: args[2],
+    end: args[3],
+    unit_count: parseInt(args[4], 10) || 0,
+    domains: args[5].split(',').map(function (s) { return s.trim(); }).filter(Boolean),
+    generated_at: formatYmd(new Date())
+  };
+  var result = registerSummary(projectRoot, entry);
+  if (result.registered) {
+    process.stdout.write('[weekly-backfill] Registered ' + entry.week + ' in _index.yaml.\n');
+  } else {
+    process.stdout.write('[weekly-backfill] ' + entry.week + ' already indexed (no-op).\n');
+  }
+}
+
+function cliStatus(projectRoot) {
+  var result = listCandidates(projectRoot);
+  if (result.error === 'no-index') {
+    die('[weekly-backfill] No _index.yaml at ' + result.indexPath);
+  }
+  var s = result.summary;
+  console.log('[weekly-backfill] Candidate weeks:');
+  console.log('  To create (no file):       ' + s.to_create);
+  console.log('  To upgrade (fast→rich):    ' + s.to_upgrade);
+  console.log('  Skipped — in-progress:     ' + s.skipped_in_progress);
+  console.log('  Skipped — already rich:    ' + s.skipped_already_rich);
+  console.log('  Skipped — user-authored:   ' + s.skipped_user_authored);
+  if (result.candidates.length > 0) {
+    console.log('');
+    console.log('Run via /weekly-backfill skill for rich synthesis, or:');
+    console.log('  node ' + path.basename(__filename) + ' candidates  # JSON for tooling');
+  }
+}
+
+function main() {
+  var argv = process.argv.slice(2);
+  var subcommand = argv[0];
+  var projectRoot;
+
+  if (!subcommand || subcommand === 'status') {
+    projectRoot = argv[1] || process.cwd();
+    cliStatus(projectRoot);
+  } else if (subcommand === 'candidates') {
+    projectRoot = argv[1] || process.cwd();
+    cliCandidates(projectRoot);
+  } else if (subcommand === 'register') {
+    var rest = argv.slice(1);
+    // Last arg is project root if it's a directory; otherwise default to cwd.
+    if (rest.length >= 7 && fs.existsSync(rest[6]) && fs.statSync(rest[6]).isDirectory()) {
+      projectRoot = rest[6];
+      rest = rest.slice(0, 6);
+    } else {
+      projectRoot = process.cwd();
+    }
+    cliRegister(rest, projectRoot);
+  } else {
+    die('Unknown subcommand: ' + subcommand + '\n' +
+        'Use: status | candidates | register <args>');
+  }
+}
+
 if (require.main === module) {
   try { main(); }
-  catch (err) { die('[weekly-backfill] Error: ' + err.message); }
+  catch (err) { die('[weekly-backfill] Error: ' + (err.stack || err.message)); }
 }
 
 module.exports = {
   isoWeek: isoWeek,
   weekLabel: weekLabel,
   weekBounds: weekBounds,
+  isCompletedWeek: isCompletedWeek,
   parseUnits: parseUnits,
   parseExistingWeeklyKeys: parseExistingWeeklyKeys,
+  appendWeeklySummaryEntry: appendWeeklySummaryEntry,
+  extractSourceFromUnit: extractSourceFromUnit,
   groupByWeek: groupByWeek,
-  isCompletedWeek: isCompletedWeek,
-  renderSummary: renderSummary,
-  appendWeeklySummaryEntry: appendWeeklySummaryEntry
+  classifyExistingFile: classifyExistingFile,
+  listCandidates: listCandidates,
+  registerSummary: registerSummary,
+  RICH_MODE_WATERMARK: RICH_MODE_WATERMARK,
+  FAST_MODE_WATERMARK: FAST_MODE_WATERMARK
 };
