@@ -2,6 +2,14 @@
 
 All notable changes to omniscitus. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.4.1] — 2026-04-13
+
+### Fixed
+
+- **Birdview weekly card now shows the headline** for non-English summaries. `extractHeadline` previously matched only `## Headline` (English), so Korean rich-mode summaries with `## 한 줄 요약` (and Japanese with `## 概要` / `## ヘッドライン`) rendered with no preview line under the date range.
+- Card display now strips inline markdown (`**bold**`, `*italic*`, `` `code` ``, `[text](link)`) so headlines don't render with literal asterisks. Modal still gets full markdown via marked.js.
+- Headline paragraph is CSS-clamped to 4 lines on the card so a 3-sentence headline stays scannable; click → modal shows full text.
+
 ## [0.4.0] — 2026-04-13
 
 The "weekly summaries that are actually summaries" release.
