@@ -2,6 +2,12 @@
 
 All notable changes to omniscitus. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.5.2] — 2026-04-13
+
+### Fixed
+
+- **All hooks now actually load.** The `PreCompact` entry in `hooks/hooks.json` used `"type": "message"`, which isn't a valid Claude Code hook type. Its validation error propagated and killed the entire plugin's hook registration — so `blueprint-tracker` never ran on Write/Edit, and neither did the SessionStart version check. Replaced with `"type": "command"` + `echo` so the user still sees the same PreCompact reminder. `/doctor` will now show zero Omniscitus errors.
+
 ## [0.5.1] — 2026-04-13
 
 ### Fixed
