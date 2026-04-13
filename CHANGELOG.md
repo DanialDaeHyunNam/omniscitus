@@ -2,6 +2,31 @@
 
 All notable changes to omniscitus. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.3.0] — 2026-04-13
+
+The "first real migration" release. Shaped by dogfooding a 3,400-file, 10-member team codebase (LangTwo mono) through `/omniscitus-migrate` end-to-end. Every item below came from a real friction point hit during that session.
+
+### Added
+
+- **Weekly summary auto-backfill** — `/wrap-up` now checks whether the last completed ISO week has a summary at `.omniscitus/history/_weekly/{YYYY}-W{NN}.md`. If not, it generates one (Headline, by-domain breakdown, decisions/constraints, pending, numbers) before proceeding with the current session's wrap-up. Birdview renders these as a distinct purple-accented card above the unit list when the selected range overlaps. Only fires for completed weeks — in-progress week stays silent. Zero-touch: users never run a separate command.
+- **Umbrella prompt-meta.yaml support** — prompt tests can now delegate to external test infrastructure via `cases: { source: external, pattern: "..." }` or a `prompts: []` registry of sub-prompts. Birdview's Tests view enriches these at request time with glob-counted case totals and renders each sub-prompt as its own row. Previously a 10-sub-prompt umbrella showed as "1 Prompts, 0 Cases" — now it shows meaningful numbers.
+- **Git-anchored uninstall safety** — migrate now records `.omniscitus/migrate/anchor.yaml` with the pre-migration SHA plus a footprint list of every file modified outside `.omniscitus/` (CLAUDE.md block, member docs, etc). Sets the foundation for a `/omniscitus-uninstall` skill (next release). Manual-fallback rollback instructions auto-generated in `.omniscitus/README.md`.
+- **Migrate language preference (Step 0)** — pick generated docs language up front (defaults to English). Korean team asked for Korean docs after the fact; baking the choice in avoids a second pass.
+- **CLAUDE.md integration proposal (Phase 5.5)** — migrate offers to append an "Omniscitus (auto-tracking)" block to `CLAUDE.md` so new collaborators follow `/wrap-up` + `/follow-up` conventions without explanation.
+- **Richer `migrate-config.yaml` template** — generated file now includes inline-commented `excluded_directories` + commented `blueprint_splits` example with depth semantics explained.
+- **Version-check SessionStart hook** — nags once per 24h when a newer marketplace version is available. Smart rate limit: a newer latest resets the cooldown so big jumps aren't silenced.
+- **37 new tests** covering the weekly-summary parser (6), umbrella prompt-meta parser + glob counter (10), and version-check helpers (21). 83/83 passing total.
+
+### Changed
+
+- **`/omniscitus-migrate` elevated to a first-class install step** in the README and the docs landing terminal. Old copy buried it as a footnote; the demo terminal implied `/wrap-up` was the next command after install.
+- **README has a dedicated Uninstall section** documenting the two-step flow and explaining why automatic uninstall-on-plugin-removal isn't possible (Claude Code's plugin API has no uninstall lifecycle hook).
+
+### Pre-conditions now enforced
+
+- Migrate refuses to start in a non-git project without explicit opt-in (the rollback anchor needs git). Offers to `git init` first.
+- Warns on dirty working tree before recording the anchor — uncommitted edits won't be covered by rollback.
+
 ## [0.2.0] — 2026-04-11
 
 The "make it real" release. Lots of polish, a meaningful new feature, the first hosted demo, and real test coverage.
