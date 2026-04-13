@@ -2,6 +2,26 @@
 
 All notable changes to omniscitus. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.5.0] — 2026-04-13
+
+The "uninstall is real" release.
+
+### Added
+
+- **`/omniscitus-uninstall` skill** — surgically reverses every file change `/omniscitus-migrate` made outside `.omniscitus/`, then removes `.omniscitus/` itself. Reads the footprint recorded in `anchor.yaml` and applies one of four reversal strategies per entry: marker-based section removal (for `appended`), `git checkout` from the anchor SHA (for `modified` / `deleted`), or file delete (for `created`). Includes dry-run preview, idempotent execute, and per-entry reporting. Safe to re-run — already-applied state is recognized and treated as no-op.
+- **Birdview heuristic TS extractor for prompt test case titles** — umbrella prompt-meta cards now show a collapsible list of test case titles (id + name) extracted from the underlying `.ts` files. Position-based regex handles inline and multi-line object forms, multiple field aliases (`id` / `elementId` / `testId`, `name` / `title`), and template-literal quoting. Strips comments before scanning so identifier-shaped tokens inside `// ...` or `/* ... */` don't false-match. Browse/index UX — input/expected fields stay in the .ts.
+
+### Tests
+
+- 12 new tests for the uninstall script (parseAnchor, classifyMarker, removeAppendedSection across 5 paths, buildPlan/executePlan with tmpdir fixtures, idempotency, race-condition handling).
+- 7 new tests for the TS extractor (stripJsComments, multi-line + inline pairing, comment-stripping during extraction, orphan-id dropping, missing-file safety, directory walking).
+- **130/130 passing total**.
+
+### Verified end-to-end
+
+- Smoke against the LangTwo mono anchor (41 footprint entries): dry-run reports 40 apply + 1 skip — the skip is qa/team.html where the marker lives inside an HTML attribute, classified as user-authored (the safe default).
+- Smoke against LangTwo prompt-optimization (zero schema hint): 113 suggestion + 21 evaluation titles extracted; narration / improvisation use a different schema and return 0 (future work).
+
 ## [0.4.1] — 2026-04-13
 
 ### Fixed
