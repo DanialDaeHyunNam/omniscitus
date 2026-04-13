@@ -40,13 +40,17 @@ Run these inside a Claude Code session:
 
 # 2. Install the plugin
 /plugin install omniscitus@omniscitus
+
+# 3. Bootstrap from your existing code (one-time, skip for brand-new projects)
+/omniscitus-migrate
 ```
 
 Restart Claude Code after install. Zero configuration. Respects `.gitignore`. Non-destructive overlay. Remove anytime.
 
-### Existing project
+### New project vs existing
 
-Already have a codebase? Run `/omniscitus-migrate` after install to bootstrap blueprints, history units, and test meta from your existing git history, docs, and tests. Nothing is deleted.
+- **Brand-new project** — skip step 3. Blueprints start accumulating from your first edit.
+- **Existing codebase** — run `/omniscitus-migrate` once. It indexes every tracked file (git history, authorship), creates one closed history unit per topic it can detect, and indexes your tests. Nothing is deleted; everything is additive overlay under `.omniscitus/`.
 
 ### Joining a team
 
