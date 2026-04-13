@@ -2,6 +2,12 @@
 
 All notable changes to omniscitus. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.5.1] — 2026-04-13
+
+### Fixed
+
+- **`/birdview` reliably survives the tool-call boundary.** The Step 3 command used shell `&` backgrounding, which Claude Code's sandbox intermittently reaped when the tool call returned — the server died seconds after start. Now the skill spells out `run_in_background: true` as the invocation shape and adds a Step 3.5 `curl` verification so the report never claims success on a dead server.
+
 ## [0.5.0] — 2026-04-13
 
 The "uninstall is real" release.
