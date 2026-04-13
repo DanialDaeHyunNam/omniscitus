@@ -44,7 +44,10 @@
   .weekly-card:hover{border-color:#8b5cf6;box-shadow:0 4px 16px rgba(139,92,246,0.15)}
   .weekly-card-label{display:inline-block;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:#a78bfa;margin-bottom:6px}
   .weekly-card-title{font-size:16px;font-weight:600;color:#e5e7eb;margin:0 0 4px 0}
-  .weekly-card-headline{font-size:14px;color:#cbd5e1;margin:8px 0 0 0;line-height:1.5}
+  /* Headline can be a multi-sentence paragraph (esp. for active weeks).
+     Clamp to 4 lines on the card so it stays scannable; full text
+     shows in the modal on click. */
+  .weekly-card-headline{font-size:14px;color:#cbd5e1;margin:8px 0 0 0;line-height:1.5;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
   .weekly-card-meta{display:flex;gap:16px;font-size:12px;color:#9ca3af;margin-top:10px;flex-wrap:wrap}
   .weekly-card-meta span{display:flex;align-items:center;gap:4px}
   .unit-card-header{display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap}
@@ -337,19 +340,33 @@ function renderDomains() {
   container.innerHTML = html;
 }
 
-/* Extract the line that follows "## Headline" in a weekly summary
-   markdown body, for display on the collapsed card. Returns '' if not
-   found. */
+/* Extract the headline (first non-empty line under the recognized
+   "headline" heading) from a weekly summary markdown body, for
+   display on the collapsed card. Multilingual: matches English
+   "Headline", Korean "한 줄 요약", Japanese "ヘッドライン" / "概要".
+   Returns '' if not found. */
+var HEADLINE_HEADING_RE = /^##\s+(Headline|한\s*줄\s*요약|ヘッドライン|概要)\s*$/i;
+
+/* Strip the most common inline markdown so the card text reads cleanly.
+   Modal renders full markdown via marked.js — this is card-only. */
+function stripInlineMarkdown(s) {
+  return s
+    .replace(/\*\*(.+?)\*\*/g, '$1')   // **bold**
+    .replace(/\*(.+?)\*/g, '$1')       // *italic*
+    .replace(/`([^`]+)`/g, '$1')       // `code`
+    .replace(/\[(.+?)\]\([^)]+\)/g, '$1'); // [link](url)
+}
+
 function extractHeadline(md) {
   if (!md) return '';
   var lines = md.split('\n');
   for (var i = 0; i < lines.length; i++) {
-    if (/^##\s+Headline\s*$/i.test(lines[i])) {
+    if (HEADLINE_HEADING_RE.test(lines[i])) {
       for (var j = i + 1; j < lines.length; j++) {
         var t = lines[j].trim();
         if (t.length === 0) continue;
         if (t.startsWith('#')) break;
-        return t;
+        return stripInlineMarkdown(t);
       }
     }
   }
