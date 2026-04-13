@@ -909,6 +909,23 @@ function renderPromptTests(tests) {
         if (subp.notes) {
           html += '<div style="color:#9ca3af;font-size:12px;margin-top:4px;font-style:italic">' + esc(subp.notes) + '</div>';
         }
+        // Test case titles (extracted from .ts source via heuristic regex).
+        // Birdview is a browse/index tool — input/expected stay in the .ts file.
+        if (subp._titles && subp._titles.length > 0) {
+          var preview = subp._titles.slice(0, 8);
+          html += '<details style="margin-top:8px"><summary style="cursor:pointer;color:#9ca3af;font-size:12px;user-select:none">';
+          html += '▸ ' + subp._titles.length + ' case title' + (subp._titles.length !== 1 ? 's' : '');
+          html += '</summary>';
+          html += '<ul style="margin:6px 0 0 16px;padding:0;list-style:disc;color:#cbd5e1;font-size:12px;line-height:1.6">';
+          for (var ti = 0; ti < preview.length; ti++) {
+            var ttl = preview[ti];
+            html += '<li><code style="background:#0b1220;padding:1px 5px;border-radius:3px;color:#93c5fd">' + esc(ttl.id) + '</code> ' + esc(ttl.name) + '</li>';
+          }
+          if (subp._titles.length > preview.length) {
+            html += '<li style="list-style:none;color:#6b7280;font-style:italic">… and ' + (subp._titles.length - preview.length) + ' more</li>';
+          }
+          html += '</ul></details>';
+        }
         html += '</div>';
       }
       html += '</div></div>';
