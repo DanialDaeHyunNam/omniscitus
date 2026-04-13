@@ -31,6 +31,84 @@ And create `.omniscitus/history/_index.yaml` with:
 units: []
 ```
 
+### Step 1.5: Weekly Summary Backfill (automatic)
+
+Before analyzing the current session, check whether the **last completed
+ISO week** has a weekly summary on disk. If not, generate it first,
+then proceed with the current session's wrap-up. This runs silently
+most weeks (summary already present) and only triggers the first
+wrap-up of a new week.
+
+**Rules**
+- Only generate for **completed** weeks. A week is complete if its Sunday
+  (ISO Sunday = day 7) is before today. If today is mid-week, skip —
+  there's nothing to summarize yet.
+- Store summaries at `.omniscitus/history/_weekly/{YYYY}-W{NN}.md`
+  using ISO week numbering (`2026-W14` = Mar 30–Apr 5, 2026).
+- Track them in `_index.yaml` under a top-level `weekly_summaries:` list
+  so birdview can render them without re-walking the filesystem.
+- If `_weekly/` does not exist yet, create it: `mkdir -p .omniscitus/history/_weekly`.
+
+**Procedure**
+
+1. Compute the current ISO week: today → `{YYYY}-W{NN}`.
+2. Compute the previous completed week: subtract 7 days from today,
+   then take its ISO week. Skip generation if that week is the same
+   as the current week (meaning today is still inside it).
+3. Check `_weekly/{YYYY}-W{NN}.md`. If it exists, skip.
+4. Walk `_index.yaml` for all units where `last_updated` falls in the
+   previous week's date range. Collect:
+   - total units touched, new vs. appended
+   - domains touched (with count per domain)
+   - top decisions / constraints from each unit's `## Context`
+   - pending items still open at week end
+5. Generate the summary file (use language from project convention —
+   Korean if other history units are Korean, otherwise English):
+
+```markdown
+# Week {YYYY}-W{NN} ({start} – {end})
+
+## Headline
+{1-2 sentence summary of the week's overall arc}
+
+## By Domain
+- **{domain}** ({N} units): {1-line each}
+- ...
+
+## Decisions & Constraints
+- {key decision 1 and why}
+- {key constraint 2 and who is blocked}
+
+## Pending at Week End
+- [ ] {open item 1}
+- [ ] {open item 2}
+
+## Numbers
+- New units: {N}
+- Appended sessions: {M}
+- Closed this week: {K}
+- Domains touched: {list}
+```
+
+6. Append to `_index.yaml`:
+
+```yaml
+weekly_summaries:
+  - week: "{YYYY}-W{NN}"
+    file: "_weekly/{YYYY}-W{NN}.md"
+    start: "{YYYY-MM-DD}"      # Monday
+    end: "{YYYY-MM-DD}"        # Sunday
+    unit_count: {N}
+    domains: [web, server, ...]
+    generated_at: "{YYYY-MM-DD}"
+```
+
+Keep `weekly_summaries:` sorted by week descending (newest first) so
+birdview can render it without resorting.
+
+Only after this backfill completes, proceed to Step 2 for the current
+session's wrap-up.
+
 ### Step 2: Analyze the Session
 
 Gather what was done in this session:

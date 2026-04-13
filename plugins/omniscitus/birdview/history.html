@@ -38,6 +38,15 @@
 
   .unit-card{background:#1a1a1a;border-radius:12px;padding:20px;border:1px solid #252525;cursor:pointer;transition:border-color 0.15s,box-shadow 0.15s}
   .unit-card:hover{border-color:#374151;box-shadow:0 4px 16px rgba(0,0,0,0.3)}
+
+  /* Weekly summary card — distinctive styling so it's clearly not a regular unit */
+  .weekly-card{background:linear-gradient(135deg,#1a1b2e 0%,#1a1a1a 100%);border:1px solid #3b3b55;border-left:3px solid #8b5cf6;border-radius:12px;padding:20px;cursor:pointer;transition:border-color 0.15s}
+  .weekly-card:hover{border-color:#8b5cf6;box-shadow:0 4px 16px rgba(139,92,246,0.15)}
+  .weekly-card-label{display:inline-block;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:#a78bfa;margin-bottom:6px}
+  .weekly-card-title{font-size:16px;font-weight:600;color:#e5e7eb;margin:0 0 4px 0}
+  .weekly-card-headline{font-size:14px;color:#cbd5e1;margin:8px 0 0 0;line-height:1.5}
+  .weekly-card-meta{display:flex;gap:16px;font-size:12px;color:#9ca3af;margin-top:10px;flex-wrap:wrap}
+  .weekly-card-meta span{display:flex;align-items:center;gap:4px}
   .unit-card-header{display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap}
   .unit-title{font-size:16px;font-weight:600;color:#fff;margin:0}
   .badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:12px;font-weight:500}
@@ -253,6 +262,7 @@ function toast(msg, type) {
 
 var allUnits = [];
 var allDomains = [];
+var allWeeklySummaries = [];
 var activeDomain = 'all';
 
 /* ── Calendar state ────────────────────────────────────
@@ -327,6 +337,40 @@ function renderDomains() {
   container.innerHTML = html;
 }
 
+/* Extract the line that follows "## Headline" in a weekly summary
+   markdown body, for display on the collapsed card. Returns '' if not
+   found. */
+function extractHeadline(md) {
+  if (!md) return '';
+  var lines = md.split('\n');
+  for (var i = 0; i < lines.length; i++) {
+    if (/^##\s+Headline\s*$/i.test(lines[i])) {
+      for (var j = i + 1; j < lines.length; j++) {
+        var t = lines[j].trim();
+        if (t.length === 0) continue;
+        if (t.startsWith('#')) break;
+        return t;
+      }
+    }
+  }
+  return '';
+}
+
+/* Filter weekly summaries whose [start, end] overlaps the currently
+   selected range. Week view → at most 1 card. Month view → 4-5 cards. */
+function weeklyInRange(range) {
+  if (!range || !allWeeklySummaries.length) return [];
+  return allWeeklySummaries.filter(function(w) {
+    if (!w.start || !w.end) return false;
+    var s = parseYMD(w.start), e = parseYMD(w.end);
+    if (!s || !e) return false;
+    // overlap test: not (w.end < range.start || w.start > range.end)
+    return !(e < range.start || s > range.end);
+  }).sort(function(a, b) {
+    return a.start < b.start ? 1 : (a.start > b.start ? -1 : 0);
+  });
+}
+
 function renderUnits() {
   var container = document.getElementById('units');
   var empty = document.getElementById('empty');
@@ -345,7 +389,14 @@ function renderUnits() {
     return 0;
   });
 
-  if (filtered.length === 0) {
+  // Weekly summaries overlapping the selected range — rendered above units.
+  // Respect the same domain filter (summaries listing touched domains).
+  var weeklies = weeklyInRange(selectedRange).filter(function(w) {
+    if (activeDomain === 'all') return true;
+    return (w.domains || []).indexOf(activeDomain) !== -1;
+  });
+
+  if (filtered.length === 0 && weeklies.length === 0) {
     container.innerHTML = '';
     empty.style.display = '';
     return;
@@ -353,6 +404,25 @@ function renderUnits() {
   empty.style.display = 'none';
 
   var html = '';
+
+  for (var w = 0; w < weeklies.length; w++) {
+    var ws = weeklies[w];
+    var headline = extractHeadline(ws.content);
+    html += '<div class="weekly-card" data-week="' + escAttr(ws.week) + '">';
+    html += '<div class="weekly-card-label">Week ' + esc(ws.week) + '</div>';
+    html += '<h3 class="weekly-card-title">' + esc(ws.start) + ' &rarr; ' + esc(ws.end) + '</h3>';
+    if (headline) {
+      html += '<p class="weekly-card-headline">' + esc(headline) + '</p>';
+    }
+    html += '<div class="weekly-card-meta">';
+    html += '<span>' + esc(ws.unit_count) + ' unit' + (ws.unit_count !== 1 ? 's' : '') + '</span>';
+    if ((ws.domains || []).length > 0) {
+      html += '<span>' + esc(ws.domains.join(', ')) + '</span>';
+    }
+    html += '</div>';
+    html += '</div>';
+  }
+
   for (var i = 0; i < filtered.length; i++) {
     var u = filtered[i];
     html += '<div class="unit-card" data-idx="' + i + '" data-id="' + escAttr(u.id) + '">';
@@ -561,6 +631,25 @@ document.getElementById('domains').addEventListener('click', function(ev) {
 });
 
 document.getElementById('units').addEventListener('click', function(ev) {
+  var wcard = ev.target.closest('.weekly-card');
+  if (wcard) {
+    var week = wcard.getAttribute('data-week');
+    var ws = allWeeklySummaries.find(function(w) { return w.week === week; });
+    if (ws) {
+      // Reuse unit-detail modal — it renders markdown generically.
+      showDetail({
+        id: ws.week,
+        title: 'Week ' + ws.week + ' (' + ws.start + ' → ' + ws.end + ')',
+        domain: (ws.domains || []).join(', ') || '—',
+        status: 'closed',
+        session_count: ws.unit_count,
+        created: ws.start,
+        last_updated: ws.end,
+        content: ws.content || ''
+      });
+    }
+    return;
+  }
   var card = ev.target.closest('.unit-card');
   if (!card) return;
   var id = card.getAttribute('data-id');
@@ -696,6 +785,7 @@ fetch('/api/units')
   .then(function(d) {
     allUnits = d.units || [];
     allDomains = d.domains || [];
+    allWeeklySummaries = d.weekly_summaries || [];
 
     // Default selection: the latest week with units (or current week if empty)
     var anchor = new Date();

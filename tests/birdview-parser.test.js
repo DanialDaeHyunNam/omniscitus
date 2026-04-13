@@ -13,7 +13,7 @@
 
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { parseBlueprints, parseIndexYaml } = require('../plugins/omniscitus/birdview/server.js');
+const { parseBlueprints, parseIndexYaml, parseWeeklySummariesYaml } = require('../plugins/omniscitus/birdview/server.js');
 
 // ── parseBlueprints ────────────────────────────────────
 
@@ -223,4 +223,103 @@ test('parseIndexYaml: fixture from the actual seeded data parses cleanly', () =>
     assert.ok(u.domain, 'unit missing domain');
     assert.ok(u.title, 'unit missing title');
   });
+});
+
+// ── parseWeeklySummariesYaml ───────────────────────────
+
+test('parseWeeklySummariesYaml: empty input returns empty array', () => {
+  assert.deepEqual(parseWeeklySummariesYaml(''), []);
+});
+
+test('parseWeeklySummariesYaml: no weekly_summaries section returns empty', () => {
+  const yaml = [
+    'units:',
+    '  - id: foo',
+    '    domain: web',
+    ''
+  ].join('\n');
+  assert.deepEqual(parseWeeklySummariesYaml(yaml), []);
+});
+
+test('parseWeeklySummariesYaml: parses a single weekly entry', () => {
+  const yaml = [
+    'units: []',
+    'weekly_summaries:',
+    '  - week: "2026-W14"',
+    '    file: "_weekly/2026-W14.md"',
+    '    start: "2026-03-30"',
+    '    end: "2026-04-05"',
+    '    unit_count: 5',
+    '    domains: [web, server]',
+    '    generated_at: "2026-04-13"',
+    ''
+  ].join('\n');
+  const summaries = parseWeeklySummariesYaml(yaml);
+  assert.equal(summaries.length, 1);
+  assert.equal(summaries[0].week, '2026-W14');
+  assert.equal(summaries[0].file, '_weekly/2026-W14.md');
+  assert.equal(summaries[0].start, '2026-03-30');
+  assert.equal(summaries[0].end, '2026-04-05');
+  assert.equal(summaries[0].unit_count, 5);
+  assert.deepEqual(summaries[0].domains, ['web', 'server']);
+  assert.equal(summaries[0].generated_at, '2026-04-13');
+});
+
+test('parseWeeklySummariesYaml: parses multiple weekly entries', () => {
+  const yaml = [
+    'weekly_summaries:',
+    '  - week: "2026-W14"',
+    '    file: "_weekly/2026-W14.md"',
+    '    unit_count: 5',
+    '    domains: [web]',
+    '  - week: "2026-W15"',
+    '    file: "_weekly/2026-W15.md"',
+    '    unit_count: 3',
+    '    domains: [server, devops]',
+    ''
+  ].join('\n');
+  const summaries = parseWeeklySummariesYaml(yaml);
+  assert.equal(summaries.length, 2);
+  assert.equal(summaries[0].week, '2026-W14');
+  assert.equal(summaries[1].week, '2026-W15');
+  assert.equal(summaries[1].unit_count, 3);
+  assert.deepEqual(summaries[1].domains, ['server', 'devops']);
+});
+
+test('parseWeeklySummariesYaml: coexists with units section', () => {
+  const yaml = [
+    'units:',
+    '  - id: unit-a',
+    '    domain: web',
+    '    title: "Foo"',
+    'weekly_summaries:',
+    '  - week: "2026-W14"',
+    '    file: "_weekly/2026-W14.md"',
+    '    unit_count: 1',
+    ''
+  ].join('\n');
+  // Both parsers read the same text independently
+  const units = parseIndexYaml(yaml);
+  const summaries = parseWeeklySummariesYaml(yaml);
+  assert.equal(units.length, 1);
+  assert.equal(units[0].id, 'unit-a');
+  assert.equal(summaries.length, 1);
+  assert.equal(summaries[0].week, '2026-W14');
+});
+
+test('parseIndexYaml: skips weekly_summaries entries (does not treat - week: as a unit)', () => {
+  // Regression: an earlier parser draft that used the same `- ` line
+  // recognizer would have mis-counted weekly entries as units.
+  const yaml = [
+    'units:',
+    '  - id: unit-a',
+    '    domain: web',
+    'weekly_summaries:',
+    '  - week: "2026-W14"',
+    '    unit_count: 1',
+    ''
+  ].join('\n');
+  const units = parseIndexYaml(yaml);
+  assert.equal(units.length, 1);
+  assert.equal(units[0].id, 'unit-a');
 });
