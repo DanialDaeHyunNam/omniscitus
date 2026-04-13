@@ -35,6 +35,25 @@ Check if `.omniscitus/history/_index.yaml` exists. If it does, this project has 
 
 Stop here. Do NOT proceed with migration.
 
+### Step 0: Language Preference
+
+Before anything else, ask the user which language the generated
+documentation should use. This affects history unit bodies, folder
+summaries, legacy.yaml notes, and the optional CLAUDE.md block
+(Phase 5.5).
+
+Use AskUserQuestion:
+- question: "Which language should generated docs use? (history units, summaries, CLAUDE.md block)"
+- options: "English (Recommended)", "Korean (한국어)", "Japanese (日本語)", "Other (specify)"
+- default to the first option ("English") on ambiguity
+
+Why this exists: source code stays authored in whatever language the
+original commits use — only the new `.omniscitus/`-generated prose is
+affected. A Korean team asked for Korean docs after the fact; baking
+the choice in up front makes the output feel native.
+
+Store the choice in-memory for this run (do not persist — one-shot).
+
 ### Phase 1: Reconnaissance
 
 **Do NOT create any files yet. Only read and ask.**
@@ -75,14 +94,33 @@ Use AskUserQuestion:
 - "The `{dir}/` directory has {N} files. This is unusually large. Should I include it in blueprint tracking? Large asset/resource directories can be excluded to keep blueprints focused on source code."
 - options: "Include it" / "Exclude it" / "Let me check first"
 
-Record excluded directories in `.omniscitus/migrate-config.yaml`:
+Record excluded directories in `.omniscitus/migrate-config.yaml`. When
+creating this file, write a richer template so the user can tune it
+later without re-reading the skill:
 
 ```yaml
+# Omniscitus migration config — tune as the project evolves.
+
+# Directories whose contents should NOT be tracked in blueprints.
+# Typical candidates: asset bundles, vendored code, build artifacts,
+# fixtures, migration snapshots.
 excluded_directories:
-  - resources/    # Excluded: static assets (35,000+ files)
+  - resources/          # example: 35,000+ static assets — not source code
+
+# blueprint_splits: how deep to split each top-level directory into
+# separate yaml files under .omniscitus/blueprints/.
+# Default is depth=1 (one yaml per top-level dir). depth=N splits at
+# path level N. Use for large subsystems where a single yaml would
+# exceed ~250KB (slows the PostToolUse hook):
+#   depth=2: src/lib/auth.ts → blueprints/src/lib.yaml
+#   depth=3: src/lib/auth.ts → blueprints/src/lib/auth.yaml
+blueprint_splits:
+  # src: 3           # uncomment if src/ has 500+ files with deep nesting
+  # .claude: 3       # uncomment for team workspaces with many members
 ```
 
-This file is referenced during blueprint construction to skip excluded dirs.
+This file is referenced during blueprint construction to skip excluded
+dirs and to decide per-directory file layout.
 
 #### Step 1.3: Detect Existing Documentation Systems
 
@@ -448,6 +486,43 @@ Use AskUserQuestion:
 - Show the legacy list
 - "These files overlap with omniscitus. Want to: keep all / archive to .omniscitus/migrate/archived/ / delete any?"
 - For each file the user wants to archive: copy to `.omniscitus/migrate/archived/`
+
+### Phase 5.5: CLAUDE.md Integration Proposal
+
+Most teams never notice omniscitus is running once it's set up — that's
+the point. But new collaborators joining the repo *do* need to know the
+conventions exist. The cheapest way to onboard them is a short block
+in `CLAUDE.md` that Claude Code loads every session.
+
+Check if `CLAUDE.md` exists at the project root. If yes, propose adding
+an omniscitus block to it.
+
+Use AskUserQuestion:
+- question: "Add an omniscitus workflow block to CLAUDE.md? (Recommended)"
+- description of the recommendation: "Every Claude Code session auto-loads CLAUDE.md. Adding this block means new collaborators follow the /wrap-up + /follow-up + /birdview conventions with zero explanation needed — they just work as expected."
+- options:
+  - "Add it (Recommended)"
+  - "Show me the exact content first"
+  - "Skip — I'll add later"
+
+If the user picks "Show me the exact content first", display the block
+below and re-prompt.
+
+If added, append to `CLAUDE.md` (write in the language chosen at Step 0):
+
+```markdown
+### 🗂 Omniscitus (auto-tracking)
+
+- **Blueprints**: every Write/Edit is auto-tracked by a PostToolUse hook. Do not edit `.omniscitus/blueprints/*.yaml` by hand.
+- **Session end**: run `/wrap-up` (or say "wrap up", "마무리"). Work is classified into domain-based topic units under `.omniscitus/history/{domain}/`.
+- **Pending review**: `/follow-up` surfaces open items relevant to the current session (last 3 days).
+- **Visual browser**: `/birdview` — combined blueprint + history + tests viewer.
+- **Domain taxonomy**: `.omniscitus/ontology.yaml` (if present) defines how work is classified.
+```
+
+If `CLAUDE.md` does not exist, do **not** create it — that's an
+opinionated project decision that belongs to the repo owner. Skip this
+phase silently.
 
 ### Phase 6: Report
 
