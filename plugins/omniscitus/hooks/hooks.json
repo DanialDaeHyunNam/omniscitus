@@ -23,8 +23,9 @@
         "matcher": ".*",
         "hooks": [
           {
-            "type": "message",
-            "message": "[omniscitus] Context is about to be compacted. Run /wrap-up now to preserve session knowledge before it's lost. Also run /blueprint-sync if user-created files may exist."
+            "type": "command",
+            "command": "echo '[omniscitus] Context is about to be compacted. Run /wrap-up now to preserve session knowledge before it is lost. Also run /blueprint-sync if user-created files may exist.'",
+            "timeout": 2
           }
         ]
       }
