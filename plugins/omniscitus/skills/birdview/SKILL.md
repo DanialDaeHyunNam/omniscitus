@@ -48,17 +48,52 @@ After this block `$PORT` holds an unused port — usually 3777, otherwise
 the next free integer above it. Report the chosen port to the user
 explicitly so they know whether the URL is the default or a fallback.
 
-### Step 3: Start Server
+### Step 3: Start Server in Background
 
-Pass the chosen port via `BIRDVIEW_PORT`:
+**CRITICAL** — use the Bash tool's `run_in_background: true` parameter.
+**Do NOT** rely on shell backgrounding (`&`) — in Claude Code's sandbox
+the child process is often reaped when the tool call returns, so the
+server dies seconds after it starts. `run_in_background: true` keeps
+it alive across tool calls and the whole conversation.
+
+**Command** (no trailing `&` — background is the tool's responsibility):
 
 ```bash
-BIRDVIEW_PORT=$PORT node "${CLAUDE_PLUGIN_ROOT}/birdview/server.js" "$(pwd)" &
+BIRDVIEW_PORT=$PORT node "${CLAUDE_PLUGIN_ROOT}/birdview/server.js" "$(pwd)"
 ```
+
+**Invocation shape**:
+
+```
+Bash(
+  command: <the command above>,
+  run_in_background: true,
+  description: "Start birdview server on port $PORT"
+)
+```
+
+The tool returns immediately with a background task id; the server
+stays up. The user will close it explicitly (via the `kill` hint in
+Step 4) or by ending the Claude Code session.
 
 The server receives the project root path as its first CLI argument and
 reads the port from the environment. Both have safe fallbacks: missing
 project root → `cwd()`, missing `BIRDVIEW_PORT` → 3777.
+
+### Step 3.5: Verify it actually came up
+
+Before reporting success, sanity-check the server responds. Use a
+foreground Bash (no `run_in_background`) so you block until the check
+returns:
+
+```bash
+curl -s -o /dev/null -w "%{http_code}" "http://localhost:$PORT"
+```
+
+Expect `200`. If you get a connection error, wait 500ms and try once
+more (Node takes a moment to bind). If still failing, read the
+background task output to surface the real error to the user instead
+of claiming success.
 
 ### Step 4: Report
 
