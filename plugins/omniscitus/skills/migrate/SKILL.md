@@ -19,7 +19,81 @@ with the user.
 
 ## Instructions
 
-### Pre-check: Already Migrated?
+### Pre-check A: Git Repo Required (uninstall safety)
+
+Omniscitus writes to a few files outside `.omniscitus/` (e.g., `CLAUDE.md`,
+member docs). The ability to cleanly uninstall later depends on a git
+repo — we record a pre-migration anchor commit SHA so those files can be
+reverted surgically. Without git, rollback is entirely manual.
+
+```bash
+git rev-parse --show-toplevel 2>/dev/null
+```
+
+**If this fails** (non-zero exit / empty output):
+
+Use AskUserQuestion:
+- question: "Omniscitus's clean uninstall depends on a git repo. How to proceed?"
+- options:
+  - "`git init` first (Recommended)"
+  - "Proceed without rollback safety"
+  - "Abort"
+
+- "init first" → run `git init && git add -A && git commit -m "baseline: pre-omniscitus"` then continue.
+- "proceed without" → continue but flag `git_project: false` in `anchor.yaml`. Uninstall will be entirely manual.
+- "abort" → stop here.
+
+**If git repo is present but dirty** (`git status --porcelain` non-empty):
+
+Warn: "You have uncommitted changes. The anchor SHA will record the last
+committed HEAD, so uncommitted edits will NOT be covered by rollback.
+Commit or stash first for the safest migration."
+
+Use AskUserQuestion:
+- options: "Commit first" / "Continue anyway"
+
+### Pre-check B: Record the Anchor
+
+Before any file is written (outside `.omniscitus/` or inside), create
+`.omniscitus/migrate/anchor.yaml`:
+
+```yaml
+version: 1
+
+# Pre-migration git state — the point /omniscitus-uninstall reverts to.
+anchor:
+  sha: {git rev-parse HEAD}
+  branch: {git branch --show-current or "HEAD detached"}
+  timestamp: {now ISO 8601}
+  git_project: true          # false if user chose "Proceed without"
+
+# Files modified OUTSIDE .omniscitus/ by any omniscitus skill.
+# Every external write must append an entry here so uninstall can
+# surgically reverse them. Paths are relative to the project root.
+footprint: []
+```
+
+**Append to `footprint` on every external write.** Whenever this skill
+(or any future skill) writes to a path NOT starting with `.omniscitus/`,
+append:
+
+```yaml
+footprint:
+  - path: CLAUDE.md                              # relative to project root
+    action: appended                             # appended | created | modified | deleted
+    marker: "### 🗂 Omniscitus (auto-tracking)"  # section identifier (for `appended` only)
+    by: migrate                                  # which skill did the write
+    timestamp: {ISO}
+```
+
+Actions:
+- `appended` — added a delimited section to an existing file. Include
+  `marker:` for targeted removal without touching hand-authored content.
+- `created` — brand-new file (uninstall deletes).
+- `modified` — mixed edits (uninstall falls back to `git checkout {anchor.sha} -- <path>`).
+- `deleted` — rare (uninstall restores from anchor).
+
+### Pre-check C: Already Migrated?
 
 Check if `.omniscitus/history/_index.yaml` exists. If it does, this project has already been migrated.
 
@@ -520,9 +594,75 @@ If added, append to `CLAUDE.md` (write in the language chosen at Step 0):
 - **Domain taxonomy**: `.omniscitus/ontology.yaml` (if present) defines how work is classified.
 ```
 
+**After appending**, record the footprint (see Pre-check B):
+
+```yaml
+# .omniscitus/migrate/anchor.yaml (append to footprint:)
+- path: CLAUDE.md
+  action: appended
+  marker: "### 🗂 Omniscitus (auto-tracking)"
+  by: migrate
+  timestamp: {ISO}
+```
+
 If `CLAUDE.md` does not exist, do **not** create it — that's an
 opinionated project decision that belongs to the repo owner. Skip this
 phase silently.
+
+### Phase 5.75: Generate .omniscitus/README.md
+
+Write a short README at `.omniscitus/README.md` so anyone opening the
+directory (including future-you after forgetting) sees uninstall and
+inspection instructions without searching docs.
+
+```markdown
+# .omniscitus/
+
+Codebase world model for [omniscitus](https://omniscitus.vercel.app/).
+Tracks blueprints (per-file), history (per-topic), and tests.
+
+## Uninstall
+
+To remove omniscitus cleanly:
+
+1. **Run `/omniscitus-uninstall` first** (recommended — surgical cleanup)
+2. **Then** `/plugin uninstall omniscitus`
+
+If `/omniscitus-uninstall` is not available for some reason, manual
+cleanup using the recorded anchor:
+
+\`\`\`bash
+# Restore the files we touched to their pre-migration state
+ANCHOR=$(grep 'sha:' .omniscitus/migrate/anchor.yaml | head -1 | awk '{print $2}')
+for path in $(grep 'path:' .omniscitus/migrate/anchor.yaml | awk '{print $3}' | sort -u); do
+  git checkout "$ANCHOR" -- "$path" 2>/dev/null || rm -f "$path"
+done
+rm -rf .omniscitus
+\`\`\`
+
+## Inspection
+
+- `blueprints/` — every tracked file, with authorship, change count, purpose.
+- `history/` — topic-based units, grouped by domain. `_weekly/` holds rolled-up summaries.
+- `tests/` — meta.yaml overlays (code) and prompt-meta.yaml (prompt eval).
+- `ontology.yaml` — domain taxonomy for /wrap-up classification.
+- `migrate/anchor.yaml` — pre-migration SHA + footprint of files we changed outside this folder.
+
+Open `/birdview` for the visual browser.
+```
+
+Record the footprint:
+
+```yaml
+- path: .omniscitus/README.md
+  action: created
+  by: migrate
+  timestamp: {ISO}
+```
+
+Note: this file IS inside `.omniscitus/` so technically doesn't need
+a footprint entry (uninstall removes the whole directory). We still
+record it for completeness so the audit trail is symmetric.
 
 ### Phase 6: Report
 
@@ -552,6 +692,11 @@ phase silently.
   - /follow-up to review any pending tasks from history
   - /birdview to browse everything visually
   - /test-add {file} to add tests for untested files
+
+🔙 To uninstall later:
+  - /omniscitus-uninstall  (reverts CLAUDE.md + footprinted files, removes .omniscitus/)
+  - then /plugin uninstall omniscitus
+  - See .omniscitus/README.md for manual fallback
 
 ─────────────────────────────────────────────────
 ⭐ omniscitus is open source!
