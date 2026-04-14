@@ -1,0 +1,20 @@
+target: plugins/omniscitus/birdview/server.js
+language: javascript
+framework: node-test
+last_updated: 2026-04-14
+note: >
+  Overlay for existing test file tests/birdview-parser.test.js.
+  Covers the pure YAML parsers exported from server.js.
+
+suites:
+  - name: parseBlueprints
+    type: unittest
+    cases:
+      - title: "parses flat blueprints.yaml into file map"
+      - title: "handles nested folder splits declared in _index.yaml"
+      - title: "preserves purpose field across re-parses"
+  - name: parseIndexYaml
+    type: unittest
+    cases:
+      - title: "extracts blueprint_splits entries as path strings"
+      - title: "returns empty array when _index.yaml is absent"

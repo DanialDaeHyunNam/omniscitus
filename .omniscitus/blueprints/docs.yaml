@@ -1,24 +1,31 @@
 version: 1
-updated: "2026-04-10"
+updated: "2026-04-14"
   "docs/birdview-demo/blueprint.html":
     status: active
     source: claude
     created: "2026-04-04"
-    last_modified: "2026-04-10"
-    change_count: 1
+    last_modified: "2026-04-11"
+    change_count: 3
     purpose: "Writes are no-ops in demo mode — keep the UI responsive but do nothing."
   "docs/birdview-demo/constellation.html":
     status: active
     source: claude
     created: "2026-04-04"
-    last_modified: "2026-04-10"
-    change_count: 1
+    last_modified: "2026-04-11"
+    change_count: 4
     purpose: "Writes are no-ops in demo mode — keep the UI responsive but do nothing."
   "docs/birdview-demo/data/blueprints.json":
     status: active
     source: claude
     created: "2026-04-04"
     last_modified: "2026-04-10"
+    change_count: 2
+    purpose: ""
+  "docs/birdview-demo/data/prompt-tests.json":
+    status: active
+    source: claude
+    created: "2026-04-04"
+    last_modified: "2026-04-11"
     change_count: 1
     purpose: ""
   "docs/birdview-demo/data/reviews.json":
@@ -39,8 +46,8 @@ updated: "2026-04-10"
     status: active
     source: claude
     created: "2026-04-04"
-    last_modified: "2026-04-10"
-    change_count: 1
+    last_modified: "2026-04-14"
+    change_count: 2
     purpose: ""
   "docs/birdview-demo/favicon-16.png":
     status: active
@@ -60,22 +67,22 @@ updated: "2026-04-10"
     status: active
     source: claude
     created: "2026-04-04"
-    last_modified: "2026-04-10"
-    change_count: 1
+    last_modified: "2026-04-14"
+    change_count: 4
     purpose: "Writes are no-ops in demo mode — keep the UI responsive but do nothing."
   "docs/birdview-demo/index.html":
     status: active
     source: claude
     created: "2026-04-04"
-    last_modified: "2026-04-10"
-    change_count: 1
+    last_modified: "2026-04-14"
+    change_count: 4
     purpose: "Writes are no-ops in demo mode — keep the UI responsive but do nothing."
   "docs/birdview-demo/tests.html":
     status: active
     source: claude
     created: "2026-04-04"
-    last_modified: "2026-04-10"
-    change_count: 1
+    last_modified: "2026-04-14"
+    change_count: 4
     purpose: "Writes are no-ops in demo mode — keep the UI responsive but do nothing."
   "docs/favicon-16.png":
     status: active
@@ -95,6 +102,6 @@ updated: "2026-04-10"
     status: active
     source: claude
     created: "2026-04-04"
-    last_modified: "2026-04-10"
-    change_count: 10
+    last_modified: "2026-04-14"
+    change_count: 14
     purpose: ", *::before, *::after {"

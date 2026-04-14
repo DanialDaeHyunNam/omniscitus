@@ -1,11 +1,11 @@
 version: 1
-updated: "2026-04-10"
+updated: "2026-04-14"
   "plugins/omniscitus/.claude-plugin/plugin.json":
     status: active
     source: claude
     created: "2026-04-04"
-    last_modified: "2026-04-10"
-    change_count: 8
+    last_modified: "2026-04-14"
+    change_count: 16
     purpose: "Codebase world model — automatic blueprint tracking, topic-based session history, universal test management, and a birdview dashboard."
   "plugins/omniscitus/birdview/blueprint.html":
     status: active
@@ -18,8 +18,8 @@ updated: "2026-04-10"
     status: active
     source: claude
     created: "2026-04-04"
-    last_modified: "2026-04-10"
-    change_count: 5
+    last_modified: "2026-04-11"
+    change_count: 6
     purpose: ",*::before,*::after{box-sizing:border-box}"
   "plugins/omniscitus/birdview/favicon-16.png":
     status: active
@@ -39,43 +39,43 @@ updated: "2026-04-10"
     status: active
     source: claude
     created: "2026-04-04"
-    last_modified: "2026-04-10"
-    change_count: 5
+    last_modified: "2026-04-13"
+    change_count: 7
     purpose: ",*::before,*::after{box-sizing:border-box}"
   "plugins/omniscitus/birdview/index.html":
     status: active
     source: claude
     created: "2026-04-04"
-    last_modified: "2026-04-10"
-    change_count: 4
+    last_modified: "2026-04-14"
+    change_count: 5
     purpose: ",*::before,*::after{box-sizing:border-box}"
   "plugins/omniscitus/birdview/server.js":
     status: active
     source: claude
     created: "2026-04-04"
-    last_modified: "2026-04-10"
-    change_count: 10
+    last_modified: "2026-04-14"
+    change_count: 14
     purpose: "Default 3777, overridable via BIRDVIEW_PORT so the skill can fall back"
   "plugins/omniscitus/birdview/tests.html":
     status: active
     source: claude
     created: "2026-04-04"
-    last_modified: "2026-04-10"
-    change_count: 2
+    last_modified: "2026-04-13"
+    change_count: 4
     purpose: ",*::before,*::after{box-sizing:border-box}"
   "plugins/omniscitus/hooks/hooks.json":
     status: active
     source: claude
     created: "2026-04-04"
-    last_modified: "2026-04-10"
-    change_count: 3
+    last_modified: "2026-04-13"
+    change_count: 6
     purpose: "Omniscitus: blueprint tracking + wrap-up reminders"
   "plugins/omniscitus/scripts/blueprint-tracker.cjs":
     status: active
     source: claude
     created: "2026-04-04"
-    last_modified: "2026-04-10"
-    change_count: 5
+    last_modified: "2026-04-11"
+    change_count: 6
     purpose: "-- Git identity ---"
   "plugins/omniscitus/scripts/blueprint-warn.cjs":
     status: active
@@ -105,12 +105,33 @@ updated: "2026-04-10"
     last_modified: "2026-04-08"
     change_count: 1
     purpose: "Omniscitus status line helper."
+  "plugins/omniscitus/scripts/uninstall.cjs":
+    status: active
+    source: claude
+    created: "2026-04-04"
+    last_modified: "2026-04-13"
+    change_count: 1
+    purpose: "/omniscitus-uninstall helper script."
+  "plugins/omniscitus/scripts/version-check.cjs":
+    status: active
+    source: claude
+    created: "2026-04-04"
+    last_modified: "2026-04-13"
+    change_count: 1
+    purpose: "SessionStart version-check advisory. Compares the installed plugin"
+  "plugins/omniscitus/scripts/weekly-backfill.cjs":
+    status: active
+    source: claude
+    created: "2026-04-04"
+    last_modified: "2026-04-13"
+    change_count: 2
+    purpose: "/weekly-backfill helper script. Produces a candidate list of weeks"
   "plugins/omniscitus/skills/birdview/SKILL.md":
     status: active
     source: claude
     created: "2026-04-04"
-    last_modified: "2026-04-10"
-    change_count: 3
+    last_modified: "2026-04-13"
+    change_count: 4
     purpose: "Start the Birdview admin dashboard at localhost:3777. Visual browser for"
   "plugins/omniscitus/skills/blueprint-merge/SKILL.md":
     status: active
@@ -151,9 +172,16 @@ updated: "2026-04-10"
     status: active
     source: claude
     created: "2026-04-04"
-    last_modified: "2026-04-10"
-    change_count: 8
+    last_modified: "2026-04-13"
+    change_count: 10
     purpose: "Migrate an existing project into omniscitus. Scans docs, git history, and"
+  "plugins/omniscitus/skills/omniscitus-uninstall/SKILL.md":
+    status: active
+    source: claude
+    created: "2026-04-04"
+    last_modified: "2026-04-13"
+    change_count: 1
+    purpose: "Surgically reverse every file change /omniscitus-migrate made outside"
   "plugins/omniscitus/skills/ontology-init/SKILL.md":
     status: active
     source: claude
@@ -165,8 +193,8 @@ updated: "2026-04-10"
     status: active
     source: claude
     created: "2026-04-04"
-    last_modified: "2026-04-08"
-    change_count: 3
+    last_modified: "2026-04-10"
+    change_count: 4
     purpose: "Set up omniscitus for a new team member who cloned a repo that already uses"
   "plugins/omniscitus/skills/test-add-prompt/SKILL.md":
     status: active
@@ -182,10 +210,17 @@ updated: "2026-04-10"
     last_modified: "2026-04-04"
     change_count: 1
     purpose: "Create language-agnostic test scaffolds for any source file."
+  "plugins/omniscitus/skills/weekly-backfill/SKILL.md":
+    status: active
+    source: claude
+    created: "2026-04-04"
+    last_modified: "2026-04-13"
+    change_count: 2
+    purpose: "Generate rich weekly summary files (_weekly/YYYY-Www.md) for every past"
   "plugins/omniscitus/skills/wrap-up/SKILL.md":
     status: active
     source: claude
     created: "2026-04-04"
-    last_modified: "2026-04-10"
-    change_count: 9
+    last_modified: "2026-04-13"
+    change_count: 10
     purpose: "Session wrap-up with topic-based knowledge units. Records work into cohesive"

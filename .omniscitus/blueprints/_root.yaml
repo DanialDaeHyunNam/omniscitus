@@ -1,5 +1,5 @@
 version: 1
-updated: "2026-04-10"
+updated: "2026-04-14"
   ".gitignore":
     status: active
     source: claude
@@ -7,6 +7,13 @@ updated: "2026-04-10"
     last_modified: "2026-04-10"
     change_count: 3
     purpose: "Git ignore rules."
+  "CHANGELOG.md":
+    status: active
+    source: claude
+    created: "2026-04-04"
+    last_modified: "2026-04-14"
+    change_count: 8
+    purpose: "Changelog"
   "LICENSE":
     status: active
     source: claude
@@ -18,15 +25,15 @@ updated: "2026-04-10"
     status: active
     source: claude
     created: "2026-04-04"
-    last_modified: "2026-04-10"
-    change_count: 9
+    last_modified: "2026-04-14"
+    change_count: 14
     purpose: "omniscitus"
   "package.json":
     status: active
     source: claude
     created: "2026-04-04"
-    last_modified: "2026-04-10"
-    change_count: 1
+    last_modified: "2026-04-14"
+    change_count: 8
     purpose: "The maintenance layer your codebase deserves."
   "vercel.json":
     status: active

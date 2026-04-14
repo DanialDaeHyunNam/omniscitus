@@ -1,0 +1,28 @@
+target: plugins/omniscitus/skills/wrap-up/
+type: prompt
+prompt_name: wrap-up-classification
+last_updated: 2026-04-14
+note: >
+  Sample prompt-test scaffold for the /wrap-up domain classifier — decides which
+  domain bucket (web/server/design/...) a session's touched files belong to.
+  Illustrates how LLM-generated output gets judge-based evaluation in omniscitus.
+
+# --- Judge configuration ---
+judge:
+  model: claude-sonnet-4-6
+  temperature: 0
+  max_retries: 2
+
+# --- Evaluation type ---
+evaluation:
+  type: multi_criteria
+  criteria:
+    - domain_correct: "classified domain matches the dominant file-path prefix"
+    - single_topic: "one unit per coherent topic, no over-splitting"
+    - purpose_filled: "blueprint purpose fields populated when missing"
+
+# --- Pass criteria ---
+pass_criteria:
+  threshold: 0.8
+  notes: >
+    80% of cases must pass all 3 criteria. Stretch target 95%.

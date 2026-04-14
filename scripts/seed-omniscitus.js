@@ -341,6 +341,102 @@ function writeHistory() {
   console.log(`  history/  (2 units, ${merges.length} merges parsed)`);
 }
 
+// ── Tests ───────────────────────────────────────────────
+// Seed both code-test (meta.yaml) and prompt-test (prompt-meta.yaml) fixtures
+// so the Tests tab in the demo birdview has something to show. Content is an
+// honest overlay over files that really exist in this repo — `tests/seed.test.js`
+// and `tests/birdview-parser.test.js` — so the demo isn't misleading.
+
+function writeYamlFile(filePath, lines) {
+  fs.mkdirSync(path.dirname(filePath), { recursive: true });
+  fs.writeFileSync(filePath, lines.join('\n') + '\n');
+}
+
+function writeTests() {
+  writeYamlFile(path.join(OUT, 'tests', 'scripts', 'seed-omniscitus', 'meta.yaml'), [
+    'target: scripts/seed-omniscitus.js',
+    'language: javascript',
+    'framework: node-test',
+    'last_updated: ' + TODAY,
+    'note: >',
+    '  Overlay for existing test file tests/seed.test.js.',
+    '  Existing tests are authoritative; this meta.yaml indexes them for omniscitus.',
+    '',
+    'suites:',
+    '  - name: extractPurpose',
+    '    type: unittest',
+    '    cases:',
+    '      - title: "extracts JSDoc @purpose tag from TypeScript header"',
+    '        description: "reads /** @purpose ... */ at top of .ts file"',
+    '      - title: "falls back to first leading comment line"',
+    '        description: "when no @purpose tag, uses the first // or /* comment"',
+    '      - title: "returns empty string when file has no leading comment"',
+    '        description: "bare code files produce no inferred purpose"',
+    '  - name: escapeYamlString',
+    '    type: unittest',
+    '    cases:',
+    '      - title: "wraps strings containing colons in double quotes"',
+    '      - title: "leaves plain alphanumeric strings unquoted"',
+    '      - title: "escapes embedded double quotes"'
+  ]);
+
+  writeYamlFile(path.join(OUT, 'tests', 'plugins', 'omniscitus', 'birdview', 'server', 'meta.yaml'), [
+    'target: plugins/omniscitus/birdview/server.js',
+    'language: javascript',
+    'framework: node-test',
+    'last_updated: ' + TODAY,
+    'note: >',
+    '  Overlay for existing test file tests/birdview-parser.test.js.',
+    '  Covers the pure YAML parsers exported from server.js.',
+    '',
+    'suites:',
+    '  - name: parseBlueprints',
+    '    type: unittest',
+    '    cases:',
+    '      - title: "parses flat blueprints.yaml into file map"',
+    '      - title: "handles nested folder splits declared in _index.yaml"',
+    '      - title: "preserves purpose field across re-parses"',
+    '  - name: parseIndexYaml',
+    '    type: unittest',
+    '    cases:',
+    '      - title: "extracts blueprint_splits entries as path strings"',
+    '      - title: "returns empty array when _index.yaml is absent"'
+  ]);
+
+  writeYamlFile(path.join(OUT, 'tests', 'prompts', 'wrap-up-classification', 'prompt-meta.yaml'), [
+    'target: plugins/omniscitus/skills/wrap-up/',
+    'type: prompt',
+    'prompt_name: wrap-up-classification',
+    'last_updated: ' + TODAY,
+    'note: >',
+    '  Sample prompt-test scaffold for the /wrap-up domain classifier — decides which',
+    '  domain bucket (web/server/design/...) a session\'s touched files belong to.',
+    '  Illustrates how LLM-generated output gets judge-based evaluation in omniscitus.',
+    '',
+    '# --- Judge configuration ---',
+    'judge:',
+    '  model: claude-sonnet-4-6',
+    '  temperature: 0',
+    '  max_retries: 2',
+    '',
+    '# --- Evaluation type ---',
+    'evaluation:',
+    '  type: multi_criteria',
+    '  criteria:',
+    '    - domain_correct: "classified domain matches the dominant file-path prefix"',
+    '    - single_topic: "one unit per coherent topic, no over-splitting"',
+    '    - purpose_filled: "blueprint purpose fields populated when missing"',
+    '',
+    '# --- Pass criteria ---',
+    'pass_criteria:',
+    '  threshold: 0.8',
+    '  notes: >',
+    '    80% of cases must pass all 3 criteria. Stretch target 95%.'
+  ]);
+
+  console.log('  tests/  (2 code suites, 1 prompt suite)');
+}
+
 // ── Go ──────────────────────────────────────────────────
 
 if (require.main === module) {
@@ -348,6 +444,7 @@ if (require.main === module) {
   fs.mkdirSync(OUT, { recursive: true });
   writeBlueprints();
   writeHistory();
+  writeTests();
   console.log('Done.');
 }
 

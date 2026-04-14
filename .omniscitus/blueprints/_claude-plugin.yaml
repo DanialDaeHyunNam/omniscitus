@@ -1,9 +1,9 @@
 version: 1
-updated: "2026-04-10"
+updated: "2026-04-14"
   ".claude-plugin/marketplace.json":
     status: active
     source: claude
     created: "2026-04-04"
-    last_modified: "2026-04-10"
-    change_count: 8
+    last_modified: "2026-04-14"
+    change_count: 16
     purpose: "omniscitus config."

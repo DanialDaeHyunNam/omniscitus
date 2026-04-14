@@ -1,0 +1,24 @@
+target: scripts/seed-omniscitus.js
+language: javascript
+framework: node-test
+last_updated: 2026-04-14
+note: >
+  Overlay for existing test file tests/seed.test.js.
+  Existing tests are authoritative; this meta.yaml indexes them for omniscitus.
+
+suites:
+  - name: extractPurpose
+    type: unittest
+    cases:
+      - title: "extracts JSDoc @purpose tag from TypeScript header"
+        description: "reads /** @purpose ... */ at top of .ts file"
+      - title: "falls back to first leading comment line"
+        description: "when no @purpose tag, uses the first // or /* comment"
+      - title: "returns empty string when file has no leading comment"
+        description: "bare code files produce no inferred purpose"
+  - name: escapeYamlString
+    type: unittest
+    cases:
+      - title: "wraps strings containing colons in double quotes"
+      - title: "leaves plain alphanumeric strings unquoted"
+      - title: "escapes embedded double quotes"
