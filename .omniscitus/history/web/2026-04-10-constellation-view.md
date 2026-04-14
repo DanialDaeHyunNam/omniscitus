@@ -1,5 +1,7 @@
 # Constellation view
 
+**Participants**: claude, dan
+
 ## Summary
 The 3D node space + tree panel + nudge prompt modal — birdview's most ambitious visual surface.
 

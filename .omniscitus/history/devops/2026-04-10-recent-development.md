@@ -1,5 +1,7 @@
 # Recent development
 
+**Participants**: claude, dan
+
 ## Summary
 A rolling log of merged PRs — the meta-history of omniscitus building itself.
 
