@@ -337,6 +337,15 @@ async function main() {
     relPath = path.relative(projectRoot, filePath);
   }
 
+  // Skip files outside project root. Happens when Claude edits a sibling
+  // checkout while cwd stays in this project — path.relative returns a
+  // "../foo/bar" string and we'd otherwise write leaky blueprint entries
+  // for paths that don't belong to this world model.
+  if (relPath.startsWith('..') || path.isAbsolute(relPath)) {
+    debugLog('skip outside_project_root path=' + relPath);
+    return;
+  }
+
   // Skip files inside .omniscitus/ itself
   if (relPath.startsWith('.omniscitus')) {
     debugLog('skip inside_omniscitus path=' + relPath);

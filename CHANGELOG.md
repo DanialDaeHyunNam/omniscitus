@@ -2,6 +2,17 @@
 
 All notable changes to omniscitus. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.6.1] — 2026-04-14
+
+### Fixed
+
+- **`blueprint-tracker.cjs` no longer leaks entries for files outside the project root.** When Claude edits a sibling repo while cwd stays in this project (e.g., dogfooding the plugin itself from a paired workspace), `path.relative(projectRoot, filePath)` returns `"../foo/bar"`. The hook used to accept that and write a blueprint entry keyed by the literal `../...` string — ending up in a bogus `_..yaml` split file. The hook now skips any path starting with `..` or still absolute after relativization.
+
+### Added
+
+- **Blueprint view — date + author filters.** Toolbar gains a second tab group: `All time` / `Last 7d` (defaults to Last 7d so the tree isn't flooded by legacy files). A new chip row below the toolbar lists every author (`source`) with a count; click a chip to hide files by that author, click again to un-hide. Existing All/Active/Deleted status tabs and the search input are untouched.
+- **Constellation view — same filters, same defaults.** Date toggle lives next to the existing History/Blueprints visibility toggles in the topbar. Author chips float in their own bar top-right. 3D mesh visibility and the left-hand tree panel both respect filters. Works in the WebGL fallback mode (noopMesh's `.visible` field is honored).
+
 ## [0.6.0] — 2026-04-14
 
 ### Added
