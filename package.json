@@ -1,6 +1,6 @@
 {
   "name": "omniscitus",
-  "version": "0.6.2",
+  "version": "0.6.3",
   "private": true,
   "description": "The maintenance layer your codebase deserves.",
   "scripts": {
