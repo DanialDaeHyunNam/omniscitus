@@ -14,6 +14,7 @@
 
   /* ── Top bar ─────────────────────────────────────── */
   .topbar{position:fixed;top:0;left:0;right:0;height:56px;display:flex;align-items:center;gap:16px;padding:0 20px;background:linear-gradient(180deg,rgba(5,5,9,0.92) 0%,rgba(5,5,9,0.0) 100%);z-index:30;pointer-events:none}
+  .page-purpose-chip{font-size:11px;color:#9ca3af;padding:4px 10px;border-radius:6px;background:rgba(20,20,26,0.75);border:1px solid #242430;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:340px}
   .topbar > *{pointer-events:auto}
   .back{color:#9ca3af;font-size:13px;display:flex;align-items:center;gap:4px}
   .back:hover{color:#e0e0e0}
@@ -215,6 +216,7 @@
       <span class="swatch"></span> Blueprints
     </button>
   </div>
+  <div class="page-purpose-chip" title="3D node space of files + history. Pick what a new Claude session should read, copy the prompt.">3D file space · click nodes to seed a new Claude session</div>
 </div>
 
 <div class="tooltip" id="tooltip"></div>

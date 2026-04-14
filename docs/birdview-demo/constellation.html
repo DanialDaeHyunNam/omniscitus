@@ -33,21 +33,14 @@
 </script>
 <style>
 /* Demo banner shown on every birdview page in the hosted preview.
- * In normal flow at top of <body>
-
-<div class="omni-demo-banner">
-  <span class="omni-demo-dot"></span>
-  <span>You're exploring a <strong>live demo</strong> of birdview, running against the omniscitus repo.</span>
-  <span class="omni-demo-sep">&bull;</span>
-  <a href="/" title="Back to landing page">&larr; Back to omniscitus.vercel.app</a>
-</div>
- so it pushes content down instead
- * of floating over it. z-index 10000 keeps it above any fixed-position
- * scene/canvas (notably constellation). The nudge rules below shift
- * fixed-position layout elements (topbar, tree-panel, #scene, etc.) by
- * the banner height so nothing hides behind it. */
+ * Fixed at top so it always renders (constellation's html/body use
+ * overflow:hidden, which makes in-flow positioning invisible there).
+ * body padding-top handles normal-flow pages; the nudge rules below
+ * handle fixed-layout pages (constellation) whose elements ignore
+ * body padding. */
 .omni-demo-banner {
-  position: relative;
+  position: fixed; top: 0; left: 0; right: 0;
+  height: 36px; box-sizing: border-box;
   z-index: 10000;
   background: linear-gradient(90deg, rgba(124,58,237,0.18), rgba(110,231,183,0.12));
   border-bottom: 1px solid rgba(124,58,237,0.35);
@@ -55,6 +48,7 @@
   padding: 8px 16px; display: flex; align-items: center; gap: 12px;
   backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
 }
+body { padding-top: 36px; }
 .omni-demo-banner strong { color: #c4b5fd; font-weight: 600; }
 .omni-demo-banner .omni-demo-dot { width: 7px; height: 7px; border-radius: 50%; background: #6ee7b7; box-shadow: 0 0 8px #6ee7b7; flex-shrink: 0; }
 .omni-demo-banner a { color: #93c5fd; text-decoration: none; font-weight: 500; }
@@ -83,6 +77,7 @@
 
   /* ── Top bar ─────────────────────────────────────── */
   .topbar{position:fixed;top:0;left:0;right:0;height:56px;display:flex;align-items:center;gap:16px;padding:0 20px;background:linear-gradient(180deg,rgba(5,5,9,0.92) 0%,rgba(5,5,9,0.0) 100%);z-index:30;pointer-events:none}
+  .page-purpose-chip{font-size:11px;color:#9ca3af;padding:4px 10px;border-radius:6px;background:rgba(20,20,26,0.75);border:1px solid #242430;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:340px}
   .topbar > *{pointer-events:auto}
   .back{color:#9ca3af;font-size:13px;display:flex;align-items:center;gap:4px}
   .back:hover{color:#e0e0e0}
@@ -270,6 +265,14 @@
 </head>
 <body>
 
+<div class="omni-demo-banner">
+  <span class="omni-demo-dot"></span>
+  <span>You're exploring a <strong>live demo</strong> of birdview, running against the omniscitus repo.</span>
+  <span class="omni-demo-sep">&bull;</span>
+  <a href="/" title="Back to landing page">&larr; Back to omniscitus.vercel.app</a>
+</div>
+
+
 <div id="scene"></div>
 
 <div class="topbar">
@@ -284,6 +287,7 @@
       <span class="swatch"></span> Blueprints
     </button>
   </div>
+  <div class="page-purpose-chip" title="3D node space of files + history. Pick what a new Claude session should read, copy the prompt.">3D file space · click nodes to seed a new Claude session</div>
 </div>
 
 <div class="tooltip" id="tooltip"></div>

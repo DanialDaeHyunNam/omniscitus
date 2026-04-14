@@ -2,6 +2,20 @@
 
 All notable changes to omniscitus. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.6.5] — 2026-04-14
+
+### Fixed
+
+- **Demo banner visible on constellation again.** Constellation uses `html,body { overflow:hidden }` and a fixed-positioned layout (`#scene`, `.topbar`, `.tree-panel` …). The previous "in-flow relative banner" approach ended up taking space but rendering invisibly on that page. Banner is back to `position: fixed; top: 0` with `z-index: 10000`, plus `body { padding-top: 36px }` for normal-flow pages and the nudge rules (`.topbar { top: 36px !important }`, `#scene { top: 36px !important }`, etc.) for fixed-layout pages.
+
+### Added
+
+- **Per-page purpose hints.** Each page now carries a short paragraph (or chip, on constellation) below the title explaining what it shows and which commands feed it — so non-devs landing on a page don't have to infer the mental model from the UI alone.
+  - Blueprint → "Every tracked file … Hooks update this live on Edit / Write. Filter by status, recency, author. `/blueprint-sync` catches files edited outside Claude."
+  - History → "Topic-based session logs grouped by domain. Weekly summaries roll up on the first `/wrap-up` of a new week."
+  - Tests → "Overlay metadata over existing test files. Code Tests index unit tests; Prompt Tests track LLM-judged evaluations with score thresholds."
+  - Constellation → "3D file space · click nodes to seed a new Claude session."
+
 ## [0.6.4] — 2026-04-14
 
 ### Fixed
