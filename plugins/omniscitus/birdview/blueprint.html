@@ -191,6 +191,16 @@
 <!-- File viewer popup -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/atom-one-dark.min.css">
 <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js"></script>
+<!-- Languages beyond the common bundle: Go, Dart, Elixir, Scala, Lua, R, Haskell, Nix, GraphQL, Dockerfile -->
+<script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/languages/go.min.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/languages/dart.min.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/languages/elixir.min.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/languages/scala.min.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/languages/lua.min.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/languages/r.min.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/languages/haskell.min.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/languages/graphql.min.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/languages/dockerfile.min.js"></script>
 <div class="viewer-overlay" id="viewer-overlay">
   <div class="viewer" role="dialog" aria-modal="true">
     <div class="viewer-header">
@@ -545,11 +555,18 @@ document.getElementById('search').addEventListener('input', function(ev) {
 /* File viewer popup (shared pattern — see history/constellation for same) */
 var LANG_BY_EXT = {
   ts:'typescript', tsx:'typescript', js:'javascript', jsx:'javascript', mjs:'javascript', cjs:'javascript',
-  py:'python', rb:'ruby', go:'go', rs:'rust', java:'java', kt:'kotlin', swift:'swift',
-  md:'markdown', mdx:'markdown', json:'json', yaml:'yaml', yml:'yaml', toml:'ini', ini:'ini',
-  sh:'bash', bash:'bash', zsh:'bash', fish:'bash',
-  css:'css', scss:'scss', less:'less', html:'xml', svg:'xml', xml:'xml',
-  sql:'sql', graphql:'graphql', dockerfile:'dockerfile'
+  py:'python', rb:'ruby', go:'go', rs:'rust', java:'java', kt:'kotlin', kts:'kotlin', scala:'scala',
+  swift:'swift', m:'objectivec', mm:'objectivec',
+  c:'c', h:'c', cpp:'cpp', cc:'cpp', cxx:'cpp', hpp:'cpp', cs:'csharp',
+  php:'php', pl:'perl', r:'r', dart:'dart', ex:'elixir', exs:'elixir', erl:'erlang',
+  lua:'lua', hs:'haskell',
+  md:'markdown', mdx:'markdown', rst:'markdown',
+  json:'json', yaml:'yaml', yml:'yaml', toml:'ini', ini:'ini', conf:'ini',
+  sh:'bash', bash:'bash', zsh:'bash', fish:'bash', ps1:'powershell',
+  css:'css', scss:'scss', less:'less', html:'xml', htm:'xml', svg:'xml', xml:'xml', vue:'xml',
+  sql:'sql', graphql:'graphql', gql:'graphql',
+  dockerfile:'dockerfile', makefile:'makefile', diff:'diff', patch:'diff',
+  gradle:'groovy', groovy:'groovy'
 };
 function openFileViewer(filePath) {
   var overlay = document.getElementById('viewer-overlay');
