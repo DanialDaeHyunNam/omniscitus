@@ -14,6 +14,15 @@
         status: 200, headers: { 'Content-Type': 'application/json' }
       }));
     }
+    // /api/file reads arbitrary source files from the live project. The
+    // demo can't support that — no backend, and snapshotting every file
+    // would balloon the static bundle. Respond with a 403 JSON body so
+    // the viewer's "cannot load" branch surfaces a clear message.
+    if (/^\/api\/file(?:\?|$)/.test(url)) {
+      return Promise.resolve(new Response(JSON.stringify({
+        error: 'file preview is not available in the static demo'
+      }), { status: 403, headers: { 'Content-Type': 'application/json' } }));
+    }
     // Rewrite /api/<name> → ./data/<name>.json. If the snapshot file is
     // missing (or any other non-OK response), silently return an empty
     // object so the birdview JS keeps working.

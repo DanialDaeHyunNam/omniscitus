@@ -102,6 +102,22 @@
 
   /* ── Toast ───────────────────────────────────────── */
   .toast-container{position:fixed;top:72px;left:50%;transform:translateX(-50%);z-index:60;display:flex;flex-direction:column;gap:8px;align-items:center}
+
+  /* File viewer popup (shared UX with blueprint + history). */
+  .view-btn{background:transparent;border:none;color:#6b7280;cursor:pointer;font-size:12px;padding:2px 6px;border-radius:4px;transition:color 0.12s,background 0.12s;margin-left:4px;line-height:1}
+  .view-btn:hover{color:#c4b5fd;background:rgba(124,58,237,0.15)}
+  .viewer-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.72);z-index:10000;display:none;align-items:center;justify-content:center;padding:24px}
+  .viewer-overlay.open{display:flex}
+  .viewer{background:#0d0d14;border:1px solid #242430;border-radius:12px;width:min(1000px,100%);max-height:calc(100vh - 48px);display:flex;flex-direction:column;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.6)}
+  .viewer-header{padding:12px 16px;border-bottom:1px solid #242430;display:flex;align-items:center;gap:12px}
+  .viewer-path{font-family:'SF Mono',SFMono-Regular,Menlo,monospace;font-size:12px;color:#e0e0e0;flex:1;word-break:break-all}
+  .viewer-size{font-size:11px;color:#6b7280;font-variant-numeric:tabular-nums}
+  .viewer-close{background:transparent;border:none;color:#9ca3af;font-size:22px;cursor:pointer;padding:0 6px;line-height:1}
+  .viewer-close:hover{color:#fff}
+  .viewer-body{flex:1;overflow:auto}
+  .viewer-body pre{margin:0;padding:18px;font-size:12px;line-height:1.55;font-family:'SF Mono',SFMono-Regular,Menlo,monospace;color:#d1d5db;background:#0d0d14;white-space:pre}
+  .viewer-body code{font-family:inherit;background:transparent;padding:0}
+  .viewer-body .empty{padding:40px;color:#6b7280;text-align:center;font-size:13px}
   .toast{padding:12px 20px;border-radius:8px;font-size:13px;background:rgba(15,15,22,0.95);border:1px solid #2a2a3a;color:#e0e0e0;box-shadow:0 8px 24px rgba(0,0,0,0.5);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);animation:toastIn 0.25s ease;max-width:420px;text-align:center;line-height:1.5}
   .toast-success{border-color:#064e3b;color:#6ee7b7}
   .toast-error{border-color:#7f1d1d;color:#fca5a5}
@@ -286,6 +302,20 @@
 <div class="error" id="error"></div>
 <div class="trunc-banner" id="trunc-banner"></div>
 <div class="toast-container" id="toasts"></div>
+
+<!-- File viewer popup -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/atom-one-dark.min.css">
+<script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js"></script>
+<div class="viewer-overlay" id="viewer-overlay">
+  <div class="viewer" role="dialog" aria-modal="true">
+    <div class="viewer-header">
+      <span class="viewer-path" id="viewer-path"></span>
+      <span class="viewer-size" id="viewer-size"></span>
+      <button class="viewer-close" id="viewer-close" aria-label="Close">&times;</button>
+    </div>
+    <div class="viewer-body"><pre><code id="viewer-code"></code></pre></div>
+  </div>
+</div>
 
 <!-- Nudge prompt preview modal -->
 <div class="nudge-modal-overlay" id="nudge-modal">
@@ -794,6 +824,7 @@ function renderSelection() {
     html += '<div class="label">' + escapeHtml(n.label) + '</div>';
     html += '<div class="path">' + escapeHtml(n.path) + '</div>';
     html += '</div>';
+    html += '<button class="view-btn" data-viewfile="' + escapeAttr(n.path) + '" title="Preview file">&#x1F441;</button>';
     html += '<button class="rm" data-idx="' + i + '" title="Remove">&times;</button>';
     html += '</div>';
   });
@@ -1131,6 +1162,7 @@ function renderTreeList(root, container) {
         html += '<span class="twisty empty"></span>';
         html += '<span class="icon">&#9679;</span>';
         html += '<span class="label">' + escapeHtml(child.name) + '</span>';
+        html += '<button class="view-btn" data-viewfile="' + escapeAttr(child.path) + '" title="Preview file">&#x1F441;</button>';
         html += '<span class="sel-dot"></span>';
         html += '</div>';
       }
@@ -1160,6 +1192,56 @@ function updateTreeRowSelection(nodeIdx) {
   if (selected.has(nodeIdx)) row.classList.add('selected');
   else row.classList.remove('selected');
 }
+
+/* File viewer popup — same as blueprint.html's version. */
+const LANG_BY_EXT = {
+  ts:'typescript', tsx:'typescript', js:'javascript', jsx:'javascript', mjs:'javascript', cjs:'javascript',
+  py:'python', rb:'ruby', go:'go', rs:'rust', java:'java', kt:'kotlin', swift:'swift',
+  md:'markdown', mdx:'markdown', json:'json', yaml:'yaml', yml:'yaml', toml:'ini', ini:'ini',
+  sh:'bash', bash:'bash', zsh:'bash', fish:'bash',
+  css:'css', scss:'scss', less:'less', html:'xml', svg:'xml', xml:'xml',
+  sql:'sql', graphql:'graphql', dockerfile:'dockerfile'
+};
+function openFileViewer(filePath) {
+  const overlay = document.getElementById('viewer-overlay');
+  const pathEl = document.getElementById('viewer-path');
+  const sizeEl = document.getElementById('viewer-size');
+  const codeEl = document.getElementById('viewer-code');
+  pathEl.textContent = filePath;
+  sizeEl.textContent = '';
+  codeEl.className = '';
+  codeEl.textContent = 'Loading…';
+  overlay.classList.add('open');
+  fetch('/api/file?path=' + encodeURIComponent(filePath))
+    .then(r => r.json().then(d => ({ ok: r.ok, body: d })))
+    .then(rx => {
+      if (!rx.ok) {
+        codeEl.innerHTML = '<div class="empty">cannot load: ' + escapeHtml(rx.body.error || 'unknown') + '</div>';
+        return;
+      }
+      codeEl.textContent = rx.body.content || '';
+      sizeEl.textContent = rx.body.size + ' B';
+      const ext = (filePath.split('.').pop() || '').toLowerCase();
+      const lang = LANG_BY_EXT[ext];
+      if (lang && window.hljs) {
+        codeEl.className = 'language-' + lang;
+        try { window.hljs.highlightElement(codeEl); } catch (e) {}
+      }
+    })
+    .catch(e => { codeEl.innerHTML = '<div class="empty">fetch failed: ' + escapeHtml(e.message) + '</div>'; });
+}
+function closeFileViewer() { document.getElementById('viewer-overlay').classList.remove('open'); }
+document.getElementById('viewer-close').addEventListener('click', closeFileViewer);
+document.getElementById('viewer-overlay').addEventListener('click', ev => { if (ev.target === ev.currentTarget) closeFileViewer(); });
+document.addEventListener('keydown', ev => {
+  if (ev.key === 'Escape' && document.getElementById('viewer-overlay').classList.contains('open')) closeFileViewer();
+});
+document.body.addEventListener('click', ev => {
+  const btn = ev.target.closest('.view-btn');
+  if (!btn) return;
+  ev.stopPropagation();
+  openFileViewer(btn.getAttribute('data-viewfile'));
+}, true);
 
 function escapeAttr(s) {
   return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
