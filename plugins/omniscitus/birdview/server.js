@@ -1727,6 +1727,19 @@ var server = http.createServer(function (req, res) {
 // required from a test (or any other tool), callers just want the pure
 // yaml parsers exported below.
 if (require.main === module) {
+  var MAX_PORT_ATTEMPTS = 10;
+  var attempts = 0;
+  server.on('error', function (err) {
+    if (err.code === 'EADDRINUSE' && attempts < MAX_PORT_ATTEMPTS) {
+      attempts++;
+      var nextPort = PORT + 1;
+      console.log('Port ' + PORT + ' in use, trying ' + nextPort + '...');
+      PORT = nextPort;
+      setTimeout(function () { server.listen(PORT); }, 50);
+      return;
+    }
+    throw err;
+  });
   server.listen(PORT, function () {
     console.log('Birdview running at http://localhost:' + PORT);
   });
