@@ -490,11 +490,20 @@ function writeTests() {
     '    - single_topic: "one unit per coherent topic, no over-splitting"',
     '    - purpose_filled: "blueprint purpose fields populated when missing"',
     '',
+    '# --- Score thresholds (0.0–1.0 from the judge) ---',
+    'thresholds:',
+    '  warn: 0.60    # scores below this are Fail',
+    '  pass: 0.80    # scores at/above this are Pass; between warn and pass = Warn',
+    '  per_criterion:',
+    '    domain_correct: 0.90',
+    '    single_topic: 0.70',
+    '    purpose_filled: 0.60',
+    '',
     '# --- Pass criteria ---',
     'pass_criteria:',
-    '  threshold: 0.8',
     '  notes: >',
-    '    80% of cases must pass all 3 criteria. Stretch target 95%.'
+    '    80% of cases must clear the Pass threshold across all 3 criteria.',
+    '    Stretch target 95%.'
   ]);
 
   console.log('  tests/  (2 code suites, 1 prompt suite)');

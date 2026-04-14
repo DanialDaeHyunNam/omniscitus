@@ -19,7 +19,7 @@ updated: "2026-04-14"
     source: claude
     created: "2026-04-04"
     last_modified: "2026-04-14"
-    change_count: 3
+    change_count: 4
     purpose: ""
   "docs/birdview-demo/data/prompt-tests.json":
     status: active
@@ -40,7 +40,7 @@ updated: "2026-04-14"
     source: claude
     created: "2026-04-04"
     last_modified: "2026-04-14"
-    change_count: 2
+    change_count: 3
     purpose: ""
   "docs/birdview-demo/data/units.json":
     status: active
@@ -75,7 +75,7 @@ updated: "2026-04-14"
     source: claude
     created: "2026-04-04"
     last_modified: "2026-04-14"
-    change_count: 4
+    change_count: 5
     purpose: "Writes are no-ops in demo mode — keep the UI responsive but do nothing."
   "docs/birdview-demo/tests.html":
     status: active
