@@ -1,1 +1,1 @@
-{"tests":[]}
+{"tests":[{"target":"plugins/omniscitus/skills/wrap-up/","type":"prompt","prompt_name":"wrap-up-classification","last_updated":"2026-04-14","judge":{"model":"claude-sonnet-4-6","temperature":0,"max_retries":2},"criteria":[],"checks":[],"thresholds":{"pass":0,"warn":0,"per_criterion":{}},"cases":[],"prompts":[],"external_cases":null,"_dir":"wrap-up-classification","_judgeMd":""}]}

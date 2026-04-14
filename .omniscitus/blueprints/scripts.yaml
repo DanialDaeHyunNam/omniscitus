@@ -1,11 +1,11 @@
 version: 1
-updated: "2026-04-10"
+updated: "2026-04-14"
   "scripts/build-demo-birdview.js":
     status: active
     source: claude
     created: "2026-04-04"
-    last_modified: "2026-04-10"
-    change_count: 2
+    last_modified: "2026-04-11"
+    change_count: 4
     purpose: "build-demo-birdview.js — generates docs/birdview-demo/"
   "scripts/seed-omniscitus.js":
     status: active

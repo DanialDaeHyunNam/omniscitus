@@ -1,18 +1,18 @@
 version: 1
-updated: "2026-04-10"
+updated: "2026-04-14"
   "tests/birdview-parser.test.js":
     status: active
     source: claude
     created: "2026-04-04"
-    last_modified: "2026-04-10"
-    change_count: 1
+    last_modified: "2026-04-13"
+    change_count: 4
     purpose: "Unit tests for the hand-rolled yaml parsers in birdview/server.js."
   "tests/demo-build.test.js":
     status: active
     source: claude
     created: "2026-04-04"
-    last_modified: "2026-04-10"
-    change_count: 1
+    last_modified: "2026-04-11"
+    change_count: 2
     purpose: "Unit tests for the demo birdview build helpers. The fetch interceptor"
   "tests/seed.test.js":
     status: active
@@ -21,3 +21,24 @@ updated: "2026-04-10"
     last_modified: "2026-04-10"
     change_count: 1
     purpose: "Unit tests for the seed script helpers. extractPurpose is the most"
+  "tests/uninstall.test.js":
+    status: active
+    source: claude
+    created: "2026-04-04"
+    last_modified: "2026-04-13"
+    change_count: 1
+    purpose: "Unit tests for the /omniscitus-uninstall script's pure helpers."
+  "tests/version-check.test.js":
+    status: active
+    source: claude
+    created: "2026-04-04"
+    last_modified: "2026-04-13"
+    change_count: 1
+    purpose: "Unit tests for the SessionStart version-check hook."
+  "tests/weekly-backfill.test.js":
+    status: active
+    source: claude
+    created: "2026-04-04"
+    last_modified: "2026-04-13"
+    change_count: 2
+    purpose: "Unit tests for the /weekly-backfill helper script."
