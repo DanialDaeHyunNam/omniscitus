@@ -118,11 +118,13 @@ body { padding-top: 36px; }
 .omni-demo-banner .omni-demo-sep { color: #3a3a4a; }
 
 /* Push constellation's fixed-layout elements down by the banner height.
- * No-op on pages that don't have these selectors. */
+ * Max-heights also get tightened so side panels stay inside the viewport
+ * (otherwise they extend past the bottom and their internal scroll
+ * boundary ends up offscreen). No-op on pages without these selectors. */
 .topbar { top: 36px !important; }
 #scene { top: 36px !important; bottom: 0 !important; height: auto !important; }
-.tree-panel { top: calc(72px + 36px) !important; }
-.panel { top: calc(72px + 36px) !important; }
+.tree-panel { top: calc(72px + 36px) !important; max-height: calc(100vh - 96px - 36px) !important; }
+.panel { top: calc(72px + 36px) !important; max-height: calc(100vh - 96px - 36px) !important; }
 .trunc-banner { top: calc(72px + 36px) !important; }
 </style>
 `;
