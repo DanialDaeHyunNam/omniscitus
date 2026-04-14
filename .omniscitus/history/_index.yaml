@@ -15,3 +15,43 @@ units:
     session_count: 2
     title: "Constellation view"
     file: "web/2026-04-10-constellation-view.md"
+  - id: migrate-productionization
+    domain: devops
+    status: closed
+    created: "2026-04-13"
+    last_updated: "2026-04-14"
+    session_count: 4
+    title: "Migrate skill productionization"
+    file: "devops/2026-04-13-migrate-productionization.md"
+  - id: weekly-backfill-and-wrapup-rolls
+    domain: devops
+    status: closed
+    created: "2026-04-13"
+    last_updated: "2026-04-13"
+    session_count: 3
+    title: "Weekly backfill + wrap-up auto summaries"
+    file: "devops/2026-04-13-weekly-backfill-and-wrapup-rolls.md"
+  - id: hooks-reliability
+    domain: devops
+    status: closed
+    created: "2026-04-13"
+    last_updated: "2026-04-14"
+    session_count: 5
+    title: "Hook + server reliability"
+    file: "devops/2026-04-13-hooks-reliability.md"
+  - id: plugin-update-apply
+    domain: devops
+    status: closed
+    created: "2026-04-13"
+    last_updated: "2026-04-14"
+    session_count: 3
+    title: "Plugin update apply — /omniscitus-update + stale-migrate nag"
+    file: "devops/2026-04-14-plugin-update-apply.md"
+  - id: birdview-readable-ui
+    domain: web
+    status: closed
+    created: "2026-04-14"
+    last_updated: "2026-04-14"
+    session_count: 6
+    title: "Birdview non-dev readability pass"
+    file: "web/2026-04-14-birdview-readable-ui.md"
