@@ -2,6 +2,17 @@
 
 All notable changes to omniscitus. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.6.4] — 2026-04-14
+
+### Fixed
+
+- **meta.yaml parser now coerces scalars.** `input: { trends: [] }` used to render as the string `"[]"` because the parser stored every input/expected value as a quote-stripped string. It now recognises `[]`, `{}`, numbers, booleans, and `null` as their JS types — so empty containers render correctly and numbers show without quotes.
+- **Block-literal scalars in input/expected now work.** The `|` (literal) and `>` (folded) styles — the way you write multi-line `describe:` or `example:` blocks in YAML — are captured as multi-line strings instead of being truncated to just `|` / `>`.
+
+### Added
+
+- **Schema-Expected empty-state hint.** When a case declares only `strategy: schema` + `value:` with no `describe:` or `example:`, the schema box now shows a dim hint pointing at those two opt-in fields. Teaches the convention in-place without pestering cards that already have them.
+
 ## [0.6.3] — 2026-04-14
 
 ### Changed

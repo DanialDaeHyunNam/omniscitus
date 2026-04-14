@@ -473,6 +473,57 @@ function parseSignatureBlock(lines, start, baseIndent) {
   return { signature: sig, nextIndex: i };
 }
 
+// Coerce a raw YAML scalar string into a JS value. Covers the literals
+// non-devs tend to hand-write in meta.yaml: numbers, booleans, null,
+// empty arrays/objects, quoted strings. Inline arrays/objects with
+// content (`[a, b]`, `{x: 1}`) stay as strings — this isn't a full
+// YAML parser, just enough to stop "trends: []" rendering as "[]".
+function coerceScalar(raw) {
+  var s = String(raw == null ? '' : raw).trim();
+  // Strip matching quotes first
+  if (/^".*"$/.test(s)) return s.slice(1, -1).replace(/\\"/g, '"');
+  if (/^'.*'$/.test(s)) return s.slice(1, -1);
+  if (s === '' || s === 'null' || s === '~') return null;
+  if (s === 'true') return true;
+  if (s === 'false') return false;
+  if (/^-?\d+$/.test(s)) return parseInt(s, 10);
+  if (/^-?\d+\.\d+$/.test(s)) return parseFloat(s);
+  if (/^\[\s*\]$/.test(s)) return [];
+  if (/^\{\s*\}$/.test(s)) return {};
+  return s;
+}
+
+// Read a YAML block scalar (`|` literal or `>` folded) starting at
+// `startIdx`. Returns { value, nextIndex }. `baseIndent` is the indent
+// level of the line that had the `|`/`>` marker — block lines must be
+// indented deeper than that to be part of the scalar.
+function readBlockScalar(lines, startIdx, baseIndent, style) {
+  var out = [];
+  var i = startIdx;
+  while (i < lines.length) {
+    var line = lines[i];
+    if (line.trim() === '') { out.push(''); i++; continue; }
+    var indent = line.match(/^(\s*)/)[1].length;
+    if (indent <= baseIndent) break;
+    out.push(line.slice(baseIndent + 2)); // strip base+2 for block body
+    i++;
+  }
+  // Trim trailing empty lines
+  while (out.length && out[out.length - 1] === '') out.pop();
+  var joined;
+  if (style === '>') {
+    // Folded: blank lines become newlines, consecutive text lines join with spaces.
+    joined = out.reduce(function(acc, cur) {
+      if (cur === '') return acc + '\n';
+      if (acc && !/\n$/.test(acc)) return acc + ' ' + cur;
+      return acc + cur;
+    }, '');
+  } else {
+    joined = out.join('\n');
+  }
+  return { value: joined, nextIndex: i };
+}
+
 function parseMetaYaml(text) {
   var result = { target: '', language: '', framework: '', last_updated: '', suites: [] };
   if (!text) return result;
@@ -543,17 +594,33 @@ function parseMetaYaml(text) {
         if (line.match(/^\s{8}expected:$/)) { inExpected = true; inInput = false; i++; continue; }
 
         if (inInput) {
-          var inputProp = line.match(/^\s{10,}(\w+):\s*(.+)/);
+          var inputProp = line.match(/^(\s{10,})(\w+):\s*(.*)$/);
           if (inputProp) {
-            currentCase.input[inputProp[1]] = inputProp[2].replace(/^["']|["']$/g, '').trim();
+            var inIndent = inputProp[1].length;
+            var inKey = inputProp[2];
+            var inRawVal = inputProp[3];
+            if (inRawVal === '|' || inRawVal === '>') {
+              var inBlock = readBlockScalar(lines, i + 1, inIndent, inRawVal);
+              currentCase.input[inKey] = inBlock.value;
+              i = inBlock.nextIndex; continue;
+            }
+            currentCase.input[inKey] = coerceScalar(inRawVal);
             i++; continue;
           }
         }
 
         if (inExpected) {
-          var expProp = line.match(/^\s{10,}(\w+):\s*(.+)/);
+          var expProp = line.match(/^(\s{10,})(\w+):\s*(.*)$/);
           if (expProp) {
-            currentCase.expected[expProp[1]] = expProp[2].replace(/^["']|["']$/g, '').trim();
+            var exIndent = expProp[1].length;
+            var exKey = expProp[2];
+            var exRawVal = expProp[3];
+            if (exRawVal === '|' || exRawVal === '>') {
+              var exBlock = readBlockScalar(lines, i + 1, exIndent, exRawVal);
+              currentCase.expected[exKey] = exBlock.value;
+              i = exBlock.nextIndex; continue;
+            }
+            currentCase.expected[exKey] = coerceScalar(exRawVal);
             i++; continue;
           }
         }

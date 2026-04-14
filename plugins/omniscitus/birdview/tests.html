@@ -134,6 +134,8 @@
   .schema-describe{font-size:12px;color:#d1d5db;line-height:1.55}
   .schema-example{background:#0a0a0a;border:1px solid #1a1a1a;border-radius:4px;padding:8px 10px;font-family:'SF Mono',SFMono-Regular,Menlo,monospace;font-size:11px;color:#9ca3af;white-space:pre-wrap;word-break:break-word;line-height:1.5}
   .schema-example-label{font-size:9px;text-transform:uppercase;letter-spacing:0.6px;color:#6b7280;margin-bottom:4px}
+  .schema-empty-hint{font-size:11px;color:#6b7280;font-style:italic;line-height:1.5;padding-top:4px;border-top:1px dashed #252525}
+  .schema-empty-hint code{font-style:normal;background:#1a1a1a;padding:1px 5px;border-radius:3px;font-family:'SF Mono',SFMono-Regular,Menlo,monospace;color:#9ca3af}
 
   /* Param row inside case card */
   .param-row{display:flex;align-items:baseline;gap:8px;padding:4px 0;font-size:13px}
@@ -515,6 +517,15 @@ function renderSchemaExpected(expected) {
     html += '<div class="schema-example-label">Example</div>';
     html += '<div class="schema-example">' + esc(expected.example) + '</div>';
     html += '</div>';
+  }
+  // Empty-state nudge: teach the convention when author recorded only
+  // the type. Both fields are optional but the card stays pretty thin
+  // without them.
+  if (!expected.describe && !expected.example) {
+    html += '<div class="schema-empty-hint">' +
+            'Add <code>describe:</code> and <code>example:</code> to meta.yaml ' +
+            'to give non-devs a readable picture of this return value.' +
+            '</div>';
   }
   html += '</div>';
   return html;
