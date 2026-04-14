@@ -277,6 +277,37 @@ git ls-files --cached --others --exclude-standard \
   | sort
 ```
 
+**Canonical blueprint YAML** (must match exactly — birdview's parser and
+`blueprint-tracker.cjs` both expect this map-shape layout; a list-shape
+with `- path:` entries will NOT be parsed):
+
+```yaml
+version: 1
+updated: "2026-04-14"
+
+files:
+  "src/app/page.tsx":                    # path is the key, quoted
+    status: active                       # active | deleted
+    source: "claude:Name"                # claude:<name> | user:<name> | unknown
+    created: "2026-03-17"
+    last_modified: "2026-04-08"
+    change_count: 7
+    purpose: "Landing page hero + CTA."
+    change_log:
+      - date: "2026-04-08"
+        action: write                    # write | edit | delete
+        source: "claude"
+        message: "optional commit subject"
+      []                                 # literal empty-list marker if no entries
+```
+
+Key rules the parser enforces:
+- File path is the **map key** (2-space indent, trailing colon), not a list item.
+- Property lines sit at **4-space indent** directly under the path key.
+- `change_log:` entries use `- date:` at 6-space indent, sub-fields at 8-space.
+- Omit the top-level `files:` parent only if you're hand-editing a legacy
+  file — new writes always include it (the serializer does).
+
 For every source file, build entries from git history:
 
 ```bash
@@ -414,6 +445,31 @@ For each identified topic cluster:
 5. **Participants**: derive from `git log --format='%an' {cluster-commits}` — unique author names, comma-separated. Always append `claude` as the trailing member (Claude Code drives the session that migrates the repo). Write the line as `**Participants**: name1, name2, claude` right under the H1.
 6. Mark all units as `status: closed` (they're historical)
 7. Add to `_index.yaml`
+
+**Canonical `_index.yaml`** (must match exactly — birdview's
+`parseIndexYaml` anchors on `- id:` and reads a fixed field set:
+`domain`, `status`, `created`, `last_updated`, `session_count`, `title`,
+`file`. Entries using `- path:` / `topic:` / `participants:` will NOT
+be parsed):
+
+```yaml
+version: 1
+units:
+  - id: 2026-03-17-prd-prototype       # kebab-case, date-prefixed
+    domain: product                     # server | web | native | devops | product | ...
+    status: closed                      # open | closed (migrated units are closed)
+    created: "2026-03-17"
+    last_updated: "2026-03-17"
+    session_count: 2
+    title: "PRD 작성 + 프로토타입 이미지화"
+    file: "product/2026-03-17-prd-prototype.md"   # path under history/
+```
+
+**Participants belong in the unit body, not `_index.yaml`.** Write the
+`**Participants**: name1, name2, claude` line inside the unit markdown
+file (right under the H1). Birdview extracts it from the body via
+`extractParticipants()` — adding a `participants:` field to
+`_index.yaml` has no effect.
 
 Use AskUserQuestion:
 - "I identified these topic clusters from your git history: {list}. Does this grouping make sense? Any I should merge or split?"
@@ -720,6 +776,44 @@ Record the footprint:
 Note: this file IS inside `.omniscitus/` so technically doesn't need
 a footprint entry (uninstall removes the whole directory). We still
 record it for completeness so the audit trail is symmetric.
+
+### Phase 5.9: Parse-Back Self-Check
+
+Before declaring success, verify the files we just wrote are actually
+readable by the same parser birdview uses. Drift here means the user
+opens `/birdview` and sees empty Blueprint/History tabs — the exact
+failure mode this check exists to prevent.
+
+Run this Node one-liner (adjust the plugin path if vendored elsewhere):
+
+```bash
+node -e '
+const p = require(require("os").homedir() + "/.claude/plugins/omniscitus/plugins/omniscitus/birdview/server.js");
+const fs = require("fs"), path = require("path");
+let files = 0, units = 0;
+for (const f of fs.readdirSync(".omniscitus/blueprints").filter(x => x.endsWith(".yaml") && !x.startsWith("_summaries"))) {
+  const parsed = p.parseBlueprints(fs.readFileSync(path.join(".omniscitus/blueprints", f), "utf8"));
+  files += Object.keys(parsed.files || {}).length;
+}
+const idx = fs.readFileSync(".omniscitus/history/_index.yaml", "utf8");
+units = p.parseIndexYaml(idx).length;
+console.log("files:", files, "units:", units);
+if (files === 0 || units === 0) { console.error("SELF-CHECK FAILED"); process.exit(1); }
+'
+```
+
+**If the count is 0** for either files or units, the YAML we wrote does
+not match the canonical shape in Phase 2.1 / Phase 3.2. Common drift:
+
+- Blueprints written as `- path: ... ` list items instead of map keys →
+  re-serialize with the path as the 2-space-indented key.
+- `_index.yaml` units written with `- path:` / `topic:` /
+  `participants:` fields instead of `- id:` / `file:` / `title:` →
+  rewrite per Phase 3.2 canonical schema. Move participants into the
+  unit markdown body.
+
+Re-run the self-check after fixing. Do not continue to Phase 6 until
+both counts are non-zero.
 
 ### Phase 6: Report
 

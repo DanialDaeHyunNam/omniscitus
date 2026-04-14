@@ -79,6 +79,29 @@ For each file on disk:
 - `purpose: ""`
 - `change_count`: from `git log --oneline -- "{file}" | wc -l`
 
+**Canonical entry shape** — path is the **map key**, not a list item.
+`blueprint-tracker.cjs` and birdview's `parseBlueprints` both require
+this exact layout (2-space indent for the path key, 4-space for props):
+
+```yaml
+version: 1
+updated: "2026-04-14"
+
+files:
+  "src/utils/auth.ts":
+    status: active
+    source: "user:Name"
+    created: "2026-04-01"
+    last_modified: "2026-04-14"
+    change_count: 3
+    purpose: ""
+    change_log:
+      []
+```
+
+A list-shape (`- path: src/utils/auth.ts`) is **not parseable** — the
+entry will be invisible in `/birdview` even though the file exists on disk.
+
 **In blueprint but not on disk** → Deleted. Update in the relevant blueprint file:
 - `status: deleted`
 - `deleted: {today}`
