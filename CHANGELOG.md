@@ -2,6 +2,12 @@
 
 All notable changes to omniscitus. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.7.1] — 2026-04-14
+
+### Changed
+
+- **`/omniscitus-migrate` now writes `**Participants**:` lines on every unit it creates.** Previously it wrote `**Author**: {name}` (single, unparsed by birdview). Git-history-derived units get `git log %an` authors plus `claude` appended; `.claude/member/*`-derived units get the member name plus `claude`. So the Participants sidebar filter lights up immediately after a fresh migration instead of waiting for the first `/wrap-up`.
+
 ## [0.7.0] — 2026-04-14
 
 ### Added
