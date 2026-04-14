@@ -32,6 +32,12 @@
   .card-desc{font-size:13px;color:#9ca3af;margin:0;line-height:1.5}
   .footer{text-align:center;margin-top:64px;color:#4b5563;font-size:12px}
   .footer code{background:#1a1a1a;padding:2px 6px;border-radius:4px;font-size:11px;color:#6b7280}
+  .howto{margin-top:56px;padding:20px 24px;background:#0f0f0f;border:1px solid #1f1f1f;border-radius:10px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;line-height:1.7;color:#9ca3af}
+  .howto .howto-lead{color:#e5e7eb;margin:0 0 10px;font-size:13px}
+  .howto ol{margin:0;padding-left:22px}
+  .howto li{margin:4px 0}
+  .howto b{color:#e5e7eb;font-weight:600}
+  .howto code{background:#1a1a1a;padding:2px 6px;border-radius:4px;font-size:12px;color:#c4b5fd}
   @media(max-width:640px){.grid{grid-template-columns:1fr}}
 
   /* ── Review System ── */
@@ -98,6 +104,14 @@
       <h2 class="card-title">Constellation <span class="pill">new</span></h2>
       <p class="card-desc">Pick files and copy an onboarding prompt for your next Claude session.</p>
     </a>
+  </div>
+  <div class="howto">
+    <p class="howto-lead"># One command. <code>/omniscitus-migrate</code>. Done.</p>
+    <ol>
+      <li><b>Auto-tracked</b> — every Claude edit fires a hook and blueprints update in place.</li>
+      <li><b>Easy catch-up</b> — files changed outside Claude are flagged on the next session; <code>/blueprint-sync</code> applies them.</li>
+      <li><b>No regrets</b> — <code>/omniscitus-uninstall</code> reverses the migration footprint cleanly.</li>
+    </ol>
   </div>
   <div class="footer">
     <p>Serving from <code>.omniscitus/</code></p>
