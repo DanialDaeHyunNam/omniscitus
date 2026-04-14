@@ -2,6 +2,13 @@
 
 All notable changes to omniscitus. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.6.2] — 2026-04-14
+
+### Fixed
+
+- **Demo banner no longer overlays page content.** Switched the injected `.omni-demo-banner` from `position: fixed` to normal flow and removed the `body { padding-top: 36px }` compensation. The banner now takes real height at the top of the page and pushes everything below it down — previously it floated over toolbar controls on narrow viewports.
+- **Constellation filters moved inside the Blueprints panel.** The date toggle (All time / Last 7d) and the Authors chip row used to live in the topbar and a floating top-right bar respectively; the authors bar collided with the Selection panel on the right. Both now sit at the top of the left-hand Blueprints tree panel, above the header — they're about filtering blueprints, so they belong with the blueprints.
+
 ## [0.6.1] — 2026-04-14
 
 ### Fixed

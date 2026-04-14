@@ -94,9 +94,12 @@ const FETCH_INTERCEPTOR = `
 })();
 </script>
 <style>
-/* Demo banner shown on every birdview page in the hosted preview */
+/* Demo banner shown on every birdview page in the hosted preview.
+ * Sits in normal flow at the top of <body> so it pushes content down
+ * instead of floating over it — fixed positioning was hiding toolbar
+ * controls on some pages. */
 .omni-demo-banner {
-  position: fixed; top: 0; left: 0; right: 0; z-index: 10000;
+  position: relative;
   background: linear-gradient(90deg, rgba(124,58,237,0.18), rgba(110,231,183,0.12));
   border-bottom: 1px solid rgba(124,58,237,0.35);
   color: #e4e4e7; font-size: 12px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -108,7 +111,6 @@ const FETCH_INTERCEPTOR = `
 .omni-demo-banner a { color: #93c5fd; text-decoration: none; font-weight: 500; }
 .omni-demo-banner a:hover { text-decoration: underline; }
 .omni-demo-banner .omni-demo-sep { color: #3a3a4a; }
-body { padding-top: 36px; }
 </style>
 `;
 
