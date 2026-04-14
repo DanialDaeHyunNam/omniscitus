@@ -213,7 +213,43 @@ section {
   gap: 16px;
   justify-content: center;
   flex-wrap: wrap;
-  margin-bottom: 56px;
+  margin-bottom: 32px;
+}
+
+.hero-cta {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 48px;
+  animation: fadeUp 0.6s ease both;
+  animation-delay: 0.5s;
+}
+
+.hero-cta a {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 28px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #0a0a0a;
+  background: var(--cyan);
+  border-radius: 9999px;
+  text-decoration: none;
+  box-shadow: 0 0 24px rgba(34, 211, 238, 0.35);
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.hero-cta a:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 0 32px rgba(34, 211, 238, 0.55);
+}
+
+.hero-cta .arrow {
+  transition: transform 0.15s;
+}
+
+.hero-cta a:hover .arrow {
+  transform: translateX(3px);
 }
 
 .stat-badge {
@@ -1054,6 +1090,13 @@ section {
       <span class="stat-badge"><span class="dot"></span> Auto Blueprints</span>
       <span class="stat-badge"><span class="dot"></span> Team-Ready</span>
       <span class="stat-badge"><span class="dot"></span> Birdview Dashboard</span>
+    </div>
+
+    <div class="hero-cta">
+      <a href="/birdview-demo/">
+        <span>&#x25B6;</span> View Live Demo
+        <span class="arrow">&rarr;</span>
+      </a>
     </div>
 
     <div class="terminal">

@@ -14,6 +14,10 @@ a living memory of every file, every session, every test, and every team decisio
 
 **`10 Skills`** &nbsp;&middot;&nbsp; **`Auto Blueprints`** &nbsp;&middot;&nbsp; **`Team-Ready`** &nbsp;&middot;&nbsp; **`Birdview Dashboard`**
 
+&nbsp;
+
+### [▶ &nbsp; View Live Demo &nbsp; →](https://omniscitus.vercel.app/birdview-demo/)
+
 </div>
 
 ---
