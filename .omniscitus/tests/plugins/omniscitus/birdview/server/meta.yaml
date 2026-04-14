@@ -9,12 +9,34 @@ note: >
 suites:
   - name: parseBlueprints
     type: unittest
+    signature:
+      params:
+        - name: yamlText
+          type: string
+      returns:
+        type: object
     cases:
-      - title: "parses flat blueprints.yaml into file map"
-      - title: "handles nested folder splits declared in _index.yaml"
-      - title: "preserves purpose field across re-parses"
-  - name: parseIndexYaml
-    type: unittest
-    cases:
-      - title: "extracts blueprint_splits entries as path strings"
-      - title: "returns empty array when _index.yaml is absent"
+      - title: "parses flat blueprints.yaml into a file map"
+        input:
+          yamlText: "files:\n  src/index.ts:\n    purpose: entry point"
+        expected:
+          strategy: exact
+          value:
+            files:
+              "src/index.ts":
+                purpose: "entry point"
+      - title: "handles nested folder splits"
+        description: "_index.yaml declares blueprint_splits → parser descends"
+        input:
+          yamlText: "blueprint_splits:\n  - src/auth/"
+        expected:
+          strategy: shape
+          value:
+            splits: ["src/auth/"]
+      - title: "returns empty map when input is blank"
+        input:
+          yamlText: ""
+        expected:
+          strategy: exact
+          value:
+            files: {}

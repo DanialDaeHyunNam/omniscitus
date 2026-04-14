@@ -18,15 +18,15 @@ updated: "2026-04-14"
     status: active
     source: claude
     created: "2026-04-04"
-    last_modified: "2026-04-10"
-    change_count: 2
+    last_modified: "2026-04-14"
+    change_count: 3
     purpose: ""
   "docs/birdview-demo/data/prompt-tests.json":
     status: active
     source: claude
     created: "2026-04-04"
-    last_modified: "2026-04-11"
-    change_count: 1
+    last_modified: "2026-04-14"
+    change_count: 2
     purpose: ""
   "docs/birdview-demo/data/reviews.json":
     status: active
@@ -39,15 +39,15 @@ updated: "2026-04-14"
     status: active
     source: claude
     created: "2026-04-04"
-    last_modified: "2026-04-10"
-    change_count: 1
+    last_modified: "2026-04-14"
+    change_count: 2
     purpose: ""
   "docs/birdview-demo/data/units.json":
     status: active
     source: claude
     created: "2026-04-04"
     last_modified: "2026-04-14"
-    change_count: 2
+    change_count: 3
     purpose: ""
   "docs/birdview-demo/favicon-16.png":
     status: active
@@ -82,7 +82,7 @@ updated: "2026-04-14"
     source: claude
     created: "2026-04-04"
     last_modified: "2026-04-14"
-    change_count: 4
+    change_count: 5
     purpose: "Writes are no-ops in demo mode — keep the UI responsive but do nothing."
   "docs/favicon-16.png":
     status: active

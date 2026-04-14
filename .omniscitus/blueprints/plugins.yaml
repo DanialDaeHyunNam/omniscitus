@@ -60,8 +60,8 @@ updated: "2026-04-14"
     status: active
     source: claude
     created: "2026-04-04"
-    last_modified: "2026-04-13"
-    change_count: 4
+    last_modified: "2026-04-14"
+    change_count: 5
     purpose: ",*::before,*::after{box-sizing:border-box}"
   "plugins/omniscitus/hooks/hooks.json":
     status: active
