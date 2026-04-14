@@ -591,6 +591,7 @@ If added, append to `CLAUDE.md` (write in the language chosen at Step 0):
 - **Session end**: run `/wrap-up` (or say "wrap up", "마무리"). Work is classified into domain-based topic units under `.omniscitus/history/{domain}/`.
 - **Pending review**: `/follow-up` surfaces open items relevant to the current session (last 3 days).
 - **Visual browser**: `/birdview` — combined blueprint + history + tests viewer.
+- **Tests**: keep real test files wherever they already live. Run `/test-add {file}` to generate an overlay `.omniscitus/tests/{mirrored-path}/meta.yaml` that indexes them for birdview — no file moves, no framework changes. Use `/test-add:prompt {name}` for LLM-judged prompt tests.
 - **Domain taxonomy**: `.omniscitus/ontology.yaml` (if present) defines how work is classified.
 ```
 
@@ -608,6 +609,37 @@ If added, append to `CLAUDE.md` (write in the language chosen at Step 0):
 If `CLAUDE.md` does not exist, do **not** create it — that's an
 opinionated project decision that belongs to the repo owner. Skip this
 phase silently.
+
+### Phase 5.6: Status Line Integration Proposal
+
+A small `⦿ omniscitus` indicator in the Claude Code status bar makes it
+obvious at a glance that this repo is tracked. Mirrors what `/team-init`
+already offers — migrate just proposes the same thing during first-time
+setup so solo users don't miss it.
+
+Check if `~/.claude/statusline-command.sh` exists (or whatever script
+`~/.claude/settings.json` → `statusLine.command` points at).
+
+Use AskUserQuestion:
+- question: "Add an omniscitus indicator to your Claude Code status bar? (Recommended)"
+- description: "Shows `⦿ omniscitus` in the status line when cwd is inside a repo with `.omniscitus/`. Tiny, passive — but a useful signal that the world model is active."
+- options:
+  - "Add it (Recommended)"
+  - "Skip — I'll add later"
+
+If the user accepts, follow the same logic as `/team-init` Step 7:
+
+- **If a status line script exists and does NOT already contain "omniscitus"**:
+  append the indicator block before the final `printf` and wire the label
+  variable into the output.
+- **If no status line script exists**: create `~/.claude/statusline-command.sh`
+  with the template shown in team-init Step 7, and add
+  `"statusLine": { "type": "command", "command": "~/.claude/statusline-command.sh" }`
+  to `~/.claude/settings.json`.
+
+Files edited live in `~/.claude/` (user-global), not the repo — so **do
+not record a footprint entry**. The user controls their own status line.
+Uninstall does not touch it.
 
 ### Phase 5.75: Generate .omniscitus/README.md
 
@@ -686,6 +718,9 @@ record it for completeness so the audit trail is symmetric.
 📦 Legacy
   {L} potentially redundant files identified
   See .omniscitus/migrate/legacy.yaml
+
+📊 Status bar: omniscitus indicator {added / already present / skipped}
+📝 CLAUDE.md: onboarding block {added / already present / skipped}
 
 🔗 What's next:
   - /wrap-up after your next session to start building open units

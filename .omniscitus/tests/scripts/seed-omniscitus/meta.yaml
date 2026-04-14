@@ -9,16 +9,57 @@ note: >
 suites:
   - name: extractPurpose
     type: unittest
+    signature:
+      params:
+        - name: filePath
+          type: string
+      returns:
+        type: string
     cases:
-      - title: "extracts JSDoc @purpose tag from TypeScript header"
+      - title: "extracts JSDoc @purpose tag"
         description: "reads /** @purpose ... */ at top of .ts file"
-      - title: "falls back to first leading comment line"
-        description: "when no @purpose tag, uses the first // or /* comment"
-      - title: "returns empty string when file has no leading comment"
-        description: "bare code files produce no inferred purpose"
+        input:
+          filePath: "src/auth/login.ts"
+        expected:
+          strategy: exact
+          value: "Handles OAuth login callback"
+      - title: "falls back to first leading comment"
+        description: "no @purpose → uses the first // line"
+        input:
+          filePath: "src/utils/slugify.ts"
+        expected:
+          strategy: exact
+          value: "URL-safe slug helper"
+      - title: "returns empty when no leading comment"
+        input:
+          filePath: "src/bare.ts"
+        expected:
+          strategy: exact
+          value: ""
   - name: escapeYamlString
     type: unittest
+    signature:
+      params:
+        - name: value
+          type: string
+      returns:
+        type: string
     cases:
-      - title: "wraps strings containing colons in double quotes"
+      - title: "wraps strings containing colons"
+        input:
+          value: "foo: bar"
+        expected:
+          strategy: exact
+          value: "\"foo: bar\""
       - title: "leaves plain alphanumeric strings unquoted"
+        input:
+          value: "hello"
+        expected:
+          strategy: exact
+          value: "hello"
       - title: "escapes embedded double quotes"
+        input:
+          value: "say \"hi\""
+        expected:
+          strategy: exact
+          value: "\"say \\\"hi\\\"\""

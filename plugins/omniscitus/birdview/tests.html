@@ -101,10 +101,29 @@
   .case-status{font-size:14px}
   .case-desc{font-size:12px;color:#9ca3af;margin:0 0 10px}
 
-  .case-block{margin:6px 0}
-  .case-label{font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:#6b7280;margin-bottom:6px;font-weight:600}
-  .case-code{background:#0d0d0d;border:1px solid #252525;border-radius:6px;padding:10px 12px;font-family:'SF Mono',SFMono-Regular,Menlo,monospace;font-size:12px;color:#d1d5db;overflow-x:auto;white-space:pre-wrap;word-break:break-all;line-height:1.5}
+  .case-block{margin:6px 0;min-width:0}
+  .case-label{font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:#6b7280;margin-bottom:6px;font-weight:600;display:flex;align-items:center}
+  .case-code{background:#0d0d0d;border:1px solid #252525;border-radius:6px;padding:10px 12px;font-family:'SF Mono',SFMono-Regular,Menlo,monospace;font-size:12px;color:#d1d5db;overflow-x:auto;white-space:pre-wrap;word-break:break-word;line-height:1.55}
   .strategy-label{font-size:11px;color:#fbbf24;margin-left:8px;font-weight:500}
+
+  /* Input → Expected side-by-side */
+  .case-io{display:grid;grid-template-columns:1fr 28px 1fr;gap:10px;align-items:stretch;margin-top:10px}
+  .case-io > .case-block{margin:0;display:flex;flex-direction:column}
+  .case-io > .case-block > .case-code{flex:1}
+  .case-io-arrow{display:flex;align-items:center;justify-content:center;color:#4b5563;font-size:20px;user-select:none}
+  @media(max-width:720px){
+    .case-io{grid-template-columns:1fr}
+    .case-io-arrow{padding:4px 0;transform:rotate(90deg)}
+  }
+
+  /* JSON syntax highlight inside .case-code */
+  .j-key{color:#93c5fd}
+  .j-str{color:#6ee7b7}
+  .j-num{color:#fbbf24}
+  .j-bool{color:#c4b5fd}
+  .j-null{color:#6b7280;font-style:italic}
+  .j-punct{color:#6b7280}
+  .j-empty{color:#6b7280;font-style:italic}
 
   /* Param row inside case card */
   .param-row{display:flex;align-items:baseline;gap:8px;padding:4px 0;font-size:13px}
@@ -433,6 +452,64 @@ function formatValue(val) {
   return String(val);
 }
 
+/* Render a JSON-ish value as syntax-highlighted HTML. Keeps newlines +
+ * indentation so non-devs can scan it as comfortably as a config file.
+ * Caller places the output inside a .case-code (white-space:pre-wrap). */
+function highlightJson(val, indent) {
+  indent = indent || 0;
+  var pad = '';
+  for (var i = 0; i < indent; i++) pad += '  ';
+  var padIn = pad + '  ';
+  if (val == null) return '<span class="j-null">null</span>';
+  if (typeof val === 'string') return '<span class="j-str">' + esc(JSON.stringify(val)) + '</span>';
+  if (typeof val === 'number') return '<span class="j-num">' + val + '</span>';
+  if (typeof val === 'boolean') return '<span class="j-bool">' + val + '</span>';
+  if (Array.isArray(val)) {
+    if (val.length === 0) return '<span class="j-punct">[]</span>';
+    var parts = [];
+    for (var a = 0; a < val.length; a++) parts.push(padIn + highlightJson(val[a], indent + 1));
+    return '<span class="j-punct">[</span>\n' + parts.join('<span class="j-punct">,</span>\n') +
+           '\n' + pad + '<span class="j-punct">]</span>';
+  }
+  if (typeof val === 'object') {
+    var keys = Object.keys(val);
+    if (keys.length === 0) return '<span class="j-punct">{}</span>';
+    var rows = [];
+    for (var k = 0; k < keys.length; k++) {
+      var key = keys[k];
+      rows.push(padIn + '<span class="j-key">' + esc(JSON.stringify(key)) + '</span>' +
+                '<span class="j-punct">:</span> ' + highlightJson(val[key], indent + 1));
+    }
+    return '<span class="j-punct">{</span>\n' + rows.join('<span class="j-punct">,</span>\n') +
+           '\n' + pad + '<span class="j-punct">}</span>';
+  }
+  return esc(String(val));
+}
+
+/* Render a param dict as a readable key: value list with type badges.
+ * Used for code-test Inputs when the suite has a signature. */
+function renderParams(inputObj, params) {
+  var keys = Object.keys(inputObj);
+  if (!keys.length) return '<span class="j-empty">(no input)</span>';
+  var lines = [];
+  for (var i = 0; i < keys.length; i++) {
+    var name = keys[i];
+    var def = null;
+    if (params) {
+      for (var p = 0; p < params.length; p++) if (params[p].name === name) { def = params[p]; break; }
+    }
+    var ptype = def ? (def.type || 'any') : typeof inputObj[name];
+    lines.push(
+      '<div class="param-row">' +
+        '<span class="param-name">' + esc(name) + '</span>' +
+        '<span class="' + typeBadgeClass(ptype) + '">' + esc(ptype) + '</span>' +
+        '<span class="param-value">' + highlightJson(inputObj[name]) + '</span>' +
+      '</div>'
+    );
+  }
+  return lines.join('');
+}
+
 /* ── Tab switching ── */
 var currentTestTab = 'code-tests';
 document.querySelector('.top-tabs').addEventListener('click', function(ev) {
@@ -616,50 +693,51 @@ function renderTree(tests) {
         html += '</div>';
         if (cs.description) html += '<div class="case-desc">' + esc(cs.description) + '</div>';
 
-        /* Input: show each param with name, type badge, value */
-        if (cs.input != null && (typeof cs.input !== 'object' || Object.keys(cs.input).length > 0)) {
-          html += '<div class="case-block">';
-          html += '<div class="case-label">Input</div>';
-          if (typeof cs.input === 'object' && !Array.isArray(cs.input) && suite.signature && suite.signature.params) {
-            html += '<div class="case-code">';
-            var paramDefs = suite.signature.params;
-            var inputKeys = Object.keys(cs.input);
-            for (var pk = 0; pk < inputKeys.length; pk++) {
-              var paramKey = inputKeys[pk];
-              var paramDef = null;
-              for (var pd = 0; pd < paramDefs.length; pd++) {
-                if (paramDefs[pd].name === paramKey) { paramDef = paramDefs[pd]; break; }
-              }
-              var ptype = paramDef ? (paramDef.type || 'any') : typeof cs.input[paramKey];
-              html += '<div class="param-row">';
-              html += '<span class="param-name">' + esc(paramKey) + '</span>';
-              html += '<span class="' + typeBadgeClass(ptype) + '">' + esc(ptype) + '</span>';
-              html += '<span class="param-value">' + esc(formatValue(cs.input[paramKey])) + '</span>';
-              html += '</div>';
-            }
-            html += '</div>';
-          } else {
-            html += '<div class="case-code">' + esc(formatValue(cs.input)) + '</div>';
-          }
-          html += '</div>';
+        /* Input → Expected (side-by-side when both present) */
+        var hasInput = cs.input != null && (typeof cs.input !== 'object' || Object.keys(cs.input).length > 0);
+        var hasExpected = cs.expected != null && (typeof cs.expected !== 'object' || Object.keys(cs.expected).length > 0);
+        var strategy = '';
+        var expectedDisplay = cs.expected;
+        if (hasExpected && typeof cs.expected === 'object' && cs.expected.strategy) {
+          strategy = cs.expected.strategy;
+          var rest = {};
+          for (var ek in cs.expected) { if (ek !== 'strategy') rest[ek] = cs.expected[ek]; }
+          expectedDisplay = rest;
         }
 
-        /* Expected */
-        if (cs.expected != null && (typeof cs.expected !== 'object' || Object.keys(cs.expected).length > 0)) {
-          var strategy = '';
-          var expectedDisplay = cs.expected;
-          if (typeof cs.expected === 'object' && cs.expected.strategy) {
-            strategy = cs.expected.strategy;
-            var rest = {};
-            for (var ek in cs.expected) { if (ek !== 'strategy') rest[ek] = cs.expected[ek]; }
-            expectedDisplay = rest;
+        if (hasInput && hasExpected) {
+          html += '<div class="case-io">';
+          html += '<div class="case-block">';
+          html += '<div class="case-label">Input</div>';
+          html += '<div class="case-code">';
+          if (typeof cs.input === 'object' && !Array.isArray(cs.input) && suite.signature && suite.signature.params) {
+            html += renderParams(cs.input, suite.signature.params);
+          } else {
+            html += highlightJson(cs.input);
           }
+          html += '</div></div>';
+          html += '<div class="case-io-arrow">&rarr;</div>';
           html += '<div class="case-block">';
           html += '<div class="case-label">Expected';
           if (strategy) html += '<span class="strategy-label">' + esc(strategy) + '</span>';
           html += '</div>';
-          html += '<div class="case-code">' + esc(formatValue(expectedDisplay)) + '</div>';
+          html += '<div class="case-code">' + highlightJson(expectedDisplay) + '</div>';
           html += '</div>';
+          html += '</div>';
+        } else if (hasInput) {
+          html += '<div class="case-block"><div class="case-label">Input</div>';
+          html += '<div class="case-code">';
+          if (typeof cs.input === 'object' && !Array.isArray(cs.input) && suite.signature && suite.signature.params) {
+            html += renderParams(cs.input, suite.signature.params);
+          } else {
+            html += highlightJson(cs.input);
+          }
+          html += '</div></div>';
+        } else if (hasExpected) {
+          html += '<div class="case-block"><div class="case-label">Expected';
+          if (strategy) html += '<span class="strategy-label">' + esc(strategy) + '</span>';
+          html += '</div>';
+          html += '<div class="case-code">' + highlightJson(expectedDisplay) + '</div></div>';
         }
 
         html += '</div>'; /* case-card */
@@ -827,7 +905,7 @@ function renderPromptTests(tests) {
           /* Input as code block */
           if (cc.input && typeof cc.input === 'object' && Object.keys(cc.input).length > 0) {
             html += '<div class="case-block"><div class="case-label">Input</div>';
-            html += '<div class="case-code">' + esc(formatValue(cc.input)) + '</div></div>';
+            html += '<div class="case-code">' + highlightJson(cc.input) + '</div></div>';
           }
 
           /* Expected behavior */

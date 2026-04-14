@@ -11,6 +11,6 @@ updated: "2026-04-14"
     status: active
     source: claude
     created: "2026-04-04"
-    last_modified: "2026-04-10"
-    change_count: 2
+    last_modified: "2026-04-14"
+    change_count: 3
     purpose: "seed-omniscitus.js — dogfood script"
