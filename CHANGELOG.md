@@ -2,6 +2,12 @@
 
 All notable changes to omniscitus. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.5.3] — 2026-04-14
+
+### Fixed
+
+- **Birdview server auto-increments port on `EADDRINUSE` again.** The skill wrapper already loops 3777 → 3786 before launching, but when the server itself is invoked directly (or when the check-then-bind window races with another process grabbing the port), `server.listen(PORT)` crashed with an unhandled error. Added an `'error'` listener that increments `PORT` up to 10 times and retries, matching the skill's advertised behavior. Direct `node server.js` invocations now fall through to the next free port instead of dying.
+
 ## [0.5.2] — 2026-04-13
 
 ### Fixed
