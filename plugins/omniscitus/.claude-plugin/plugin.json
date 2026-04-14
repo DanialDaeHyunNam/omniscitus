@@ -1,6 +1,6 @@
 {
   "name": "omniscitus",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "description": "Codebase world model — automatic blueprint tracking, topic-based session history, universal test management, and a birdview dashboard.",
   "author": {
     "name": "Dan"

@@ -25,6 +25,12 @@
   .filter-btn:hover{color:#e0e0e0}
   .filter-btn.active{background:#2e1065;color:#c4b5fd}
   .filter-btn .swatch{width:8px;height:8px;border-radius:50%;background:currentColor;box-shadow:0 0 6px currentColor}
+  .author-bar{position:fixed;top:60px;right:16px;max-width:calc(100vw - 360px);display:flex;gap:6px;flex-wrap:wrap;z-index:30;background:rgba(15,15,22,0.85);border:1px solid #242430;border-radius:8px;padding:6px 10px;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);font-size:11px;color:#6b7280;align-items:center}
+  .author-bar .lbl{font-size:10px;text-transform:uppercase;letter-spacing:0.5px;margin-right:4px;color:#6b7280}
+  .author-chip-c{padding:3px 9px;background:rgba(30,30,40,0.6);border:1px solid #2a2a2a;border-radius:12px;font-size:11px;color:#d1d5db;cursor:pointer;transition:all 0.15s;font-family:inherit}
+  .author-chip-c:hover{border-color:#444;color:#fff}
+  .author-chip-c.excluded{opacity:0.35;text-decoration:line-through}
+  .author-chip-c .ct{color:#6b7280;margin-left:3px}
 
   /* ── Scene canvas ────────────────────────────────── */
   #scene{position:fixed;inset:0;z-index:0}
@@ -201,7 +207,13 @@
       <span class="swatch"></span> Blueprints
     </button>
   </div>
+  <div class="filter-group">
+    <button class="filter-btn" data-date="all">All time</button>
+    <button class="filter-btn active" data-date="7d">Last 7d</button>
+  </div>
 </div>
+
+<div class="author-bar" id="author-bar"><span class="lbl">Authors:</span></div>
 
 <div class="tooltip" id="tooltip"></div>
 
@@ -604,6 +616,7 @@ function buildScene(data) {
         label: p.split('/').pop() || p,
         cluster: d, color, status: 'open',
         meta: purpose ? purpose.slice(0, 120) : (d + '/'),
+        entry: bpFiles[p] || null,
         pickable: webglAvailable
       });
     });
@@ -828,6 +841,26 @@ if (webglAvailable) {
   });
 }
 
+// Date filter (All time / Last 7d) — lives in its own .filter-group
+document.querySelectorAll('[data-date]').forEach(function(btn) {
+  btn.addEventListener('click', function() {
+    document.querySelectorAll('[data-date]').forEach(function(b) { b.classList.remove('active'); });
+    btn.classList.add('active');
+    dateFilter = btn.getAttribute('data-date');
+    applyBlueprintFilters();
+  });
+});
+
+// Author chips (click to toggle excluded state)
+document.getElementById('author-bar').addEventListener('click', function(ev) {
+  const chip = ev.target.closest('.author-chip-c');
+  if (!chip) return;
+  const src = chip.getAttribute('data-author');
+  if (excludedAuthors.has(src)) excludedAuthors.delete(src); else excludedAuthors.add(src);
+  renderAuthorChips();
+  applyBlueprintFilters();
+});
+
 // ── Nudge copy ────────────────────────────────────────
 function buildNudgePrompt() {
   const includeRoot = document.getElementById('include-root').checked;
@@ -931,11 +964,72 @@ window.addEventListener('keydown', (ev) => {
 const expandedFolders = new Set();   // folder paths that are expanded
 let treeSearchQuery = '';
 
+// ── Date + author filter state ────────────────────────
+// Default to last 7 days so the constellation isn't dominated by legacy
+// files. Users can flip to All time from the topbar. Author chips render
+// after the scene is built (see renderAuthorChips).
+let dateFilter = '7d';            // '7d' or 'all'
+const excludedAuthors = new Set();
+
+function matchesDateFilter(entry) {
+  if (dateFilter === 'all') return true;
+  const lm = entry && entry.last_modified;
+  if (!lm) return false;
+  const t = Date.parse(lm);
+  if (isNaN(t)) return false;
+  const days = parseInt(dateFilter, 10);
+  return (Date.now() - t) < days * 86400000;
+}
+
+function matchesAuthorFilter(entry) {
+  const src = (entry && entry.source) || 'unknown';
+  return !excludedAuthors.has(src);
+}
+
+function isBlueprintVisibleByFilters(node) {
+  if (!node || node.type !== 'blueprint') return true;
+  return matchesDateFilter(node.entry) && matchesAuthorFilter(node.entry);
+}
+
+function applyBlueprintFilters() {
+  // Toggle 3D mesh visibility for blueprint nodes, then rebuild the
+  // left-hand tree panel so counts stay in sync.
+  for (let i = 0; i < nodes.length; i++) {
+    const n = nodes[i];
+    if (n.type === 'blueprint' && n.mesh) {
+      n.mesh.visible = isBlueprintVisibleByFilters(n) &&
+                       (!blueprintGroup || blueprintGroup.visible);
+    }
+  }
+  buildTreePanel();
+}
+
+function renderAuthorChips() {
+  const counts = {};
+  for (let i = 0; i < nodes.length; i++) {
+    if (nodes[i].type !== 'blueprint') continue;
+    const src = (nodes[i].entry && nodes[i].entry.source) || 'unknown';
+    counts[src] = (counts[src] || 0) + 1;
+  }
+  const bar = document.getElementById('author-bar');
+  const authors = Object.keys(counts).sort();
+  let html = '<span class="lbl">Authors:</span>';
+  for (const src of authors) {
+    const excluded = excludedAuthors.has(src);
+    html += '<button class="author-chip-c' + (excluded ? ' excluded' : '') +
+            '" data-author="' + src.replace(/"/g, '&quot;') + '">' +
+            src + '<span class="ct">' + counts[src] + '</span></button>';
+  }
+  bar.innerHTML = html;
+}
+
 function buildTreePanel() {
-  // Collect blueprint node indices
+  // Collect blueprint node indices — skip those hidden by date/author filters
   const bpEntries = [];
   for (let i = 0; i < nodes.length; i++) {
-    if (nodes[i].type === 'blueprint') bpEntries.push({ idx: i, path: nodes[i].path });
+    if (nodes[i].type !== 'blueprint') continue;
+    if (!isBlueprintVisibleByFilters(nodes[i])) continue;
+    bpEntries.push({ idx: i, path: nodes[i].path });
   }
   document.getElementById('tp-count').textContent = bpEntries.length;
 
@@ -1229,6 +1323,8 @@ async function load() {
       return;
     }
     buildScene({ units: unitsRes.units || [], blueprints: bpRes.files || {} });
+    renderAuthorChips();
+    applyBlueprintFilters();
     document.getElementById('loading').classList.add('hidden');
   } catch (err) {
     showError('Failed to load data: ' + (err && err.message || err));
