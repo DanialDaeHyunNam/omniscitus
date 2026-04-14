@@ -411,8 +411,9 @@ For each identified topic cluster:
 2. Choose a kebab-case topic name
 3. Create unit file: `history/{domain}/{earliest-date}-{topic}.md`
 4. Fill timeline from commit messages and dates
-5. Mark all units as `status: closed` (they're historical)
-6. Add to `_index.yaml`
+5. **Participants**: derive from `git log --format='%an' {cluster-commits}` — unique author names, comma-separated. Always append `claude` as the trailing member (Claude Code drives the session that migrates the repo). Write the line as `**Participants**: name1, name2, claude` right under the H1.
+6. Mark all units as `status: closed` (they're historical)
+7. Add to `_index.yaml`
 
 Use AskUserQuestion:
 - "I identified these topic clusters from your git history: {list}. Does this grouping make sense? Any I should merge or split?"
@@ -434,9 +435,24 @@ For each team member directory (e.g., `.claude/member/ned-server/`):
    - Extract date from filename (e.g., `20260304-persona-api-implementation.md`)
    - Extract topic, summary, and details from content
    - Create closed history units grouped by domain
-   - Attribute to the member: add `**Author**: {member-name}` in unit metadata
+   - **Participants** (birdview-parseable): add `**Participants**: {member-name}, claude` near the top (under the H1). Claude goes last — it's the implicit co-participant for any session driven by Claude Code. If the unit body cites other members (e.g., hand-offs between web and design), include all mentioned members.
 3. Read all files in `to-do/` — these become `## Pending` items in open units
 4. Read all files in `session/` — these map to timeline entries within units
+
+**Unit body template** (for both git-history-derived and member-derived units):
+
+```markdown
+# {Topic Title}
+
+**Participants**: {primary-member}, {other-members}, claude
+
+## Summary
+...
+```
+
+Birdview's history view reads this line and renders `@name` pills on
+the card + a Participants filter sidebar. Leave out the line only if
+no attribution is possible at all.
 
 **Mapping `.claude/member/` roles to omniscitus domains**:
 - `*-server` → `server` domain
