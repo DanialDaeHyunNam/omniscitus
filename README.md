@@ -2,6 +2,8 @@
 
 # omniscitus
 
+<sub>*Latin: "the one who knows all". Aspirational name for a humble goal — don't lose context.*</sub>
+
 ### Model changes. Records compound.
 
 The record layer for AI-driven production. A Claude Code plugin that
