@@ -2,6 +2,13 @@
 
 All notable changes to omniscitus. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.8.0] — 2026-04-14
+
+### Added
+
+- **File viewer popup.** New `/api/file?path=<rel>` endpoint reads a text file from the project root and returns its contents (traversal-guarded, ≤ 500KB, rejects binary files). Blueprint view now shows a 👁 button at the right of every file row; Constellation view shows one next to every selected item in the Selection panel and next to every file in the left tree panel. Clicking opens a modal with syntax-highlighted content via highlight.js (CDN, atom-one-dark theme). ESC or backdrop click dismisses.
+- **Static demo graceful fallback.** The hosted demo has no backend, so `/api/file` requests are short-circuited to a 403 JSON response; the viewer's error branch surfaces "file preview is not available in the static demo" — no broken UI.
+
 ## [0.7.1] — 2026-04-14
 
 ### Changed

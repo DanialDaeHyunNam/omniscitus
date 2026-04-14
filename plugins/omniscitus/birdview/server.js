@@ -1143,6 +1143,38 @@ function parseSummariesYaml(text) {
   return out;
 }
 
+// Serve a single text file from the project root so the viewer popup
+// in blueprint/constellation can render its contents. Hard rules:
+// - paths are relative to PROJECT_ROOT
+// - no `..`, no absolute paths (traversal guard)
+// - refuse >500KB files (preview UI, not an editor)
+// - refuse binary files (null byte in first 8KB)
+function handleApiFile(req, res) {
+  var q = require('url').parse(req.url, true).query || {};
+  var rel = q.path || '';
+  if (!rel || rel.indexOf('..') !== -1 || path.isAbsolute(rel)) {
+    return jsonRes(res, 400, { error: 'invalid path' });
+  }
+  var full = path.join(PROJECT_ROOT, rel);
+  if (full.indexOf(PROJECT_ROOT + path.sep) !== 0 && full !== PROJECT_ROOT) {
+    return jsonRes(res, 400, { error: 'path escapes project root' });
+  }
+  try {
+    var stat = fs.statSync(full);
+    if (!stat.isFile()) return jsonRes(res, 404, { error: 'not a file' });
+    if (stat.size > 500 * 1024) return jsonRes(res, 413, { error: 'file too large (>500KB)' });
+    var buf = fs.readFileSync(full);
+    // naive binary detection
+    var sample = buf.slice(0, Math.min(buf.length, 8192));
+    for (var i = 0; i < sample.length; i++) {
+      if (sample[i] === 0) return jsonRes(res, 415, { error: 'binary file' });
+    }
+    return jsonRes(res, 200, { path: rel, content: buf.toString('utf-8'), size: stat.size });
+  } catch (e) {
+    return jsonRes(res, 404, { error: 'not found' });
+  }
+}
+
 function handleApiBlueprints(req, res) {
   var blueprintsDir = path.join(OMNISCITUS_DIR, 'blueprints');
   var merged = {
@@ -1783,6 +1815,7 @@ var server = http.createServer(function (req, res) {
   if (url === '/favicon.ico') return staticRes(res, path.join(BIRDVIEW_DIR, 'favicon-32.png'), 'image/png');
 
   // API routes
+  if (url === '/api/file') return handleApiFile(req, res);
   if (url === '/api/blueprints') return handleApiBlueprints(req, res);
   if (url === '/api/units') return handleApiUnits(req, res);
   if (url === '/api/tests' && req.method === 'GET') return handleApiTests(req, res);
