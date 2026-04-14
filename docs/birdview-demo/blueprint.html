@@ -218,6 +218,25 @@ body { padding-top: 36px; }
   .viewer-body pre{margin:0;padding:18px;font-size:12px;line-height:1.55;font-family:'SF Mono',SFMono-Regular,Menlo,monospace;color:#d1d5db;background:#0d0d14;white-space:pre}
   .viewer-body code{font-family:inherit;background:transparent;padding:0}
   .viewer-body .empty{padding:40px;color:#6b7280;text-align:center;font-size:13px}
+  .viewer-md{padding:24px 28px;color:#e4e4e7;font-size:14px;line-height:1.7;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
+  .viewer-md h1,.viewer-md h2,.viewer-md h3,.viewer-md h4{color:#fff;font-weight:600;margin:20px 0 10px}
+  .viewer-md h1{font-size:22px;border-bottom:1px solid #242430;padding-bottom:8px}
+  .viewer-md h2{font-size:18px}
+  .viewer-md h3{font-size:15px}
+  .viewer-md p{margin:10px 0}
+  .viewer-md a{color:#93c5fd}
+  .viewer-md strong{color:#fff;font-weight:600}
+  .viewer-md ul,.viewer-md ol{padding-left:22px;margin:8px 0}
+  .viewer-md li{margin:4px 0}
+  .viewer-md code{font-family:'SF Mono',SFMono-Regular,Menlo,monospace;background:#1a1a1f;padding:2px 6px;border-radius:4px;font-size:12.5px;color:#c4b5fd}
+  .viewer-md pre{background:#0a0a0e;border:1px solid #1f1f23;border-radius:8px;padding:14px 16px;margin:12px 0;overflow-x:auto;font-size:12px;line-height:1.55}
+  .viewer-md pre code{background:transparent;padding:0;color:#d1d5db;font-size:inherit}
+  .viewer-md blockquote{border-left:3px solid #3a3a4e;padding:2px 14px;margin:10px 0;color:#9ca3af;background:rgba(124,58,237,0.04)}
+  .viewer-md hr{border:0;border-top:1px solid #242430;margin:18px 0}
+  .viewer-md table{border-collapse:collapse;margin:10px 0;font-size:13px}
+  .viewer-md th,.viewer-md td{border:1px solid #242430;padding:6px 10px;text-align:left}
+  .viewer-md th{background:#1a1a1f;color:#fff;font-weight:600}
+  .viewer-md img{max-width:100%;border-radius:6px}
 </style>
 </head>
 <body>
@@ -273,6 +292,7 @@ body { padding-top: 36px; }
 <!-- File viewer popup -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/atom-one-dark.min.css">
 <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
 <!-- Languages beyond the common bundle: Go, Dart, Elixir, Scala, Lua, R, Haskell, Nix, GraphQL, Dockerfile -->
 <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/languages/go.min.js"></script>
 <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/languages/dart.min.js"></script>
@@ -290,7 +310,7 @@ body { padding-top: 36px; }
       <span class="viewer-size" id="viewer-size"></span>
       <button class="viewer-close" id="viewer-close" aria-label="Close">&times;</button>
     </div>
-    <div class="viewer-body"><pre><code id="viewer-code"></code></pre></div>
+    <div class="viewer-body" id="viewer-body"></div>
   </div>
 </div>
 
@@ -654,30 +674,51 @@ function openFileViewer(filePath) {
   var overlay = document.getElementById('viewer-overlay');
   var pathEl = document.getElementById('viewer-path');
   var sizeEl = document.getElementById('viewer-size');
-  var codeEl = document.getElementById('viewer-code');
+  var bodyEl = document.getElementById('viewer-body');
   pathEl.textContent = filePath;
   sizeEl.textContent = '';
-  codeEl.className = '';
-  codeEl.textContent = 'Loading…';
+  bodyEl.innerHTML = '<div class="empty">Loading…</div>';
   overlay.classList.add('open');
   fetch('/api/file?path=' + encodeURIComponent(filePath))
     .then(function(r) { return r.json().then(function(d) { return { ok: r.ok, body: d }; }); })
     .then(function(rx) {
       if (!rx.ok) {
-        codeEl.innerHTML = '<div class="empty">cannot load: ' + esc(rx.body.error || 'unknown') + '</div>';
+        bodyEl.innerHTML = '<div class="empty">cannot load: ' + esc(rx.body.error || 'unknown') + '</div>';
         return;
       }
-      codeEl.textContent = rx.body.content || '';
       sizeEl.textContent = rx.body.size + ' B';
       var ext = (filePath.split('.').pop() || '').toLowerCase();
+      var content = rx.body.content || '';
+      // Markdown: render as HTML via marked.js. Code blocks inside still
+      // get highlighted by our hljs-wrapped renderer.
+      if ((ext === 'md' || ext === 'mdx') && window.marked) {
+        try {
+          window.marked.setOptions({ breaks: false, gfm: true });
+          bodyEl.innerHTML = '<div class="viewer-md">' + window.marked.parse(content) + '</div>';
+          // Post-highlight fenced code blocks
+          if (window.hljs) {
+            bodyEl.querySelectorAll('pre code').forEach(function(c) {
+              try { window.hljs.highlightElement(c); } catch (e) {}
+            });
+          }
+          return;
+        } catch (e) { /* fall through to raw */ }
+      }
+      // Default: plain text / code viewer with syntax highlighting
+      var pre = document.createElement('pre');
+      var code = document.createElement('code');
+      code.textContent = content;
       var lang = LANG_BY_EXT[ext];
       if (lang && window.hljs) {
-        codeEl.className = 'language-' + lang;
-        try { window.hljs.highlightElement(codeEl); } catch (e) {}
+        code.className = 'language-' + lang;
+        try { window.hljs.highlightElement(code); } catch (e) {}
       }
+      pre.appendChild(code);
+      bodyEl.innerHTML = '';
+      bodyEl.appendChild(pre);
     })
     .catch(function(e) {
-      codeEl.innerHTML = '<div class="empty">fetch failed: ' + esc(e.message) + '</div>';
+      bodyEl.innerHTML = '<div class="empty">fetch failed: ' + esc(e.message) + '</div>';
     });
 }
 function closeFileViewer() { document.getElementById('viewer-overlay').classList.remove('open'); }
