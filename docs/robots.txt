@@ -1,0 +1,6 @@
+# omniscitus — robots.txt
+User-agent: *
+Allow: /
+Disallow: /birdview-demo/data/
+
+Sitemap: https://omniscitus.vercel.app/sitemap.xml
