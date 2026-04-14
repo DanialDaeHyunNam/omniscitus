@@ -173,6 +173,18 @@ function parseBlueprints(text) {
   return result;
 }
 
+// Pull `**Participants**: a, b` or `**Contributors**: a, b` out of a
+// unit markdown body. Lives as a content property rather than an
+// _index.yaml field because it's a natural part of who-wrote-what and
+// can change as the unit gets edited. Returns an array of trimmed
+// names, empty when the line is absent.
+function extractParticipants(content) {
+  if (!content) return [];
+  var m = content.match(/^\s*\*\*(?:Participants|Contributors|참여자)\*\*\s*:\s*(.+)$/mi);
+  if (!m) return [];
+  return m[1].split(',').map(function(s) { return s.trim(); }).filter(Boolean);
+}
+
 function parseIndexYaml(text) {
   var units = [];
   if (!text) return units;
@@ -1209,6 +1221,7 @@ function handleApiUnits(req, res) {
       var content = safeReadFile(direct);
       if (content) {
         unit.content = content;
+        unit.participants = extractParticipants(content);
         continue;
       }
       // file field present but path is wrong — fall through to scan
@@ -1232,6 +1245,8 @@ function handleApiUnits(req, res) {
       }
       if (unit.content) break;
     }
+    if (unit.content) unit.participants = extractParticipants(unit.content);
+    if (!unit.participants) unit.participants = [];
   }
 
   jsonRes(res, 200, { units: units, domains: domains, weekly_summaries: weeklySummaries });

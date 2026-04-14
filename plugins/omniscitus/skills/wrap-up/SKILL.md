@@ -178,6 +178,8 @@ If closing: set `status: closed` in `_index.yaml`, create a new unit.
 ```markdown
 # {Topic Title}
 
+**Participants**: {comma-separated list of git authors who touched files in this session, plus `claude` if Claude Code drove edits}
+
 ## Summary
 {What this unit covers, 1-3 lines}
 

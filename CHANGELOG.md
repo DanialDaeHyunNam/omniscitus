@@ -2,6 +2,13 @@
 
 All notable changes to omniscitus. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.7.0] — 2026-04-14
+
+### Added
+
+- **Participants field on history units.** Units can now declare who contributed via a `**Participants**: name1, name2` line near the top of the markdown. Birdview parses the line, renders `@name` pills on unit cards, and adds a new **Participants** sidebar filter under Domains so team contributors can narrow the feed to work involving specific people. Accepts `Participants` / `Contributors` / `참여자` as equivalent labels. No breaking change — units without the line just show no pills.
+- **Wrap-up spec updates** — `/wrap-up`'s unit template now includes the Participants line so new units start with team attribution baked in.
+
 ## [0.6.5] — 2026-04-14
 
 ### Fixed

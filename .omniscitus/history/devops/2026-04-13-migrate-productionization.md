@@ -4,6 +4,7 @@
 **Status**: closed
 **Created**: 2026-04-13
 **Last updated**: 2026-04-14
+**Participants**: claude, dan
 
 ## Intent
 
