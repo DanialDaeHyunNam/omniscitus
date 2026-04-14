@@ -55,3 +55,11 @@ units:
     session_count: 6
     title: "Birdview non-dev readability pass"
     file: "web/2026-04-14-birdview-readable-ui.md"
+  - id: 0.9-release-gate
+    domain: devops
+    status: open
+    created: "2026-04-14"
+    last_updated: "2026-04-14"
+    session_count: 1
+    title: "0.9 Public Release Gate — execution debt"
+    file: "devops/2026-04-14-0.9-release-gate.md"

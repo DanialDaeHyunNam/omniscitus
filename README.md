@@ -2,21 +2,24 @@
 
 # omniscitus
 
-### The maintenance layer your codebase deserves.
+### Model changes. Records compound.
 
-Building tools help on Day 1. omniscitus maintains from Day 2 onward —<br>
-a living memory of every file, every session, every test, and every team decision.
+The record layer for AI-driven production. A Claude Code plugin that
+auto-tracks the files you make, the sessions you run, the tests you
+inherit, and the decisions that outlive any single chat.
 
 [![Docs](https://img.shields.io/badge/docs-omniscitus.vercel.app-7c3aed?style=flat-square)](https://omniscitus.vercel.app/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green?style=flat-square)](LICENSE)
 
 &nbsp;
 
-**`10 Skills`** &nbsp;&middot;&nbsp; **`Auto Blueprints`** &nbsp;&middot;&nbsp; **`Team-Ready`** &nbsp;&middot;&nbsp; **`Birdview Dashboard`**
+### [▶ &nbsp; See it running &nbsp; →](https://omniscitus.vercel.app/birdview-demo/)
 
 &nbsp;
 
-### [▶ &nbsp; View Live Demo &nbsp; →](https://omniscitus.vercel.app/birdview-demo/)
+> **Status**: v0.8 — works, dogfooded in production. Public 0.9 is gated on
+> items tracked in the [release gate unit](.omniscitus/history/devops/2026-04-14-0.9-release-gate.md)
+> (history search, real participant detection, scale testing, test runner). Early adopters welcome.
 
 </div>
 
@@ -24,15 +27,22 @@ a living memory of every file, every session, every test, and every team decisio
 
 ## Why This Exists
 
-> git records *what* changed. omniscitus records *why*, *who*, and *what's next*.
+> Run AI-driven production long enough and one thing outlasts every
+> tool change: **records**. The model churns. The editor changes. The
+> skill catalog shifts. The only layer that compounds is the memory
+> of what you did, why, and who decided it.
 
-| Layer | Tools | What it does |
-|---|---|---|
-| Scaffolding | create-next-app, cookiecutter, yeoman | Generates a project on Day 1. Irrelevant from Day 2. |
-| AI coding | Cursor, Copilot, Claude Code | Helps write code in the moment. Context evaporates when the session ends. |
-| **Maintenance** | **omniscitus** | **Tracks files, preserves session context, indexes tests, attributes team members. Accumulates from Day 2 onward.** |
+omniscitus is that layer.
 
-Instead of you tracking files, sessions, and tests, the system maintains a living world model. You focus on judgment.
+- `git` answers **what** changed.
+- Cursor / Copilot / Claude Code help you **write** it.
+- Nothing in the default stack records **why**, **who**, and **what's next** — the exact things that decay the moment a session ends.
+
+This is the author's convergence point after a year of iteration:
+`CLAUDE.md` → `.claude/` structure → session summaries → member personas
+→ topic-based history. Each layer solved its predecessor's pain. `omniscitus`
+packages the end of that journey into a plugin, so you don't have to walk
+the same steps.
 
 ## Install
 
