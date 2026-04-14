@@ -2,6 +2,15 @@
 
 All notable changes to omniscitus. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.6.3] — 2026-04-14
+
+### Changed
+
+- **Schema-strategy Expected renders as a type pill, not a JSON dump.** Code tests whose return value can't be serialized (e.g. `ReactNode[]`, streams, event handlers) used to show a useless `{"value": "ReactNode[]"}` box under Expected. They now render a clean "type: `ReactNode[]`" pill, and optionally surface two new meta.yaml fields when present:
+  - `expected.describe` — plain-English explanation of the expected shape/behavior
+  - `expected.example` — string-form example of the expected output
+  This is a pure UI improvement — existing meta.yaml files keep working, the new fields are opt-in.
+
 ## [0.6.2] — 2026-04-14
 
 ### Fixed

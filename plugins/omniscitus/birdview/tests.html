@@ -125,6 +125,16 @@
   .j-punct{color:#6b7280}
   .j-empty{color:#6b7280;font-style:italic}
 
+  /* Schema-style expected (non-serializable return types like ReactNode[]).
+   * We show a type pill + optional describe/example lines instead of a
+   * JSON dump of {"value": "ReactNode[]"} — that's just noise. */
+  .schema-box{display:flex;flex-direction:column;gap:8px;background:#0d0d0d;border:1px solid #252525;border-radius:6px;padding:10px 12px}
+  .schema-type{display:inline-flex;align-items:center;gap:6px;align-self:flex-start;padding:4px 10px;background:rgba(147,197,253,0.08);border:1px solid rgba(147,197,253,0.3);border-radius:12px;font-family:'SF Mono',SFMono-Regular,Menlo,monospace;font-size:12px;color:#93c5fd}
+  .schema-type::before{content:'type';font-family:inherit;font-size:9px;color:#6b7280;text-transform:uppercase;letter-spacing:0.6px;margin-right:2px}
+  .schema-describe{font-size:12px;color:#d1d5db;line-height:1.55}
+  .schema-example{background:#0a0a0a;border:1px solid #1a1a1a;border-radius:4px;padding:8px 10px;font-family:'SF Mono',SFMono-Regular,Menlo,monospace;font-size:11px;color:#9ca3af;white-space:pre-wrap;word-break:break-word;line-height:1.5}
+  .schema-example-label{font-size:9px;text-transform:uppercase;letter-spacing:0.6px;color:#6b7280;margin-bottom:4px}
+
   /* Param row inside case card */
   .param-row{display:flex;align-items:baseline;gap:8px;padding:4px 0;font-size:13px}
   .param-row+.param-row{border-top:1px solid #1a1a1a}
@@ -486,6 +496,30 @@ function highlightJson(val, indent) {
   return esc(String(val));
 }
 
+/* Render a schema-strategy expected block. For non-serializable return
+ * types (ReactNode[], streams, event handlers) the literal value can't
+ * be compared — meta.yaml just declares the shape. We surface that as
+ * a type pill plus optional `describe` and `example` fields so the
+ * card stays readable for non-devs. Falls through to highlightJson if
+ * there's any serializable field besides value/describe/example. */
+function renderSchemaExpected(expected) {
+  var html = '<div class="schema-box">';
+  if (expected.value) {
+    html += '<span class="schema-type">' + esc(expected.value) + '</span>';
+  }
+  if (expected.describe) {
+    html += '<div class="schema-describe">' + esc(expected.describe) + '</div>';
+  }
+  if (expected.example) {
+    html += '<div>';
+    html += '<div class="schema-example-label">Example</div>';
+    html += '<div class="schema-example">' + esc(expected.example) + '</div>';
+    html += '</div>';
+  }
+  html += '</div>';
+  return html;
+}
+
 /* Render a param dict as a readable key: value list with type badges.
  * Used for code-test Inputs when the suite has a signature. */
 function renderParams(inputObj, params) {
@@ -705,6 +739,16 @@ function renderTree(tests) {
           expectedDisplay = rest;
         }
 
+        // Decide how to render the Expected side. schema-strategy means
+        // the return type isn't serializable (React components, streams,
+        // event handlers, …) — render a type pill + describe/example
+        // instead of a JSON dump of {"value": "TypeName"}.
+        var expectedIsSchema = strategy === 'schema' && typeof cs.expected === 'object';
+        function renderExpectedBody() {
+          if (expectedIsSchema) return renderSchemaExpected(cs.expected);
+          return '<div class="case-code">' + highlightJson(expectedDisplay) + '</div>';
+        }
+
         if (hasInput && hasExpected) {
           html += '<div class="case-io">';
           html += '<div class="case-block">';
@@ -719,9 +763,9 @@ function renderTree(tests) {
           html += '<div class="case-io-arrow">&rarr;</div>';
           html += '<div class="case-block">';
           html += '<div class="case-label">Expected';
-          if (strategy) html += '<span class="strategy-label">' + esc(strategy) + '</span>';
+          if (strategy && !expectedIsSchema) html += '<span class="strategy-label">' + esc(strategy) + '</span>';
           html += '</div>';
-          html += '<div class="case-code">' + highlightJson(expectedDisplay) + '</div>';
+          html += renderExpectedBody();
           html += '</div>';
           html += '</div>';
         } else if (hasInput) {
@@ -735,9 +779,10 @@ function renderTree(tests) {
           html += '</div></div>';
         } else if (hasExpected) {
           html += '<div class="case-block"><div class="case-label">Expected';
-          if (strategy) html += '<span class="strategy-label">' + esc(strategy) + '</span>';
+          if (strategy && !expectedIsSchema) html += '<span class="strategy-label">' + esc(strategy) + '</span>';
           html += '</div>';
-          html += '<div class="case-code">' + highlightJson(expectedDisplay) + '</div></div>';
+          html += renderExpectedBody();
+          html += '</div>';
         }
 
         html += '</div>'; /* case-card */
