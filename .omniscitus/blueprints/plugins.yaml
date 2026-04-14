@@ -47,7 +47,7 @@ updated: "2026-04-14"
     source: claude
     created: "2026-04-04"
     last_modified: "2026-04-14"
-    change_count: 5
+    change_count: 6
     purpose: ",*::before,*::after{box-sizing:border-box}"
   "plugins/omniscitus/birdview/server.js":
     status: active
@@ -172,8 +172,8 @@ updated: "2026-04-14"
     status: active
     source: claude
     created: "2026-04-04"
-    last_modified: "2026-04-13"
-    change_count: 10
+    last_modified: "2026-04-14"
+    change_count: 11
     purpose: "Migrate an existing project into omniscitus. Scans docs, git history, and"
   "plugins/omniscitus/skills/omniscitus-uninstall/SKILL.md":
     status: active

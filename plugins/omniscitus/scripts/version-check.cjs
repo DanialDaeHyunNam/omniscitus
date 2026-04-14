@@ -70,6 +70,31 @@ function readInstalledVersion(pluginRoot) {
  * marketplace this user has added (e.g., they installed from a local
  * path or a marketplace they later removed).
  */
+/**
+ * Walk up from cwd looking for a project-local `.omniscitus/migrate/anchor.yaml`
+ * and return the recorded `migrate_version` (as a raw string). Returns
+ * null if we can't find an anchor or the field is missing — pre-0.6
+ * anchors don't have it, and non-migrated projects have nothing.
+ *
+ * We don't parse YAML — a plain regex is enough for this one field,
+ * keeps the hook dependency-free and fast.
+ */
+function readProjectMigrateVersion(startDir) {
+  try {
+    var dir = startDir || process.cwd();
+    while (dir && dir !== path.dirname(dir)) {
+      var anchorPath = path.join(dir, '.omniscitus', 'migrate', 'anchor.yaml');
+      if (fs.existsSync(anchorPath)) {
+        var text = fs.readFileSync(anchorPath, 'utf-8');
+        var m = text.match(/^migrate_version:\s*["']?([^\s"'#]+)/m);
+        return { anchorPath: anchorPath, version: m ? m[1] : null };
+      }
+      dir = path.dirname(dir);
+    }
+  } catch (e) { /* silent */ }
+  return null;
+}
+
 function readLatestVersion(marketplacesDir) {
   try {
     var entries = fs.readdirSync(marketplacesDir);
@@ -144,6 +169,30 @@ function discoverMarketplacesDir() {
   return path.join(os.homedir(), '.claude', 'plugins', 'marketplaces');
 }
 
+/**
+ * Second-stage nag: the installed plugin is up to date, but the *project*
+ * was migrated by an older version. The canonical blocks it wrote
+ * (CLAUDE.md, statusline, etc.) may have been improved since. Point the
+ * user at /omniscitus-update, which is the explicit, consent-based path
+ * to refresh those blocks without re-running full migration.
+ *
+ * Reuses the same 24h cache key structure so we don't spam on every
+ * session start.
+ */
+function shouldEmitStaleMigrate(cache, installed, recorded, now) {
+  if (!installed || !recorded) return false;
+  var cmp = compareVersions(parseVersion(installed), parseVersion(recorded));
+  if (cmp <= 0) return false; // already same or older (shouldn't happen) — stay quiet
+
+  if (cache.lastStaleInstalled === installed &&
+      cache.lastStaleRecorded === recorded &&
+      cache.lastStaleShownAt &&
+      (now - cache.lastStaleShownAt) < CHECK_INTERVAL_MS) {
+    return false;
+  }
+  return true;
+}
+
 function main() {
   var pluginRoot = process.env.CLAUDE_PLUGIN_ROOT;
   if (!pluginRoot) return; // not invoked via Claude Code — silent exit
@@ -152,21 +201,37 @@ function main() {
   var latest = readLatestVersion(discoverMarketplacesDir());
   var cache = readCache(cachePath());
   var now = Date.now();
+  var cacheUpdates = {};
 
-  if (!shouldEmit(cache, installed, latest, now)) return;
+  // Stage 1: newer plugin available on marketplace?
+  if (shouldEmit(cache, installed, latest, now)) {
+    var msg = '[omniscitus] Update available: v' + installed +
+              ' → v' + latest +
+              '. Run /plugin install ' + PLUGIN_NAME + '@' + PLUGIN_NAME +
+              ' --force to update.';
+    process.stdout.write(msg + '\n');
+    cacheUpdates.lastInstalled = installed;
+    cacheUpdates.lastLatest = latest;
+    cacheUpdates.lastShownAt = now;
+  }
 
-  // Emit one line. Keep it short — goes to the user's startup output.
-  var msg = '[omniscitus] Update available: v' + installed +
-            ' → v' + latest +
-            '. Run /plugin install ' + PLUGIN_NAME + '@' + PLUGIN_NAME +
-            ' --force to update.';
-  process.stdout.write(msg + '\n');
+  // Stage 2: plugin installed newer than the project's recorded
+  // migrate_version → suggest /omniscitus-update.
+  var project = readProjectMigrateVersion(process.cwd());
+  if (project && shouldEmitStaleMigrate(cache, installed, project.version, now)) {
+    var msg2 = '[omniscitus] Project was migrated at v' + project.version +
+               ' but plugin is now v' + installed +
+               '. Run /omniscitus-update to apply new canonical blocks (CLAUDE.md, statusline).';
+    process.stdout.write(msg2 + '\n');
+    cacheUpdates.lastStaleInstalled = installed;
+    cacheUpdates.lastStaleRecorded = project.version;
+    cacheUpdates.lastStaleShownAt = now;
+  }
 
-  writeCache(cachePath(), {
-    lastInstalled: installed,
-    lastLatest: latest,
-    lastShownAt: now
-  });
+  if (Object.keys(cacheUpdates).length > 0) {
+    var merged = Object.assign({}, cache, cacheUpdates);
+    writeCache(cachePath(), merged);
+  }
 }
 
 // Only run when invoked as CLI, not when imported by tests.
@@ -179,7 +244,9 @@ module.exports = {
   compareVersions: compareVersions,
   readInstalledVersion: readInstalledVersion,
   readLatestVersion: readLatestVersion,
+  readProjectMigrateVersion: readProjectMigrateVersion,
   shouldEmit: shouldEmit,
+  shouldEmitStaleMigrate: shouldEmitStaleMigrate,
   PLUGIN_NAME: PLUGIN_NAME,
   CHECK_INTERVAL_MS: CHECK_INTERVAL_MS
 };

@@ -12,5 +12,5 @@ updated: "2026-04-14"
     source: claude
     created: "2026-04-04"
     last_modified: "2026-04-14"
-    change_count: 3
+    change_count: 4
     purpose: "seed-omniscitus.js — dogfood script"

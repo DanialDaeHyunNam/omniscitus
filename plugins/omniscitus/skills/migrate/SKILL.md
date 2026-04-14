@@ -67,6 +67,12 @@ anchor:
   timestamp: {now ISO 8601}
   git_project: true          # false if user chose "Proceed without"
 
+# Plugin version that last wrote the canonical footprint content
+# (CLAUDE.md block, statusline block, README, …). Bumped by /migrate and
+# /omniscitus-update. SessionStart's version-check compares this against
+# the installed plugin version to nag the user about staleness.
+migrate_version: {plugins/omniscitus/.claude-plugin/plugin.json → version}
+
 # Files modified OUTSIDE .omniscitus/ by any omniscitus skill.
 # Every external write must append an entry here so uninstall can
 # surgically reverse them. Paths are relative to the project root.
@@ -102,9 +108,12 @@ Check if `.omniscitus/history/_index.yaml` exists. If it does, this project has 
 
   History units: {N} (from _index.yaml)
   Blueprints: {list .omniscitus/blueprints/*.yaml}
+  Recorded migrate_version: {anchor.migrate_version}  (plugin: {installed version})
 
-  If you want to re-migrate, delete .omniscitus/ first and run again.
-  If you want to sync new files, use /blueprint-sync instead.
+  Common next steps:
+    - /omniscitus-update  — re-apply the current plugin version's canonical blocks (CLAUDE.md, statusline) if they drifted.
+    - /blueprint-sync     — pick up files added outside Claude.
+    - Delete .omniscitus/ first if you truly want a full re-migration.
 ```
 
 Stop here. Do NOT proceed with migration.

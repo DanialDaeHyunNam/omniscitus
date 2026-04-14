@@ -2,6 +2,26 @@
 
 All notable changes to omniscitus. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.6.0] — 2026-04-14
+
+### Added
+
+- **`/omniscitus-update` skill.** Plugin upgrades swap the cached files in `~/.claude/plugins/` but can't touch what migrate previously wrote into the *project* (CLAUDE.md onboarding block, statusline indicator, `.omniscitus/README.md`). This skill reads `anchor.yaml`, diffs each footprint entry against the current plugin version's canonical content, and applies the changes on consent. Idempotent, marker-based for appended sections, always asks before writing. Bumps `anchor.migrate_version` at the end so the nag silences.
+- **SessionStart stale-migrate nag.** `version-check.cjs` now also checks whether the installed plugin version is newer than `anchor.migrate_version` in the nearest `.omniscitus/migrate/anchor.yaml` walking up from cwd. If so, emits a second line pointing at `/omniscitus-update`. Same 24h rate limit as the existing marketplace-upgrade nag, stored in the same cache file.
+- **`anchor.migrate_version` field.** Migrate now records which plugin version wrote the canonical footprint content. `/omniscitus-update` updates the field; the SessionStart nag reads it. Pre-0.6 anchors without the field are treated as "unknown" and handled gracefully (update runs full compare pass, writes the field for the first time).
+- **Prompt-test thresholds in seed.** Seed now writes a realistic `thresholds:` block (warn/pass cutoffs + per-criterion minimums) so the demo's Tests tab renders a meaningful Fail/Warn/Pass bar instead of a full-green 0.00 placeholder.
+
+### Changed
+
+- **Migrate CLAUDE.md onboarding block** now includes a Tests bullet: keep real test files where they live, use `/test-add {file}` to generate overlay `meta.yaml` at `.omniscitus/tests/{mirrored-path}/`.
+- **Migrate gains Phase 5.6: Status line proposal.** Mirrors what `/team-init` Step 7 already offered for team members — first-time solo migrations no longer miss the `⦿ omniscitus` indicator.
+- **Already-migrated message** (Pre-check C) now points at `/omniscitus-update` instead of telling the user to delete `.omniscitus/` and start over.
+
+### Fixed
+
+- **Birdview Tests tab is now non-dev readable.** Input and Expected render side-by-side with a `→` arrow (stacks under 720px). JSON values get syntax highlight (keys / strings / numbers / booleans / null distinct colors) and proper indentation, replacing raw `JSON.stringify` dumps.
+- **Removed "NEW" badge on the Constellation card.** It's been GA for weeks — the permanent decoration was turning into noise.
+
 ## [0.5.3] — 2026-04-14
 
 ### Fixed
