@@ -33,7 +33,7 @@
 </script>
 <style>
 /* Demo banner shown on every birdview page in the hosted preview.
- * Sits in normal flow at the top of <body>
+ * In normal flow at top of <body>
 
 <div class="omni-demo-banner">
   <span class="omni-demo-dot"></span>
@@ -41,11 +41,14 @@
   <span class="omni-demo-sep">&bull;</span>
   <a href="/" title="Back to landing page">&larr; Back to omniscitus.vercel.app</a>
 </div>
- so it pushes content down
- * instead of floating over it — fixed positioning was hiding toolbar
- * controls on some pages. */
+ so it pushes content down instead
+ * of floating over it. z-index 10000 keeps it above any fixed-position
+ * scene/canvas (notably constellation). The nudge rules below shift
+ * fixed-position layout elements (topbar, tree-panel, #scene, etc.) by
+ * the banner height so nothing hides behind it. */
 .omni-demo-banner {
   position: relative;
+  z-index: 10000;
   background: linear-gradient(90deg, rgba(124,58,237,0.18), rgba(110,231,183,0.12));
   border-bottom: 1px solid rgba(124,58,237,0.35);
   color: #e4e4e7; font-size: 12px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -57,6 +60,14 @@
 .omni-demo-banner a { color: #93c5fd; text-decoration: none; font-weight: 500; }
 .omni-demo-banner a:hover { text-decoration: underline; }
 .omni-demo-banner .omni-demo-sep { color: #3a3a4a; }
+
+/* Push constellation's fixed-layout elements down by the banner height.
+ * No-op on pages that don't have these selectors. */
+.topbar { top: 36px !important; }
+#scene { top: 36px !important; bottom: 0 !important; height: auto !important; }
+.tree-panel { top: calc(72px + 36px) !important; }
+.panel { top: calc(72px + 36px) !important; }
+.trunc-banner { top: calc(72px + 36px) !important; }
 </style>
 
 <meta charset="UTF-8">
