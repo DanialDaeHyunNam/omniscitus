@@ -17,6 +17,8 @@
   .back{color:#9ca3af;font-size:14px;display:flex;align-items:center;gap:4px;text-decoration:none}
   .back:hover{color:#e0e0e0}
   .header h1{font-size:24px;font-weight:700;margin:0;color:#fff}
+  .page-purpose{font-size:13px;color:#9ca3af;margin:-10px 0 22px;line-height:1.55;max-width:880px}
+  .page-purpose code{background:#1a1a1a;padding:2px 6px;border-radius:4px;font-size:12px;color:#c4b5fd}
 
   .layout{display:grid;grid-template-columns:240px 1fr;gap:24px;align-items:start}
   @media(max-width:768px){.layout{grid-template-columns:1fr}}
@@ -181,6 +183,12 @@
     <a href="/" class="back">&larr; Birdview</a>
     <h1>&#x1F4D7; History</h1>
   </div>
+
+  <p class="page-purpose">
+    Topic-based session logs grouped by domain (web / server / native / …). Each unit captures what
+    was done, why, and what's pending. Weekly summaries roll up automatically on the first
+    <code>/wrap-up</code> of a new week.
+  </p>
 
   <div class="layout">
     <div class="left-col">

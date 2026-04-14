@@ -18,6 +18,8 @@
   .back:hover{color:#e0e0e0}
   .header h1{font-size:24px;font-weight:700;margin:0;color:#fff}
   .header .meta{color:#6b7280;font-size:13px;margin-left:auto}
+  .page-purpose{font-size:13px;color:#9ca3af;margin:-10px 0 22px;line-height:1.55;max-width:880px}
+  .page-purpose code{background:#1a1a1a;padding:2px 6px;border-radius:4px;font-size:12px;color:#c4b5fd}
 
   .toolbar{display:flex;gap:12px;margin-bottom:12px;flex-wrap:wrap;align-items:center}
   .filter-row{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;align-items:center;font-size:12px;color:#9ca3af}
@@ -135,6 +137,12 @@
     <h1>&#x1F4D8; Blueprint</h1>
     <span class="meta" id="updated"></span>
   </div>
+
+  <p class="page-purpose">
+    Every tracked file with authorship, change count, and purpose. A <code>PostToolUse</code> hook
+    updates this live on every Edit / Write. Use the filters to narrow by status, recency, or author,
+    or run <code>/blueprint-sync</code> to catch files edited outside Claude.
+  </p>
 
   <div class="toolbar">
     <input type="text" class="search" id="search" placeholder="Search by file path...">

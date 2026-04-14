@@ -95,13 +95,14 @@ const FETCH_INTERCEPTOR = `
 </script>
 <style>
 /* Demo banner shown on every birdview page in the hosted preview.
- * In normal flow at top of <body> so it pushes content down instead
- * of floating over it. z-index 10000 keeps it above any fixed-position
- * scene/canvas (notably constellation). The nudge rules below shift
- * fixed-position layout elements (topbar, tree-panel, #scene, etc.) by
- * the banner height so nothing hides behind it. */
+ * Fixed at top so it always renders (constellation's html/body use
+ * overflow:hidden, which makes in-flow positioning invisible there).
+ * body padding-top handles normal-flow pages; the nudge rules below
+ * handle fixed-layout pages (constellation) whose elements ignore
+ * body padding. */
 .omni-demo-banner {
-  position: relative;
+  position: fixed; top: 0; left: 0; right: 0;
+  height: 36px; box-sizing: border-box;
   z-index: 10000;
   background: linear-gradient(90deg, rgba(124,58,237,0.18), rgba(110,231,183,0.12));
   border-bottom: 1px solid rgba(124,58,237,0.35);
@@ -109,6 +110,7 @@ const FETCH_INTERCEPTOR = `
   padding: 8px 16px; display: flex; align-items: center; gap: 12px;
   backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
 }
+body { padding-top: 36px; }
 .omni-demo-banner strong { color: #c4b5fd; font-weight: 600; }
 .omni-demo-banner .omni-demo-dot { width: 7px; height: 7px; border-radius: 50%; background: #6ee7b7; box-shadow: 0 0 8px #6ee7b7; flex-shrink: 0; }
 .omni-demo-banner a { color: #93c5fd; text-decoration: none; font-weight: 500; }

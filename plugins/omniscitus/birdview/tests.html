@@ -17,6 +17,8 @@
   .back{color:#9ca3af;font-size:14px;display:flex;align-items:center;gap:4px;text-decoration:none}
   .back:hover{color:#e0e0e0}
   .header h1{font-size:24px;font-weight:700;margin:0;color:#fff}
+  .page-purpose{font-size:13px;color:#9ca3af;margin:-10px 0 22px;line-height:1.55;max-width:880px}
+  .page-purpose code{background:#1a1a1a;padding:2px 6px;border-radius:4px;font-size:12px;color:#c4b5fd}
   .header .meta{color:#6b7280;font-size:13px;margin-left:auto}
 
   .badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:12px;font-weight:500}
@@ -339,6 +341,13 @@
     <h1>&#x1F9EA; Tests</h1>
     <span class="meta" id="meta"></span>
   </div>
+
+  <p class="page-purpose">
+    Overlay metadata over your existing test files — real tests stay where they already live.
+    <strong>Code Tests</strong> index unit tests (per suite / case). <strong>Prompt Tests</strong>
+    track LLM-judged evaluations with score thresholds. Use <code>/test-add {file}</code> or
+    <code>/test-add:prompt {name}</code> to scaffold new ones.
+  </p>
 
   <div class="top-tabs">
     <button class="top-tab active" data-tab="code-tests">Code Tests</button>
