@@ -2,6 +2,12 @@
 
 All notable changes to omniscitus. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.8.1] — 2026-04-17
+
+### Fixed
+
+- **Weekly summary cards vanished when `_index.yaml` was dumped in block-list style.** `parseWeeklySummariesYaml` treated any column-zero non-blank line as a section terminator, which meant the very first `- week: …` entry ended the section and the parser returned `[]`. Any tool that round-tripped `_index.yaml` through default js-yaml / PyYAML output (emitting `- week: 2026-W14` instead of the weekly-backfill writer's `  - week: "2026-W14"`) silently hid every weekly card in birdview. Parser now accepts both list styles, and `domains:` accepts both inline `[a, b]` and block-list `- a\n- b`. Regression tests cover each shape.
+
 ## [0.8.0] — 2026-04-14
 
 ### Added
