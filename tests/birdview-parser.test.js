@@ -307,6 +307,77 @@ test('parseWeeklySummariesYaml: coexists with units section', () => {
   assert.equal(summaries[0].week, '2026-W14');
 });
 
+test('parseWeeklySummariesYaml: block-style list (0-indent `- week:`, unquoted values)', () => {
+  // Regression: js-yaml / PyYAML default dumps emit list items at column
+  // zero without quotes. The earlier parser treated the first `- week:`
+  // line as a section terminator and returned []. This test locks in the
+  // dual-format support.
+  const yaml = [
+    'weekly_summaries:',
+    '- week: 2026-W14',
+    '  file: _weekly/2026-W14.md',
+    '  start: \'2026-03-30\'',
+    '  end: \'2026-04-05\'',
+    '  unit_count: 5',
+    '  domains:',
+    '  - web',
+    '  - server',
+    '  generated_at: \'2026-04-13\'',
+    '- week: 2026-W15',
+    '  file: _weekly/2026-W15.md',
+    '  start: \'2026-04-06\'',
+    '  end: \'2026-04-12\'',
+    '  unit_count: 3',
+    '  domains:',
+    '  - devops',
+    '  generated_at: \'2026-04-13\'',
+    ''
+  ].join('\n');
+  const summaries = parseWeeklySummariesYaml(yaml);
+  assert.equal(summaries.length, 2);
+  assert.equal(summaries[0].week, '2026-W14');
+  assert.equal(summaries[0].file, '_weekly/2026-W14.md');
+  assert.equal(summaries[0].start, '2026-03-30');
+  assert.equal(summaries[0].end, '2026-04-05');
+  assert.equal(summaries[0].unit_count, 5);
+  assert.deepEqual(summaries[0].domains, ['web', 'server']);
+  assert.equal(summaries[0].generated_at, '2026-04-13');
+  assert.equal(summaries[1].week, '2026-W15');
+  assert.deepEqual(summaries[1].domains, ['devops']);
+});
+
+test('parseWeeklySummariesYaml: block-style domains list with 2-indent entries', () => {
+  // Mixed: 2-indent entry header but block-style domains sublist.
+  const yaml = [
+    'weekly_summaries:',
+    '  - week: "2026-W14"',
+    '    file: "_weekly/2026-W14.md"',
+    '    unit_count: 2',
+    '    domains:',
+    '      - web',
+    '      - devops',
+    ''
+  ].join('\n');
+  const summaries = parseWeeklySummariesYaml(yaml);
+  assert.equal(summaries.length, 1);
+  assert.deepEqual(summaries[0].domains, ['web', 'devops']);
+});
+
+test('parseWeeklySummariesYaml: trailing top-level key after block-style list ends section', () => {
+  // A non-list line at column 0 (other than weekly_summaries) must still
+  // terminate the section so an unrelated trailing key isn't swallowed.
+  const yaml = [
+    'weekly_summaries:',
+    '- week: 2026-W14',
+    '  unit_count: 1',
+    'unrelated_key: value',
+    ''
+  ].join('\n');
+  const summaries = parseWeeklySummariesYaml(yaml);
+  assert.equal(summaries.length, 1);
+  assert.equal(summaries[0].week, '2026-W14');
+});
+
 test('parseIndexYaml: skips weekly_summaries entries (does not treat - week: as a unit)', () => {
   // Regression: an earlier parser draft that used the same `- ` line
   // recognizer would have mis-counted weekly entries as units.
