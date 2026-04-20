@@ -190,6 +190,10 @@
       <button class="tab" data-date="all">All time</button>
       <button class="tab active" data-date="7d">Last 7d</button>
     </div>
+    <div class="tab-group">
+      <button class="tab active" data-sort="recent">Recent</button>
+      <button class="tab" data-sort="alpha">A&ndash;Z</button>
+    </div>
     <span class="count" id="count"></span>
   </div>
   <div class="filter-row" id="author-filter">
@@ -267,6 +271,7 @@ function toast(msg, type) {
 var data = null;
 var filter = 'all';
 var dateFilter = '7d';        // '7d' or 'all'
+var sortMode = 'recent';      // 'recent' (last_modified desc) or 'alpha'
 var excludedAuthors = {};     // author string → true means hidden
 var search = '';
 var changelogOpen = {};       // file path → bool, per-file changelog expansion
@@ -428,6 +433,11 @@ function renderTree(node, depth) {
   var keys = Object.keys(node.children).sort(function(a, b) {
     var ca = node.children[a], cb = node.children[b];
     if (ca.type !== cb.type) return ca.type === 'folder' ? -1 : 1;
+    if (sortMode === 'recent') {
+      var la = ca.type === 'folder' ? (ca._latest || '') : ((ca.entry && ca.entry.last_modified) || '');
+      var lb = cb.type === 'folder' ? (cb._latest || '') : ((cb.entry && cb.entry.last_modified) || '');
+      if (la !== lb) return lb.localeCompare(la); // most recent first
+    }
     return a.localeCompare(b);
   });
   if (keys.length === 0) return '';
@@ -664,6 +674,7 @@ document.querySelectorAll('.tab-group').forEach(function(group) {
     tab.classList.add('active');
     if (tab.hasAttribute('data-filter')) filter = tab.getAttribute('data-filter');
     if (tab.hasAttribute('data-date')) dateFilter = tab.getAttribute('data-date');
+    if (tab.hasAttribute('data-sort')) sortMode = tab.getAttribute('data-sort');
     render();
   });
 });
