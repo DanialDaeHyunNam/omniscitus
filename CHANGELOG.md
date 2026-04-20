@@ -2,6 +2,12 @@
 
 All notable changes to omniscitus. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.8.2] — 2026-04-20
+
+### Changed
+
+- **Birdview Blueprint and Constellation trees now sort by most-recently-modified by default**, with an A–Z toggle in the filter bar. Previously both views hard-coded alphabetical order, so stale folders floated to the top just because their names started with `a`. Folders now propagate their most-recent descendant timestamp (`_latest`) so a folder with a fresh child sorts to the top too, not the bottom.
+
 ## [0.8.1] — 2026-04-17
 
 ### Fixed

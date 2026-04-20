@@ -345,6 +345,10 @@ body { padding-top: 36px; }
       <button class="tree-date-btn" data-date="all">All time</button>
       <button class="tree-date-btn active" data-date="7d">Last 7d</button>
     </div>
+    <div class="tree-date-group">
+      <button class="tree-date-btn active" data-sort="recent">Recent</button>
+      <button class="tree-date-btn" data-sort="alpha">A&ndash;Z</button>
+    </div>
     <div class="author-bar" id="author-bar"><span class="lbl">Authors:</span></div>
   </div>
   <div class="tree-panel-header" id="tree-panel-header">
@@ -1005,6 +1009,16 @@ document.querySelectorAll('[data-date]').forEach(function(btn) {
   });
 });
 
+// Sort toggle (Recent / A–Z) — only re-renders the tree panel; 3D scene unaffected
+document.querySelectorAll('[data-sort]').forEach(function(btn) {
+  btn.addEventListener('click', function() {
+    document.querySelectorAll('[data-sort]').forEach(function(b) { b.classList.remove('active'); });
+    btn.classList.add('active');
+    sortMode = btn.getAttribute('data-sort');
+    buildTreePanel();
+  });
+});
+
 // Author chips (click to toggle excluded state)
 document.getElementById('author-bar').addEventListener('click', function(ev) {
   const chip = ev.target.closest('.author-chip-c');
@@ -1123,6 +1137,7 @@ let treeSearchQuery = '';
 // files. Users can flip to All time from the topbar. Author chips render
 // after the scene is built (see renderAuthorChips).
 let dateFilter = '7d';            // '7d' or 'all'
+let sortMode = 'recent';          // 'recent' (last_modified desc) or 'alpha'
 const excludedAuthors = new Set();
 
 function matchesDateFilter(entry) {
@@ -1194,7 +1209,7 @@ function buildTreePanel() {
   }
 
   // Build hierarchical tree
-  const root = { children: {}, _count: 0 };
+  const root = { children: {}, _count: 0, _latest: '' };
   bpEntries.forEach(({ idx, path }) => {
     const parts = path.split('/');
     let cursor = root;
@@ -1202,22 +1217,32 @@ function buildTreePanel() {
     for (let k = 0; k < parts.length - 1; k++) {
       acc = acc ? acc + '/' + parts[k] : parts[k];
       if (!cursor.children[parts[k]]) {
-        cursor.children[parts[k]] = { type: 'folder', name: parts[k], path: acc, children: {}, _count: 0 };
+        cursor.children[parts[k]] = { type: 'folder', name: parts[k], path: acc, children: {}, _count: 0, _latest: '' };
       }
       cursor = cursor.children[parts[k]];
     }
     const fname = parts[parts.length - 1];
-    cursor.children[fname] = { type: 'file', name: fname, path, nodeIdx: idx };
+    const entry = (nodes[idx] && nodes[idx].entry) || null;
+    const lastModified = (entry && entry.last_modified) || '';
+    cursor.children[fname] = { type: 'file', name: fname, path, nodeIdx: idx, _lastModified: lastModified };
   });
 
-  // Count files per folder (recursive)
+  // Count files + compute most-recent descendant timestamp per folder (recursive)
   function countFolder(folder) {
     let c = 0;
+    let latest = '';
     Object.values(folder.children).forEach(child => {
-      if (child.type === 'folder') { countFolder(child); c += child._count; }
-      else c += 1;
+      if (child.type === 'folder') {
+        countFolder(child);
+        c += child._count;
+        if (child._latest > latest) latest = child._latest;
+      } else {
+        c += 1;
+        if (child._lastModified > latest) latest = child._lastModified;
+      }
     });
     folder._count = c;
+    folder._latest = latest;
   }
   countFolder(root);
 
@@ -1242,6 +1267,11 @@ function renderTreeList(root, container) {
     const keys = Object.keys(node.children).sort((a, b) => {
       const ca = node.children[a], cb = node.children[b];
       if (ca.type !== cb.type) return ca.type === 'folder' ? -1 : 1;
+      if (sortMode === 'recent') {
+        const la = ca.type === 'folder' ? (ca._latest || '') : (ca._lastModified || '');
+        const lb = cb.type === 'folder' ? (cb._latest || '') : (cb._lastModified || '');
+        if (la !== lb) return lb.localeCompare(la); // most recent first
+      }
       return a.localeCompare(b);
     });
     let html = '';
