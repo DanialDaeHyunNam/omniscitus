@@ -2,6 +2,12 @@
 
 All notable changes to omniscitus. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.8.3] — 2026-04-23
+
+### Added
+
+- **`/omniscitus-migrate` now offers to add `.omniscitus/** linguist-generated=true` to `.gitattributes`.** GitHub's linguist treats this attribute the same as lock files (`uv.lock`, `package-lock.json`) — `.omniscitus/` tracking diffs collapse by default in PR review and drop out of the language stats. Reviewers see real changes instead of a wall of blueprint timestamp updates. CLI `git diff` is unaffected; reviewers can still click "Load diff" on demand. Phase 5.7 handles both cases (file doesn't exist → `created`; file exists → `appended` with the rule line itself as the literal marker, chosen so uninstall removes exactly one line via `remove-section` without tripping the markdown-heading branch of `classifyMarker`).
+
 ## [0.8.2] — 2026-04-20
 
 ### Changed
