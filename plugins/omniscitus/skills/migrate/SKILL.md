@@ -722,6 +722,82 @@ Files edited live in `~/.claude/` (user-global), not the repo — so **do
 not record a footprint entry**. The user controls their own status line.
 Uninstall does not touch it.
 
+### Phase 5.7: GitHub PR Diff Suppression
+
+`.omniscitus/blueprints/*.yaml` and `.omniscitus/history/**` change on
+nearly every Claude Code session. Without intervention, every PR ends up
+with a wall of tracking diffs that drown out the real review. GitHub's
+[linguist](https://github.com/github-linguist/linguist) treats lock files
+(`uv.lock`, `package-lock.json`, …) as generated and collapses them by
+default — we can opt `.omniscitus/**` into the same behavior with a
+single `.gitattributes` rule.
+
+Effect: in the GitHub PR `Files changed` tab, `.omniscitus/**` diffs are
+**collapsed by default** (reviewer clicks "Load diff" to see them) and
+excluded from the repo's language statistics. CLI `git diff` is
+unaffected.
+
+Use AskUserQuestion:
+- question: "Hide `.omniscitus/**` diffs in GitHub PR view? (Recommended)"
+- description: "Adds `.omniscitus/** linguist-generated=true` to `.gitattributes`. Auto-tracking diffs collapse by default in PR review (like `uv.lock`), so reviewers focus on real changes. CLI `git diff` is unaffected."
+- options:
+  - "Add it (Recommended)"
+  - "Skip — I'll add later"
+
+If the user accepts, branch on whether `.gitattributes` exists at the
+project root:
+
+#### Case A: `.gitattributes` does not exist
+
+Create it with a header comment and the rule:
+
+```
+# .gitattributes — created by /omniscitus-migrate
+# Collapses .omniscitus/ tracking diffs in GitHub PR view (linguist-generated).
+.omniscitus/** linguist-generated=true
+```
+
+Record the footprint as `created` (uninstall deletes the whole file):
+
+```yaml
+- path: .gitattributes
+  action: created
+  by: migrate
+  timestamp: {ISO}
+```
+
+#### Case B: `.gitattributes` exists
+
+First check if the rule is already present:
+
+```bash
+grep -F '.omniscitus/** linguist-generated=true' .gitattributes
+```
+
+If matched, skip silently (already configured — possibly by an earlier
+migrate run or by hand).
+
+If not matched, append the rule line (with a leading blank line if the
+file doesn't end in one) — **just the rule, no comment**. The bare rule
+is self-documenting to anyone familiar with linguist; adding a `#`
+comment line would be classified as a markdown heading by uninstall's
+marker logic and could over-remove on cleanup.
+
+```
+.omniscitus/** linguist-generated=true
+```
+
+Record the footprint with the rule line itself as the literal marker
+(uninstall removes exactly that one line via `remove-section`):
+
+```yaml
+- path: .gitattributes
+  action: appended
+  marker: ".omniscitus/** linguist-generated=true"
+  by: migrate
+  timestamp: {ISO}
+```
+
 ### Phase 5.75: Generate .omniscitus/README.md
 
 Write a short README at `.omniscitus/README.md` so anyone opening the
@@ -840,6 +916,7 @@ both counts are non-zero.
 
 📊 Status bar: omniscitus indicator {added / already present / skipped}
 📝 CLAUDE.md: onboarding block {added / already present / skipped}
+🙈 .gitattributes: PR diff suppression {added / already present / skipped}
 
 🔗 What's next:
   - /wrap-up after your next session to start building open units
